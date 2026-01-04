@@ -14,6 +14,7 @@
 #include "ns3/event-id.h"
 #include "ns3/nstime.h"
 #include "ns3/object.h"
+#include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 #include "ns3/traced-value.h"
 
@@ -22,15 +23,8 @@
 namespace ns3
 {
 
-/**
- * @ingroup distributed
- * @brief Models a GPU accelerator with compute and memory bandwidth.
- *
- * The GpuAccelerator processes tasks sequentially, modeling:
- * - Input data transfer (memory bandwidth limited)
- * - Compute execution (FLOPS limited)
- * - Output data transfer (memory bandwidth limited)
- */
+class Node;
+
 class GpuAccelerator : public Object
 {
   public:
@@ -73,6 +67,8 @@ class GpuAccelerator : public Object
      */
     double GetMemoryBandwidth() const;
 
+    Ptr<Node> GetNode() const;
+
     /**
      * @brief TracedCallback signature for task events.
      * @param task The task.
@@ -88,6 +84,7 @@ class GpuAccelerator : public Object
 
   protected:
     void DoDispose() override;
+    void NotifyNewAggregate() override;
 
   private:
     /**
@@ -111,25 +108,28 @@ class GpuAccelerator : public Object
     void OutputTransferComplete();
 
     // Attributes
-    double m_computeRate;      //!< Compute rate in FLOPS
-    double m_memoryBandwidth;  //!< Memory bandwidth in bytes/sec
+
+    Ptr<Node> m_node;
+
+    double m_computeRate;     //!< Compute rate in FLOPS
+    double m_memoryBandwidth; //!< Memory bandwidth in bytes/sec
 
     // State
-    std::queue<Ptr<Task>> m_taskQueue;  //!< Queue of pending tasks
-    Ptr<Task> m_currentTask;            //!< Currently executing task
-    bool m_busy;                        //!< True if processing a task
-    EventId m_currentEvent;             //!< Current scheduled event
-    Time m_taskStartTime;               //!< When current task started
+    std::queue<Ptr<Task>> m_taskQueue; //!< Queue of pending tasks
+    Ptr<Task> m_currentTask;           //!< Currently executing task
+    bool m_busy;                       //!< True if processing a task
+    EventId m_currentEvent;            //!< Current scheduled event
+    Time m_taskStartTime;              //!< When current task started
 
     // Statistics
-    uint64_t m_tasksCompleted;  //!< Number of completed tasks
+    uint64_t m_tasksCompleted; //!< Number of completed tasks
 
     // Traced values
-    TracedValue<uint32_t> m_queueLength;  //!< Current queue length
+    TracedValue<uint32_t> m_queueLength; //!< Current queue length
 
     // Trace sources
-    TracedCallback<Ptr<const Task>> m_taskStartedTrace;        //!< Task started
-    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace;  //!< Task completed
+    TracedCallback<Ptr<const Task>> m_taskStartedTrace;         //!< Task started
+    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace; //!< Task completed
 };
 
 } // namespace ns3

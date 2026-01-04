@@ -10,6 +10,7 @@
 
 #include "ns3/double.h"
 #include "ns3/log.h"
+#include "ns3/node.h"
 #include "ns3/simulator.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/uinteger.h"
@@ -54,7 +55,8 @@ GpuAccelerator::GetTypeId()
 }
 
 GpuAccelerator::GpuAccelerator()
-    : m_computeRate(1e12),
+    : m_node(nullptr),
+      m_computeRate(1e12),
       m_memoryBandwidth(900e9),
       m_currentTask(nullptr),
       m_busy(false),
@@ -70,6 +72,22 @@ GpuAccelerator::~GpuAccelerator()
 }
 
 void
+GpuAccelerator::NotifyNewAggregate()
+{
+    if (!m_node)
+    {
+        m_node = GetObject<Node>();
+    }
+    Object::NotifyNewAggregate();
+}
+
+Ptr<Node>
+GpuAccelerator::GetNode() const
+{
+    return m_node;
+}
+
+void
 GpuAccelerator::DoDispose()
 {
     NS_LOG_FUNCTION(this);
@@ -79,6 +97,7 @@ GpuAccelerator::DoDispose()
     {
         m_taskQueue.pop();
     }
+    m_node = nullptr;
     Object::DoDispose();
 }
 
