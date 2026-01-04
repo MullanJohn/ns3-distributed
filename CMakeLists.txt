@@ -13,10 +13,22 @@ endif()
 build_lib(
     LIBNAME distributed
     SOURCE_FILES model/distributed.cc
+                 model/task.cc
+                 model/gpu-accelerator.cc
+                 model/task-generator.cc
                  helper/distributed-helper.cc
+                 helper/task-generator-helper.cc
     HEADER_FILES model/distributed.h
+                 model/task.h
+                 model/gpu-accelerator.h
+                 model/task-generator.h
                  helper/distributed-helper.h
+                 helper/task-generator-helper.h
     LIBRARIES_TO_LINK ${libcore}
+                      ${libnetwork}
     TEST_SOURCES test/distributed-test-suite.cc
+                 test/gpu-accelerator-test.cc
+                 test/gpu-accelerator-queue-test.cc
+                 test/task-generator-test.cc
                  ${examples_as_tests_sources}
 )
