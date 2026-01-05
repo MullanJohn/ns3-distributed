@@ -363,7 +363,7 @@ OffloadServer::ProcessTask(const OffloadHeader& header, Ptr<Socket> socket)
 
     if (!m_accelerator)
     {
-        NS_LOG_WARN("No accelerator available, dropping task " << header.GetTaskId());
+        NS_LOG_ERROR("No accelerator available, dropping task " << header.GetTaskId());
         return;
     }
 
@@ -454,7 +454,7 @@ void
 OffloadServer::HandlePeerClose(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("Client disconnected");
+    NS_LOG_INFO("Client disconnected from port " << m_port);
     CleanupSocket(socket);
 }
 
@@ -462,7 +462,7 @@ void
 OffloadServer::HandlePeerError(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_WARN("Socket error");
+    NS_LOG_ERROR("Socket error on connection");
     CleanupSocket(socket);
 }
 

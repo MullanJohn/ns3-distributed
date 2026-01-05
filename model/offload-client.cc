@@ -216,7 +216,7 @@ void
 OffloadClient::ConnectionSucceeded(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("Connection succeeded");
+    NS_LOG_INFO("Client " << m_clientId << " connected to " << m_peer);
     m_connected = true;
 
     // Set up receive callback for responses
@@ -240,7 +240,7 @@ OffloadClient::SendTask()
 
     if (!m_connected)
     {
-        NS_LOG_WARN("Not connected, cannot send task");
+        NS_LOG_DEBUG("Not connected, cannot send task");
         return;
     }
 
