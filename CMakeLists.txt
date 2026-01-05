@@ -16,12 +16,14 @@ build_lib(
                  model/task.cc
                  model/gpu-accelerator.cc
                  model/task-generator.cc
+                 model/offload-header.cc
                  helper/distributed-helper.cc
                  helper/task-generator-helper.cc
     HEADER_FILES model/distributed.h
                  model/task.h
                  model/gpu-accelerator.h
                  model/task-generator.h
+                 model/offload-header.h
                  helper/distributed-helper.h
                  helper/task-generator-helper.h
     LIBRARIES_TO_LINK ${libcore}
