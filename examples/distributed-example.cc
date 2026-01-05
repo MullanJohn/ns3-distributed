@@ -6,159 +6,240 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
+#include "ns3/applications-module.h"
 #include "ns3/core-module.h"
 #include "ns3/gpu-accelerator.h"
+#include "ns3/internet-module.h"
 #include "ns3/network-module.h"
-#include "ns3/task-generator-helper.h"
-#include "ns3/task-generator.h"
+#include "ns3/offload-client-helper.h"
+#include "ns3/offload-client.h"
+#include "ns3/offload-header.h"
+#include "ns3/offload-server-helper.h"
+#include "ns3/offload-server.h"
+#include "ns3/point-to-point-module.h"
 #include "ns3/task.h"
-
-using namespace ns3;
-
-NS_LOG_COMPONENT_DEFINE("DistributedExample");
 
 // ===========================================================================
 //
 //  Distributed Computing Simulation Example
 //
-//  This example demonstrates a task generator sending computational tasks
-//  to a GPU accelerator. Tasks arrive following a Poisson process and are
-//  processed sequentially by the GPU.
+//  This example demonstrates task offloading from a client to a server over
+//  a point-to-point network link. The client generates computational tasks
+//  and sends them to the server, which processes them on a GPU accelerator
+//  and returns responses.
 //
-//         TaskGenerator                    GpuAccelerator
-//       +---------------+                +------------------+
-//       |   Generates   |   SubmitTask   |   Processes      |
-//       |    tasks      | -------------> |   tasks via:     |
-//       |   (Poisson    |                |   1. Input xfer  |
-//       |    arrivals)  |                |   2. Compute     |
-//       +---------------+                |   3. Output xfer |
-//                                        +------------------+
+//       Client Node (n0)                      Server Node (n1)
+//      +---------------+                     +------------------+
+//      |               |                     |                  |
+//      | OffloadClient |  TCP over P2P link  |  OffloadServer   |
+//      |   Generates   | ------------------> |    Receives      |
+//      |    tasks      | <------------------ |      tasks       |
+//      |               |   TASK_RESPONSE     |        |         |
+//      +---------------+                     |        v         |
+//         10.1.1.1                           |  GpuAccelerator  |
+//                                            |   Processes via: |
+//                                            |   1. Input xfer  |
+//                                            |   2. Compute     |
+//                                            |   3. Output xfer |
+//                                            +------------------+
+//                                               10.1.1.2
 //
-//  Task parameters (compute demand, input/output sizes) and GPU parameters
-//  (compute rate, memory bandwidth) can be configured via command line.
+//  End-to-end latency includes:
+//    - Network transmission (input data to server)
+//    - GPU processing (input transfer + compute + output transfer)
+//    - Network transmission (response to client)
 //
 // ===========================================================================
 
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE("DistributedExample");
+
 /**
- * Callback for when a task is generated
+ * Callback for when a task is sent by the client.
  *
- * @param task The generated task
+ * @param header The offload header that was sent.
  */
 static void
-TaskGenerated(Ptr<const Task> task)
+TaskSent(const OffloadHeader& header)
 {
-    NS_LOG_UNCOND(Simulator::Now().GetSeconds()
-                  << "s: Task " << task->GetTaskId() << " generated"
-                  << " | compute=" << task->GetComputeDemand() / 1e9 << " GFLOP"
-                  << " | input=" << task->GetInputSize() / 1024.0 << " KB"
-                  << " | output=" << task->GetOutputSize() / 1024.0 << " KB");
+    NS_LOG_UNCOND(Simulator::Now().As(Time::S)
+                  << " [Client] Task " << header.GetTaskId() << " sent"
+                  << " (input=" << header.GetInputSize() / 1024.0 << " KB"
+                  << ", compute=" << header.GetComputeDemand() / 1e9 << " GFLOP)");
 }
 
 /**
- * Callback for when a task starts processing
+ * Callback for when a response is received by the client.
  *
- * @param task The task that started
+ * @param header The offload header from the response.
+ * @param rtt Round-trip time from task sent to response received.
  */
 static void
-TaskStarted(Ptr<const Task> task)
+ResponseReceived(const OffloadHeader& header, Time rtt)
 {
-    NS_LOG_UNCOND(Simulator::Now().GetSeconds()
-                  << "s: Task " << task->GetTaskId() << " started processing");
+    NS_LOG_UNCOND(Simulator::Now().As(Time::S)
+                  << " [Client] Task " << header.GetTaskId() << " response received"
+                  << " (RTT=" << rtt.As(Time::MS) << ")");
 }
 
 /**
- * Callback for when a task completes
+ * Callback for when a task is received by the server.
  *
- * @param task The completed task
- * @param duration Processing duration
+ * @param header The offload header that was received.
  */
 static void
-TaskCompleted(Ptr<const Task> task, Time duration)
+TaskReceived(const OffloadHeader& header)
 {
-    Time responseTime = Simulator::Now() - task->GetArrivalTime();
-    NS_LOG_UNCOND(Simulator::Now().GetSeconds()
-                  << "s: Task " << task->GetTaskId() << " completed"
-                  << " | processing=" << duration.GetMilliSeconds() << "ms"
-                  << " | response=" << responseTime.GetMilliSeconds() << "ms");
+    NS_LOG_UNCOND(Simulator::Now().As(Time::S)
+                  << " [Server] Task " << header.GetTaskId() << " received");
 }
 
 /**
- * Callback for queue length changes
+ * Callback for when a task starts processing on the GPU.
  *
- * @param oldValue Previous queue length
- * @param newValue New queue length
+ * @param task The task that started.
  */
 static void
-QueueLengthChanged(uint32_t oldValue, uint32_t newValue)
+GpuTaskStarted(Ptr<const Task> task)
 {
-    NS_LOG_UNCOND(Simulator::Now().GetSeconds()
-                  << "s: Queue length changed: " << oldValue << " -> " << newValue);
+    NS_LOG_UNCOND(Simulator::Now().As(Time::S)
+                  << " [GPU] Task " << task->GetTaskId() << " started processing");
+}
+
+/**
+ * Callback for when a task completes processing on the GPU.
+ *
+ * @param task The completed task.
+ * @param duration Processing duration.
+ */
+static void
+GpuTaskCompleted(Ptr<const Task> task, Time duration)
+{
+    NS_LOG_UNCOND(Simulator::Now().As(Time::S)
+                  << " [GPU] Task " << task->GetTaskId() << " completed"
+                  << " (processing=" << duration.As(Time::MS) << ")");
+}
+
+/**
+ * Callback for when the server sends a response.
+ *
+ * @param header The offload header for the response.
+ * @param duration The processing duration.
+ */
+static void
+ServerTaskCompleted(const OffloadHeader& header, Time duration)
+{
+    NS_LOG_UNCOND(Simulator::Now().As(Time::S)
+                  << " [Server] Task " << header.GetTaskId() << " response sent");
 }
 
 int
 main(int argc, char* argv[])
 {
     // Default parameters
-    double simTime = 0.5;             // Simulation time in seconds
-    uint64_t numTasks = 20;           // Number of tasks to generate
-    double meanInterArrival = 0.02;   // Mean inter-arrival time (20ms)
-    double meanComputeDemand = 5e9;   // Mean compute demand (5 GFLOP)
-    double meanInputSize = 10e6;      // Mean input size (10 MB)
-    double meanOutputSize = 1e6;      // Mean output size (1 MB)
-    double computeRate = 1e12;        // GPU compute rate (1 TFLOPS)
-    double memoryBandwidth = 900e9;   // GPU memory bandwidth (900 GB/s)
-    bool traceQueue = false;          // Trace queue length changes
+    std::string dataRate = "100Mbps";
+    std::string delay = "5ms";
+    double simTime = 2.0;
+    uint64_t numTasks = 5;
+    double meanInterArrival = 0.05;
+    double meanComputeDemand = 5e9;
+    double meanInputSize = 1e5;
+    double meanOutputSize = 1e4;
+    double computeRate = 1e12;
+    double memoryBandwidth = 900e9;
 
     CommandLine cmd(__FILE__);
+    cmd.AddValue("dataRate", "Link data rate", dataRate);
+    cmd.AddValue("delay", "Link delay", delay);
     cmd.AddValue("simTime", "Simulation time in seconds", simTime);
-    cmd.AddValue("numTasks", "Number of tasks to generate (0=unlimited)", numTasks);
+    cmd.AddValue("numTasks", "Number of tasks to generate", numTasks);
     cmd.AddValue("meanInterArrival", "Mean task inter-arrival time in seconds", meanInterArrival);
     cmd.AddValue("meanComputeDemand", "Mean compute demand in FLOPS", meanComputeDemand);
     cmd.AddValue("meanInputSize", "Mean input data size in bytes", meanInputSize);
     cmd.AddValue("meanOutputSize", "Mean output data size in bytes", meanOutputSize);
     cmd.AddValue("computeRate", "GPU compute rate in FLOPS", computeRate);
     cmd.AddValue("memoryBandwidth", "GPU memory bandwidth in bytes/sec", memoryBandwidth);
-    cmd.AddValue("traceQueue", "Enable queue length tracing", traceQueue);
     cmd.Parse(argc, argv);
 
-    // Create a node to host the application
-    Ptr<Node> node = CreateObject<Node>();
+    NS_LOG_UNCOND("Single-Client Distributed Computing Example");
+    NS_LOG_UNCOND("Number of Tasks: " << numTasks);
+    NS_LOG_UNCOND("");
 
-    // Create GPU accelerator with specified parameters
+    // Create nodes
+    NodeContainer nodes;
+    nodes.Create(2);
+
+    // Create point-to-point link
+    PointToPointHelper pointToPoint;
+    pointToPoint.SetDeviceAttribute("DataRate", StringValue(dataRate));
+    pointToPoint.SetChannelAttribute("Delay", StringValue(delay));
+
+    NetDeviceContainer devices;
+    devices = pointToPoint.Install(nodes);
+
+    // Install internet stack
+    InternetStackHelper stack;
+    stack.Install(nodes);
+
+    // Assign IP addresses
+    Ipv4AddressHelper address;
+    address.SetBase("10.1.1.0", "255.255.255.0");
+    Ipv4InterfaceContainer interfaces = address.Assign(devices);
+
+    // Create GPU accelerator and aggregate to server node
     Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
     gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
     gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+    nodes.Get(1)->AggregateObject(gpu);
 
     // Connect GPU trace sources
-    gpu->TraceConnectWithoutContext("TaskStarted", MakeCallback(&TaskStarted));
-    gpu->TraceConnectWithoutContext("TaskCompleted", MakeCallback(&TaskCompleted));
-    if (traceQueue)
-    {
-        gpu->TraceConnectWithoutContext("QueueLength", MakeCallback(&QueueLengthChanged));
-    }
+    gpu->TraceConnectWithoutContext("TaskStarted", MakeCallback(&GpuTaskStarted));
+    gpu->TraceConnectWithoutContext("TaskCompleted", MakeCallback(&GpuTaskCompleted));
 
-    // Create task generator using helper
-    TaskGeneratorHelper helper(gpu);
-    helper.SetMeanInterArrival(meanInterArrival);
-    helper.SetMeanComputeDemand(meanComputeDemand);
-    helper.SetMeanInputSize(meanInputSize);
-    helper.SetMeanOutputSize(meanOutputSize);
-    helper.SetMaxTasks(numTasks);
+    // Install OffloadServer on node 1
+    uint16_t port = 9000;
+    OffloadServerHelper serverHelper(port);
+    ApplicationContainer serverApps = serverHelper.Install(nodes.Get(1));
 
-    // Install application on node
-    ApplicationContainer apps = helper.Install(node);
+    Ptr<OffloadServer> server = DynamicCast<OffloadServer>(serverApps.Get(0));
+    server->TraceConnectWithoutContext("TaskReceived", MakeCallback(&TaskReceived));
+    server->TraceConnectWithoutContext("TaskCompleted", MakeCallback(&ServerTaskCompleted));
 
-    // Connect task generator trace
-    Ptr<TaskGenerator> generator = DynamicCast<TaskGenerator>(apps.Get(0));
-    generator->TraceConnectWithoutContext("TaskGenerated", MakeCallback(&TaskGenerated));
+    serverApps.Start(Seconds(0.0));
+    serverApps.Stop(Seconds(simTime + 1.0));
 
-    // Set application timing
-    apps.Start(Seconds(0.0));
-    apps.Stop(Seconds(simTime));
+    // Install OffloadClient on node 0
+    OffloadClientHelper clientHelper(InetSocketAddress(interfaces.GetAddress(1), port));
+    clientHelper.SetMeanInterArrival(meanInterArrival);
+    clientHelper.SetMeanComputeDemand(meanComputeDemand);
+    clientHelper.SetMeanInputSize(meanInputSize);
+    clientHelper.SetMeanOutputSize(meanOutputSize);
+    clientHelper.SetMaxTasks(numTasks);
+
+    ApplicationContainer clientApps = clientHelper.Install(nodes.Get(0));
+
+    Ptr<OffloadClient> client = DynamicCast<OffloadClient>(clientApps.Get(0));
+    client->TraceConnectWithoutContext("TaskSent", MakeCallback(&TaskSent));
+    client->TraceConnectWithoutContext("ResponseReceived", MakeCallback(&ResponseReceived));
+
+    clientApps.Start(Seconds(0.1));
+    clientApps.Stop(Seconds(simTime));
 
     // Run simulation
-    Simulator::Stop(Seconds(simTime + 1.0));
+    Simulator::Stop(Seconds(simTime + 2.0));
     Simulator::Run();
+
+    // Print summary
+    NS_LOG_UNCOND("");
+    NS_LOG_UNCOND("=== Summary ===");
+    NS_LOG_UNCOND("Tasks sent:         " << client->GetTasksSent());
+    NS_LOG_UNCOND("Responses received: " << client->GetResponsesReceived());
+    NS_LOG_UNCOND("Tasks processed:    " << server->GetTasksCompleted());
+    NS_LOG_UNCOND("Client TX bytes:    " << client->GetTotalTx());
+    NS_LOG_UNCOND("Client RX bytes:    " << client->GetTotalRx());
+    NS_LOG_UNCOND("Server RX bytes:    " << server->GetTotalRx());
+
     Simulator::Destroy();
 
     return 0;
