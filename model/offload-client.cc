@@ -358,8 +358,27 @@ OffloadClient::ProcessBuffer()
             continue;
         }
 
+        // Calculate total message size (header + output payload from server)
+        // Server sends: header + outputSize bytes
+        uint64_t outputSize = header.GetOutputSize();
+        uint64_t totalMessageSize = headerSize + outputSize;
+
+        // Ensure we have the complete message
+        if (m_rxBuffer->GetSize() < totalMessageSize)
+        {
+            NS_LOG_DEBUG("Buffer has " << m_rxBuffer->GetSize()
+                         << " bytes, need " << totalMessageSize << " for full response");
+            break;
+        }
+
         // Remove header from buffer
         m_rxBuffer->RemoveAtStart(headerSize);
+
+        // Remove output payload (we don't need the actual data, just consume it)
+        if (outputSize > 0)
+        {
+            m_rxBuffer->RemoveAtStart(outputSize);
+        }
 
         // Calculate RTT
         Time rtt = Seconds(0);

@@ -295,8 +295,10 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
         buffer->PeekHeader(header);
 
         // Calculate total message size (header + payload)
+        // Client sends: header + max(0, inputSize - headerSize) payload bytes
         uint64_t inputSize = header.GetInputSize();
-        uint64_t totalMessageSize = headerSize + inputSize;
+        uint64_t payloadSize = (inputSize > headerSize) ? (inputSize - headerSize) : 0;
+        uint64_t totalMessageSize = headerSize + payloadSize;
 
         // Ensure we have the complete message
         if (totalMessageSize > buffer->GetSize())
@@ -310,9 +312,9 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
         buffer->RemoveHeader(header);
 
         // Remove the payload (we don't need the actual data, just consume it)
-        if (inputSize > 0 && inputSize <= buffer->GetSize())
+        if (payloadSize > 0)
         {
-            buffer->RemoveAtStart(inputSize);
+            buffer->RemoveAtStart(payloadSize);
         }
 
         // Process the task
