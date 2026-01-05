@@ -387,14 +387,20 @@ OffloadClient::ProcessBuffer()
             m_rxBuffer->RemoveAtStart(outputSize);
         }
 
-        // Calculate RTT
-        Time rtt = Seconds(0);
+        // Validate that this response corresponds to a task we sent
         auto it = m_sendTimes.find(header.GetTaskId());
-        if (it != m_sendTimes.end())
+        if (it == m_sendTimes.end())
         {
-            rtt = Simulator::Now() - it->second;
-            m_sendTimes.erase(it);
+            // Response for a task we didn't send - could be a malformed packet
+            // or a routing error. Log and skip to avoid corrupting statistics.
+            NS_LOG_WARN("Received response for unknown task " << header.GetTaskId()
+                        << " (not sent by this client)");
+            continue;
         }
+
+        // Calculate RTT
+        Time rtt = Simulator::Now() - it->second;
+        m_sendTimes.erase(it);
 
         m_responsesReceived++;
 
