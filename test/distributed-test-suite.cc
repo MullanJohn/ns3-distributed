@@ -19,6 +19,8 @@ TestCase* CreateOffloadHeaderResponseTestCase();
 TestCase* CreateOffloadServerBasicTestCase();
 TestCase* CreateOffloadServerNoGpuTestCase();
 TestCase* CreateOffloadClientMultiClientTestCase();
+TestCase* CreateClusterBasicTestCase();
+TestCase* CreateClusterIterationTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -36,6 +38,8 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateOffloadServerBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadServerNoGpuTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadClientMultiClientTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateClusterBasicTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateClusterIterationTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
