@@ -109,6 +109,8 @@ GpuAccelerator::SubmitTask(Ptr<Task> task)
     m_taskQueue.push(task);
     m_queueLength = m_taskQueue.size() + (m_busy ? 1 : 0);
 
+    NS_LOG_DEBUG("Task " << task->GetTaskId() << " submitted, queue length: " << m_queueLength);
+
     if (!m_busy)
     {
         StartNextTask();

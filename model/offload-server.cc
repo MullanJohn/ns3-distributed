@@ -102,6 +102,18 @@ OffloadServer::GetTotalRx() const
     return m_totalRx;
 }
 
+uint16_t
+OffloadServer::GetPort() const
+{
+    return m_port;
+}
+
+Address
+OffloadServer::GetLocalAddress() const
+{
+    return m_local;
+}
+
 void
 OffloadServer::StartApplication()
 {
@@ -277,12 +289,14 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
 
     Ptr<Packet> buffer = it->second;
 
+    // Header size is constant (33 bytes) - cache to avoid repeated object construction
+    static const uint32_t headerSize = OffloadHeader().GetSerializedSize();
+
     // Process all complete messages in the buffer
     while (buffer->GetSize() > 0)
     {
         // Check if we have enough for the header
         OffloadHeader header;
-        uint32_t headerSize = header.GetSerializedSize();
 
         if (buffer->GetSize() < headerSize)
         {
@@ -349,7 +363,7 @@ OffloadServer::ProcessTask(const OffloadHeader& header, Ptr<Socket> socket)
 
     if (!m_accelerator)
     {
-        NS_LOG_WARN("No accelerator available, dropping task " << header.GetTaskId());
+        NS_LOG_ERROR("No accelerator available, dropping task " << header.GetTaskId());
         return;
     }
 
@@ -440,7 +454,7 @@ void
 OffloadServer::HandlePeerClose(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("Client disconnected");
+    NS_LOG_INFO("Client disconnected from port " << m_port);
     CleanupSocket(socket);
 }
 
@@ -448,7 +462,7 @@ void
 OffloadServer::HandlePeerError(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_WARN("Socket error");
+    NS_LOG_ERROR("Socket error on connection");
     CleanupSocket(socket);
 }
 

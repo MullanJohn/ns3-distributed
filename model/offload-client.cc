@@ -26,6 +26,9 @@ NS_LOG_COMPONENT_DEFINE("OffloadClient");
 
 NS_OBJECT_ENSURE_REGISTERED(OffloadClient);
 
+// Static counter for assigning unique client IDs
+uint32_t OffloadClient::s_nextClientId = 0;
+
 TypeId
 OffloadClient::GetTypeId()
 {
@@ -84,8 +87,10 @@ OffloadClient::OffloadClient()
     : m_socket(nullptr),
       m_connected(false),
       m_maxTasks(0),
+      m_clientId(s_nextClientId++),
       m_taskCount(0),
       m_totalTx(0),
+      m_totalRx(0),
       m_rxBuffer(Create<Packet>()),
       m_responsesReceived(0)
 {
@@ -130,6 +135,12 @@ uint64_t
 OffloadClient::GetTotalTx() const
 {
     return m_totalTx;
+}
+
+uint64_t
+OffloadClient::GetTotalRx() const
+{
+    return m_totalRx;
 }
 
 uint64_t
@@ -205,7 +216,7 @@ void
 OffloadClient::ConnectionSucceeded(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("Connection succeeded");
+    NS_LOG_INFO("Client " << m_clientId << " connected to " << m_peer);
     m_connected = true;
 
     // Set up receive callback for responses
@@ -229,7 +240,7 @@ OffloadClient::SendTask()
 
     if (!m_connected)
     {
-        NS_LOG_WARN("Not connected, cannot send task");
+        NS_LOG_DEBUG("Not connected, cannot send task");
         return;
     }
 
@@ -252,10 +263,13 @@ OffloadClient::SendTask()
         computeDemand = 1.0;
     }
 
-    // Create header
+    // Create header with globally unique task ID
+    // Task ID format: upper 32 bits = client ID, lower 32 bits = sequence number
+    uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_taskCount;
+
     OffloadHeader header;
     header.SetMessageType(OffloadHeader::TASK_REQUEST);
-    header.SetTaskId(m_taskCount);
+    header.SetTaskId(taskId);
     header.SetComputeDemand(computeDemand);
     header.SetInputSize(inputSize);
     header.SetOutputSize(outputSize);
@@ -327,6 +341,8 @@ OffloadClient::HandleRead(Ptr<Socket> socket)
             break;
         }
 
+        m_totalRx += packet->GetSize();
+
         // Append to receive buffer
         m_rxBuffer->AddAtEnd(packet);
 
@@ -340,8 +356,8 @@ OffloadClient::ProcessBuffer()
 {
     NS_LOG_FUNCTION(this);
 
-    // Need at least the header size
-    uint32_t headerSize = OffloadHeader().GetSerializedSize();
+    // Header size is constant (33 bytes) - cache to avoid repeated object construction
+    static const uint32_t headerSize = OffloadHeader().GetSerializedSize();
 
     while (m_rxBuffer->GetSize() >= headerSize)
     {
@@ -380,14 +396,20 @@ OffloadClient::ProcessBuffer()
             m_rxBuffer->RemoveAtStart(outputSize);
         }
 
-        // Calculate RTT
-        Time rtt = Seconds(0);
+        // Validate that this response corresponds to a task we sent
         auto it = m_sendTimes.find(header.GetTaskId());
-        if (it != m_sendTimes.end())
+        if (it == m_sendTimes.end())
         {
-            rtt = Simulator::Now() - it->second;
-            m_sendTimes.erase(it);
+            // Response for a task we didn't send - could be a malformed packet
+            // or a routing error. Log and skip to avoid corrupting statistics.
+            NS_LOG_WARN("Received response for unknown task " << header.GetTaskId()
+                        << " (not sent by this client)");
+            continue;
         }
+
+        // Calculate RTT
+        Time rtt = Simulator::Now() - it->second;
+        m_sendTimes.erase(it);
 
         m_responsesReceived++;
 

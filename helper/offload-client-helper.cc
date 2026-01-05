@@ -35,7 +35,7 @@ OffloadClientHelper::SetServerAddress(const Address& serverAddress)
 }
 
 void
-OffloadClientHelper::SetMeanInterval(double mean)
+OffloadClientHelper::SetMeanInterArrival(double mean)
 {
     std::ostringstream oss;
     oss << "ns3::ExponentialRandomVariable[Mean=" << mean << "]";

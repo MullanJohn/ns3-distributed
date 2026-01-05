@@ -84,7 +84,14 @@ OffloadHeader::Deserialize(Buffer::Iterator start)
 
     Buffer::Iterator original = start;
 
-    m_messageType = static_cast<MessageType>(start.ReadU8());
+    uint8_t messageTypeByte = start.ReadU8();
+    if (messageTypeByte > TASK_RESPONSE)
+    {
+        NS_LOG_WARN("Invalid message type " << static_cast<int>(messageTypeByte)
+                    << " received in OffloadHeader");
+    }
+    m_messageType = static_cast<MessageType>(messageTypeByte);
+
     m_taskId = start.ReadU64();
 
     // Deserialize double from uint64_t

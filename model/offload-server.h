@@ -71,6 +71,18 @@ class OffloadServer : public Application
     uint64_t GetTotalRx() const;
 
     /**
+     * @brief Get the port number the server is listening on.
+     * @return The port number.
+     */
+    uint16_t GetPort() const;
+
+    /**
+     * @brief Get the local address the server is bound to.
+     * @return The local address.
+     */
+    Address GetLocalAddress() const;
+
+    /**
      * @brief TracedCallback signature for task received events.
      * @param header The offload header that was received.
      */
