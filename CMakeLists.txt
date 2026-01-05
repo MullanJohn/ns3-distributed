@@ -17,6 +17,7 @@ build_lib(
                  model/gpu-accelerator.cc
                  model/task-generator.cc
                  model/offload-header.cc
+                 model/offload-client.cc
                  helper/distributed-helper.cc
                  helper/task-generator-helper.cc
     HEADER_FILES model/distributed.h
@@ -24,10 +25,12 @@ build_lib(
                  model/gpu-accelerator.h
                  model/task-generator.h
                  model/offload-header.h
+                 model/offload-client.h
                  helper/distributed-helper.h
                  helper/task-generator-helper.h
     LIBRARIES_TO_LINK ${libcore}
                       ${libnetwork}
+                      ${libinternet}
     TEST_SOURCES test/distributed-test-suite.cc
                  test/gpu-accelerator-test.cc
                  test/gpu-accelerator-queue-test.cc
