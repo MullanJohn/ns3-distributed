@@ -46,7 +46,7 @@ class OffloadClientHelper : public ApplicationHelper
      * @brief Set the mean inter-arrival time between tasks.
      * @param mean Mean inter-arrival time in seconds.
      */
-    void SetMeanInterval(double mean);
+    void SetMeanInterArrival(double mean);
 
     /**
      * @brief Set the mean compute demand.
