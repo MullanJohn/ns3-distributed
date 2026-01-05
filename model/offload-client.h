@@ -149,9 +149,11 @@ class OffloadClient : public Application
     uint64_t m_maxTasks;  //!< Maximum tasks to send (0 = unlimited)
 
     // State
-    EventId m_sendEvent;   //!< Next send event
-    uint64_t m_taskCount;  //!< Number of tasks sent
-    uint64_t m_totalTx;    //!< Total bytes transmitted
+    static uint32_t s_nextClientId;  //!< Counter for assigning unique client IDs
+    uint32_t m_clientId;             //!< Unique ID for this client instance
+    EventId m_sendEvent;             //!< Next send event
+    uint64_t m_taskCount;            //!< Number of tasks sent
+    uint64_t m_totalTx;              //!< Total bytes transmitted
 
     // Response handling
     Ptr<Packet> m_rxBuffer;                         //!< Receive buffer for TCP stream

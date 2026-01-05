@@ -26,6 +26,9 @@ NS_LOG_COMPONENT_DEFINE("OffloadClient");
 
 NS_OBJECT_ENSURE_REGISTERED(OffloadClient);
 
+// Static counter for assigning unique client IDs
+uint32_t OffloadClient::s_nextClientId = 0;
+
 TypeId
 OffloadClient::GetTypeId()
 {
@@ -84,6 +87,7 @@ OffloadClient::OffloadClient()
     : m_socket(nullptr),
       m_connected(false),
       m_maxTasks(0),
+      m_clientId(s_nextClientId++),
       m_taskCount(0),
       m_totalTx(0),
       m_rxBuffer(Create<Packet>()),
@@ -252,10 +256,13 @@ OffloadClient::SendTask()
         computeDemand = 1.0;
     }
 
-    // Create header
+    // Create header with globally unique task ID
+    // Task ID format: upper 32 bits = client ID, lower 32 bits = sequence number
+    uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_taskCount;
+
     OffloadHeader header;
     header.SetMessageType(OffloadHeader::TASK_REQUEST);
-    header.SetTaskId(m_taskCount);
+    header.SetTaskId(taskId);
     header.SetComputeDemand(computeDemand);
     header.SetInputSize(inputSize);
     header.SetOutputSize(outputSize);
