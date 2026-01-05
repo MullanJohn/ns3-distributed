@@ -20,6 +20,7 @@ build_lib(
                  model/offload-client.cc
                  helper/distributed-helper.cc
                  helper/task-generator-helper.cc
+                 helper/offload-client-helper.cc
     HEADER_FILES model/distributed.h
                  model/task.h
                  model/gpu-accelerator.h
@@ -28,6 +29,7 @@ build_lib(
                  model/offload-client.h
                  helper/distributed-helper.h
                  helper/task-generator-helper.h
+                 helper/offload-client-helper.h
     LIBRARIES_TO_LINK ${libcore}
                       ${libnetwork}
                       ${libinternet}
