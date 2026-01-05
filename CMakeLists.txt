@@ -37,5 +37,6 @@ build_lib(
                  test/gpu-accelerator-test.cc
                  test/gpu-accelerator-queue-test.cc
                  test/task-generator-test.cc
+                 test/offload-header-test.cc
                  ${examples_as_tests_sources}
 )

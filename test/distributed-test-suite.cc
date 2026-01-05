@@ -15,6 +15,8 @@ namespace ns3
 TestCase* CreateGpuAcceleratorTestCase();
 TestCase* CreateGpuAcceleratorQueueTestCase();
 TestCase* CreateTaskGeneratorTestCase();
+TestCase* CreateOffloadHeaderTestCase();
+TestCase* CreateOffloadHeaderResponseTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -28,6 +30,8 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateGpuAcceleratorTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateGpuAcceleratorQueueTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTaskGeneratorTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOffloadHeaderTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOffloadHeaderResponseTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
