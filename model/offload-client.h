@@ -18,6 +18,8 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/traced-callback.h"
 
+#include <map>
+
 namespace ns3
 {
 
@@ -78,6 +80,19 @@ class OffloadClient : public Application
      */
     typedef void (*TaskSentTracedCallback)(const OffloadHeader& header);
 
+    /**
+     * @brief TracedCallback signature for response received events.
+     * @param header The offload header from the response.
+     * @param rtt Round-trip time from task sent to response received.
+     */
+    typedef void (*ResponseReceivedTracedCallback)(const OffloadHeader& header, Time rtt);
+
+    /**
+     * @brief Get the number of responses received.
+     * @return Number of responses received.
+     */
+    uint64_t GetResponsesReceived() const;
+
   protected:
     void DoDispose() override;
 
@@ -107,6 +122,17 @@ class OffloadClient : public Application
      */
     void ScheduleNextTask();
 
+    /**
+     * @brief Handle data received from the server.
+     * @param socket The socket with incoming data.
+     */
+    void HandleRead(Ptr<Socket> socket);
+
+    /**
+     * @brief Process the receive buffer for complete messages.
+     */
+    void ProcessBuffer();
+
     // Socket
     Ptr<Socket> m_socket;  //!< TCP socket
     Address m_peer;        //!< Remote server address
@@ -127,8 +153,14 @@ class OffloadClient : public Application
     uint64_t m_taskCount;  //!< Number of tasks sent
     uint64_t m_totalTx;    //!< Total bytes transmitted
 
+    // Response handling
+    Ptr<Packet> m_rxBuffer;                         //!< Receive buffer for TCP stream
+    uint64_t m_responsesReceived;                   //!< Number of responses received
+    std::map<uint64_t, Time> m_sendTimes;           //!< Map of task ID to send time
+
     // Trace sources
-    TracedCallback<const OffloadHeader&> m_taskSentTrace;  //!< Task sent trace
+    TracedCallback<const OffloadHeader&> m_taskSentTrace;           //!< Task sent trace
+    TracedCallback<const OffloadHeader&, Time> m_responseTrace;     //!< Response received trace
 };
 
 } // namespace ns3

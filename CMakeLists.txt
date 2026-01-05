@@ -18,18 +18,22 @@ build_lib(
                  model/task-generator.cc
                  model/offload-header.cc
                  model/offload-client.cc
+                 model/offload-server.cc
                  helper/distributed-helper.cc
                  helper/task-generator-helper.cc
                  helper/offload-client-helper.cc
+                 helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
                  model/task.h
                  model/gpu-accelerator.h
                  model/task-generator.h
                  model/offload-header.h
                  model/offload-client.h
+                 model/offload-server.h
                  helper/distributed-helper.h
                  helper/task-generator-helper.h
                  helper/offload-client-helper.h
+                 helper/offload-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
                       ${libnetwork}
                       ${libinternet}
@@ -38,5 +42,6 @@ build_lib(
                  test/gpu-accelerator-queue-test.cc
                  test/task-generator-test.cc
                  test/offload-header-test.cc
+                 test/offload-server-test.cc
                  ${examples_as_tests_sources}
 )

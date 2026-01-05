@@ -17,6 +17,8 @@ TestCase* CreateGpuAcceleratorQueueTestCase();
 TestCase* CreateTaskGeneratorTestCase();
 TestCase* CreateOffloadHeaderTestCase();
 TestCase* CreateOffloadHeaderResponseTestCase();
+TestCase* CreateOffloadServerBasicTestCase();
+TestCase* CreateOffloadServerNoGpuTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -32,6 +34,8 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateTaskGeneratorTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadHeaderTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadHeaderResponseTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOffloadServerBasicTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOffloadServerNoGpuTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
