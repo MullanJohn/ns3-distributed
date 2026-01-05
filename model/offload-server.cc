@@ -102,6 +102,18 @@ OffloadServer::GetTotalRx() const
     return m_totalRx;
 }
 
+uint16_t
+OffloadServer::GetPort() const
+{
+    return m_port;
+}
+
+Address
+OffloadServer::GetLocalAddress() const
+{
+    return m_local;
+}
+
 void
 OffloadServer::StartApplication()
 {
