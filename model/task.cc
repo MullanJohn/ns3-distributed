@@ -97,30 +97,35 @@ Task::SetTaskId(uint64_t id)
 double
 Task::GetComputeDemand() const
 {
+    NS_LOG_FUNCTION(this);
     return m_computeDemand;
 }
 
 uint64_t
 Task::GetInputSize() const
 {
+    NS_LOG_FUNCTION(this);
     return m_inputSize;
 }
 
 uint64_t
 Task::GetOutputSize() const
 {
+    NS_LOG_FUNCTION(this);
     return m_outputSize;
 }
 
 Time
 Task::GetArrivalTime() const
 {
+    NS_LOG_FUNCTION(this);
     return m_arrivalTime;
 }
 
 uint64_t
 Task::GetTaskId() const
 {
+    NS_LOG_FUNCTION(this);
     return m_taskId;
 }
 
