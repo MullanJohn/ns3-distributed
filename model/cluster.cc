@@ -57,6 +57,18 @@ Cluster::End() const
     return m_backends.end();
 }
 
+Cluster::Iterator
+Cluster::begin() const
+{
+    return m_backends.begin();
+}
+
+Cluster::Iterator
+Cluster::end() const
+{
+    return m_backends.end();
+}
+
 bool
 Cluster::IsEmpty() const
 {

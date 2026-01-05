@@ -105,6 +105,20 @@ class Cluster
     Iterator End() const;
 
     /**
+     * @brief Get an iterator to the first backend (lowercase for range-based for).
+     *
+     * @return Iterator pointing to the first backend, or end() if empty.
+     */
+    Iterator begin() const;
+
+    /**
+     * @brief Get an iterator past the last backend (lowercase for range-based for).
+     *
+     * @return Iterator pointing past the last backend.
+     */
+    Iterator end() const;
+
+    /**
      * @brief Check if the cluster is empty.
      *
      * @return true if the cluster has no backends, false otherwise.
