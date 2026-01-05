@@ -90,6 +90,7 @@ OffloadClient::OffloadClient()
       m_clientId(s_nextClientId++),
       m_taskCount(0),
       m_totalTx(0),
+      m_totalRx(0),
       m_rxBuffer(Create<Packet>()),
       m_responsesReceived(0)
 {
@@ -134,6 +135,12 @@ uint64_t
 OffloadClient::GetTotalTx() const
 {
     return m_totalTx;
+}
+
+uint64_t
+OffloadClient::GetTotalRx() const
+{
+    return m_totalRx;
 }
 
 uint64_t
@@ -333,6 +340,8 @@ OffloadClient::HandleRead(Ptr<Socket> socket)
             // EOF received
             break;
         }
+
+        m_totalRx += packet->GetSize();
 
         // Append to receive buffer
         m_rxBuffer->AddAtEnd(packet);

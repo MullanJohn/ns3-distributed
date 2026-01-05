@@ -75,6 +75,12 @@ class OffloadClient : public Application
     uint64_t GetTotalTx() const;
 
     /**
+     * @brief Get the total bytes received.
+     * @return Total bytes received.
+     */
+    uint64_t GetTotalRx() const;
+
+    /**
      * @brief TracedCallback signature for task sent events.
      * @param header The offload header that was sent.
      */
@@ -154,6 +160,7 @@ class OffloadClient : public Application
     EventId m_sendEvent;             //!< Next send event
     uint64_t m_taskCount;            //!< Number of tasks sent
     uint64_t m_totalTx;              //!< Total bytes transmitted
+    uint64_t m_totalRx;              //!< Total bytes received
 
     // Response handling
     Ptr<Packet> m_rxBuffer;                         //!< Receive buffer for TCP stream
