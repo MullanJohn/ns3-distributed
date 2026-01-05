@@ -18,6 +18,7 @@ build_lib(
                  model/offload-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
+                 model/cluster.cc
                  helper/distributed-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
@@ -27,6 +28,7 @@ build_lib(
                  model/offload-header.h
                  model/offload-client.h
                  model/offload-server.h
+                 model/cluster.h
                  helper/distributed-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
