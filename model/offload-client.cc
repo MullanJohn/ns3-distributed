@@ -72,7 +72,11 @@ OffloadClient::GetTypeId()
             .AddTraceSource("TaskSent",
                             "Trace fired when a task is sent",
                             MakeTraceSourceAccessor(&OffloadClient::m_taskSentTrace),
-                            "ns3::OffloadClient::TaskSentTracedCallback");
+                            "ns3::OffloadClient::TaskSentTracedCallback")
+            .AddTraceSource("ResponseReceived",
+                            "Trace fired when a response is received",
+                            MakeTraceSourceAccessor(&OffloadClient::m_responseTrace),
+                            "ns3::OffloadClient::ResponseReceivedTracedCallback");
     return tid;
 }
 
@@ -81,7 +85,9 @@ OffloadClient::OffloadClient()
       m_connected(false),
       m_maxTasks(0),
       m_taskCount(0),
-      m_totalTx(0)
+      m_totalTx(0),
+      m_rxBuffer(Create<Packet>()),
+      m_responsesReceived(0)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -96,6 +102,8 @@ OffloadClient::DoDispose()
 {
     NS_LOG_FUNCTION(this);
     m_socket = nullptr;
+    m_rxBuffer = nullptr;
+    m_sendTimes.clear();
     Application::DoDispose();
 }
 
@@ -122,6 +130,12 @@ uint64_t
 OffloadClient::GetTotalTx() const
 {
     return m_totalTx;
+}
+
+uint64_t
+OffloadClient::GetResponsesReceived() const
+{
+    return m_responsesReceived;
 }
 
 void
@@ -194,6 +208,9 @@ OffloadClient::ConnectionSucceeded(Ptr<Socket> socket)
     NS_LOG_INFO("Connection succeeded");
     m_connected = true;
 
+    // Set up receive callback for responses
+    m_socket->SetRecvCallback(MakeCallback(&OffloadClient::HandleRead, this));
+
     // Start sending tasks
     ScheduleNextTask();
 }
@@ -253,6 +270,9 @@ OffloadClient::SendTask()
     int sent = m_socket->Send(packet);
     if (sent > 0)
     {
+        // Track send time for RTT calculation
+        m_sendTimes[header.GetTaskId()] = Simulator::Now();
+
         m_taskCount++;
         m_totalTx += sent;
 
@@ -289,6 +309,75 @@ OffloadClient::ScheduleNextTask()
     m_sendEvent = Simulator::Schedule(nextTime, &OffloadClient::SendTask, this);
 
     NS_LOG_DEBUG("Next task scheduled in " << nextTime.GetSeconds() << " seconds");
+}
+
+void
+OffloadClient::HandleRead(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this << socket);
+
+    Ptr<Packet> packet;
+    Address from;
+
+    while ((packet = socket->RecvFrom(from)))
+    {
+        if (packet->GetSize() == 0)
+        {
+            // EOF received
+            break;
+        }
+
+        // Append to receive buffer
+        m_rxBuffer->AddAtEnd(packet);
+
+        // Process complete messages
+        ProcessBuffer();
+    }
+}
+
+void
+OffloadClient::ProcessBuffer()
+{
+    NS_LOG_FUNCTION(this);
+
+    // Need at least the header size
+    uint32_t headerSize = OffloadHeader().GetSerializedSize();
+
+    while (m_rxBuffer->GetSize() >= headerSize)
+    {
+        // Peek header to determine message type
+        OffloadHeader header;
+        m_rxBuffer->PeekHeader(header);
+
+        // For responses, we only need the header (no additional payload)
+        if (header.GetMessageType() != OffloadHeader::TASK_RESPONSE)
+        {
+            NS_LOG_WARN("Received unexpected message type: " << header.GetMessageType());
+            // Remove the header and continue
+            m_rxBuffer->RemoveAtStart(headerSize);
+            continue;
+        }
+
+        // Remove header from buffer
+        m_rxBuffer->RemoveAtStart(headerSize);
+
+        // Calculate RTT
+        Time rtt = Seconds(0);
+        auto it = m_sendTimes.find(header.GetTaskId());
+        if (it != m_sendTimes.end())
+        {
+            rtt = Simulator::Now() - it->second;
+            m_sendTimes.erase(it);
+        }
+
+        m_responsesReceived++;
+
+        NS_LOG_INFO("Received response for task " << header.GetTaskId()
+                    << " (RTT=" << rtt.GetMilliSeconds() << "ms)");
+
+        // Fire trace
+        m_responseTrace(header, rtt);
+    }
 }
 
 } // namespace ns3
