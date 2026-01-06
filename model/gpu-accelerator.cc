@@ -132,12 +132,15 @@ GpuAccelerator::StartNextTask()
     m_taskQueue.pop();
     m_busy = true;
     m_taskStartTime = Simulator::Now();
-    m_queueLength = m_taskQueue.size() + 1;
 
     NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
 
-    // Fire task started trace
+    // Fire task started trace before updating queue length
+    // This is symmetric with OutputTransferComplete() which also fires trace first
     m_taskStartedTrace(m_currentTask);
+
+    // Update queue length after trace (includes current task being processed)
+    m_queueLength = m_taskQueue.size() + 1;
 
     // Calculate input transfer time
     Time inputTransferTime = Seconds(m_currentTask->GetInputSize() / m_memoryBandwidth);
