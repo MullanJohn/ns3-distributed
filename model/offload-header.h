@@ -29,6 +29,18 @@ class OffloadHeader : public Header
 {
   public:
     /**
+     * @brief Serialized size of the header in bytes.
+     *
+     * The header consists of:
+     * - messageType: 1 byte
+     * - taskId: 8 bytes
+     * - computeDemand: 8 bytes
+     * - inputSize: 8 bytes
+     * - outputSize: 8 bytes
+     */
+    static constexpr uint32_t SERIALIZED_SIZE = 33;
+
+    /**
      * @brief Get the type ID.
      * @return The object TypeId.
      */

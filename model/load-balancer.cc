@@ -267,7 +267,7 @@ LoadBalancer::ProcessClientBuffer(Ptr<Socket> socket, const Address& from)
     }
 
     Ptr<Packet> buffer = it->second;
-    static const uint32_t headerSize = OffloadHeader().GetSerializedSize();
+    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
 
     while (buffer->GetSize() > 0)
     {
@@ -472,7 +472,7 @@ LoadBalancer::ProcessBackendBuffer(uint32_t backendIndex)
     NS_LOG_FUNCTION(this << backendIndex);
 
     Ptr<Packet> buffer = m_backendRxBuffers[backendIndex];
-    static const uint32_t headerSize = OffloadHeader().GetSerializedSize();
+    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
 
     while (buffer->GetSize() > 0)
     {

@@ -356,8 +356,8 @@ OffloadClient::ProcessBuffer()
 {
     NS_LOG_FUNCTION(this);
 
-    // Header size is constant (33 bytes) - cache to avoid repeated object construction
-    static const uint32_t headerSize = OffloadHeader().GetSerializedSize();
+    // Header size is constant (33 bytes)
+    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
 
     while (m_rxBuffer->GetSize() >= headerSize)
     {

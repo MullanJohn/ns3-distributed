@@ -289,8 +289,8 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
 
     Ptr<Packet> buffer = it->second;
 
-    // Header size is constant (33 bytes) - cache to avoid repeated object construction
-    static const uint32_t headerSize = OffloadHeader().GetSerializedSize();
+    // Header size is constant (33 bytes)
+    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
 
     // Process all complete messages in the buffer
     while (buffer->GetSize() > 0)
