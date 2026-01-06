@@ -9,18 +9,18 @@
 #ifndef OFFLOAD_SERVER_H
 #define OFFLOAD_SERVER_H
 
+#include "address-hash.h"
 #include "gpu-accelerator.h"
 #include "offload-header.h"
 #include "task.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
-#include "ns3/inet-socket-address.h"
-#include "ns3/inet6-socket-address.h"
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 
 #include <list>
+#include <map>
 #include <unordered_map>
 
 namespace ns3
@@ -161,32 +161,6 @@ class OffloadServer : public Application
      * @param socket The closed socket.
      */
     void CleanupSocket(Ptr<Socket> socket);
-
-    /**
-     * @brief Hashing for the Address class (for buffer map).
-     */
-    struct AddressHash
-    {
-        /**
-         * @brief Hash operator for Address.
-         * @param x The address to hash.
-         * @return The hash value.
-         */
-        size_t operator()(const Address& x) const
-        {
-            if (InetSocketAddress::IsMatchingType(x))
-            {
-                InetSocketAddress a = InetSocketAddress::ConvertFrom(x);
-                return Ipv4AddressHash()(a.GetIpv4());
-            }
-            else if (Inet6SocketAddress::IsMatchingType(x))
-            {
-                Inet6SocketAddress a = Inet6SocketAddress::ConvertFrom(x);
-                return Ipv6AddressHash()(a.GetIpv6());
-            }
-            return 0;
-        }
-    };
 
     // Configuration
     Address m_local;   //!< Local address to bind to

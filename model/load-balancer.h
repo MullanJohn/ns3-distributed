@@ -9,6 +9,7 @@
 #ifndef LOAD_BALANCER_H
 #define LOAD_BALANCER_H
 
+#include "address-hash.h"
 #include "cluster.h"
 #include "node-scheduler.h"
 #include "offload-header.h"
@@ -209,15 +210,6 @@ class LoadBalancer : public Application
 
     // Client connections
     std::list<Ptr<Socket>> m_clientSockets;   //!< Connected client sockets
-
-    /**
-     * @brief Hash function for Address (for use in unordered_map).
-     */
-    struct AddressHash
-    {
-        std::size_t operator()(const Address& addr) const;
-    };
-
     std::unordered_map<Address, Ptr<Packet>, AddressHash> m_clientRxBuffers; //!< Per-client receive buffers
 
     // Backend connections

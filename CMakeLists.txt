@@ -26,7 +26,8 @@ build_lib(
                  helper/load-balancer-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
-    HEADER_FILES model/distributed.h
+    HEADER_FILES model/address-hash.h
+                 model/distributed.h
                  model/task.h
                  model/gpu-accelerator.h
                  model/offload-header.h

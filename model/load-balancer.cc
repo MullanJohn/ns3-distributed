@@ -24,21 +24,6 @@ NS_LOG_COMPONENT_DEFINE("LoadBalancer");
 
 NS_OBJECT_ENSURE_REGISTERED(LoadBalancer);
 
-// AddressHash implementation
-std::size_t
-LoadBalancer::AddressHash::operator()(const Address& addr) const
-{
-    // Simple hash based on address bytes
-    uint8_t buffer[Address::MAX_SIZE];
-    uint32_t len = addr.CopyTo(buffer);
-    std::size_t hash = 0;
-    for (uint32_t i = 0; i < len; i++)
-    {
-        hash = hash * 31 + buffer[i];
-    }
-    return hash;
-}
-
 TypeId
 LoadBalancer::GetTypeId()
 {
