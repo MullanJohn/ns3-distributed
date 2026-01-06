@@ -174,6 +174,14 @@ class OffloadServer : public Application
     // Per-client receive buffers (for TCP stream reassembly)
     std::unordered_map<Address, Ptr<Packet>, AddressHash> m_rxBuffer;
 
+    /**
+     * @brief Map from socket to client address for buffer cleanup.
+     *
+     * When a socket disconnects, we need to find and remove the
+     * corresponding entry in m_rxBuffer which is keyed by Address.
+     */
+    std::map<Ptr<Socket>, Address> m_socketAddresses;
+
     // GPU accelerator
     Ptr<GpuAccelerator> m_accelerator;  //!< Cached accelerator reference
 

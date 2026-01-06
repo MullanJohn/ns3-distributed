@@ -77,6 +77,7 @@ LoadBalancer::DoDispose()
     m_listenSocket = nullptr;
     m_clientSockets.clear();
     m_clientRxBuffers.clear();
+    m_clientSocketAddresses.clear();
     m_backendSockets.clear();
     m_backendConnected.clear();
     m_backendRxBuffers.clear();
@@ -213,6 +214,9 @@ LoadBalancer::HandleClientAccept(Ptr<Socket> socket, const Address& from)
     socket->SetCloseCallbacks(MakeCallback(&LoadBalancer::HandleClientClose, this),
                               MakeCallback(&LoadBalancer::HandleClientError, this));
     m_clientSockets.push_back(socket);
+
+    // Track socket-to-address mapping for buffer cleanup on disconnect
+    m_clientSocketAddresses[socket] = from;
 }
 
 void
@@ -353,6 +357,19 @@ LoadBalancer::CleanupClientSocket(Ptr<Socket> socket)
         {
             ++it;
         }
+    }
+
+    // Clean up receive buffer for this client's address
+    auto addrIt = m_clientSocketAddresses.find(socket);
+    if (addrIt != m_clientSocketAddresses.end())
+    {
+        auto bufferIt = m_clientRxBuffers.find(addrIt->second);
+        if (bufferIt != m_clientRxBuffers.end())
+        {
+            NS_LOG_DEBUG("Removing client rx buffer for disconnected client");
+            m_clientRxBuffers.erase(bufferIt);
+        }
+        m_clientSocketAddresses.erase(addrIt);
     }
 }
 

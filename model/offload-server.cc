@@ -79,6 +79,7 @@ OffloadServer::DoDispose()
     m_socket6 = nullptr;
     m_socketList.clear();
     m_rxBuffer.clear();
+    m_socketAddresses.clear();
     m_pendingTasks.clear();
     m_accelerator = nullptr;
     Application::DoDispose();
@@ -249,6 +250,9 @@ OffloadServer::HandleAccept(Ptr<Socket> socket, const Address& from)
     socket->SetCloseCallbacks(MakeCallback(&OffloadServer::HandlePeerClose, this),
                               MakeCallback(&OffloadServer::HandlePeerError, this));
     m_socketList.push_back(socket);
+
+    // Track socket-to-address mapping for buffer cleanup on disconnect
+    m_socketAddresses[socket] = from;
 }
 
 void
@@ -497,8 +501,18 @@ OffloadServer::CleanupSocket(Ptr<Socket> socket)
         }
     }
 
-    // Note: We don't clear the rx buffer here as it's keyed by Address, not Socket.
-    // Stale buffer entries will be overwritten if the same client reconnects.
+    // Clean up receive buffer for this socket's address
+    auto addrIt = m_socketAddresses.find(socket);
+    if (addrIt != m_socketAddresses.end())
+    {
+        auto bufferIt = m_rxBuffer.find(addrIt->second);
+        if (bufferIt != m_rxBuffer.end())
+        {
+            NS_LOG_DEBUG("Removing rx buffer for disconnected client");
+            m_rxBuffer.erase(bufferIt);
+        }
+        m_socketAddresses.erase(addrIt);
+    }
 }
 
 } // namespace ns3

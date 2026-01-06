@@ -201,38 +201,41 @@ class LoadBalancer : public Application
     void RouteResponse(const OffloadHeader& header, Ptr<Packet> payload, uint32_t backendIndex);
 
     // ========== Configuration ==========
-    uint16_t m_port;               //!< Port to listen on
+    uint16_t m_port;                //!< Port to listen on
     Ptr<NodeScheduler> m_scheduler; //!< The scheduling policy
 
     // ========== Runtime state ==========
-    Cluster m_cluster;                        //!< Backend servers
-    Ptr<Socket> m_listenSocket;               //!< Listening socket for clients
+    Cluster m_cluster;          //!< Backend servers
+    Ptr<Socket> m_listenSocket; //!< Listening socket for clients
 
     // Client connections
-    std::list<Ptr<Socket>> m_clientSockets;   //!< Connected client sockets
-    std::unordered_map<Address, Ptr<Packet>, AddressHash> m_clientRxBuffers; //!< Per-client receive buffers
+    std::list<Ptr<Socket>> m_clientSockets; //!< Connected client sockets
+    std::unordered_map<Address, Ptr<Packet>, AddressHash>
+        m_clientRxBuffers; //!< Per-client receive buffers
+    std::map<Ptr<Socket>, Address> m_clientSocketAddresses; //!< Socket-to-address for buffer cleanup
 
     // Backend connections
-    std::vector<Ptr<Socket>> m_backendSockets;      //!< Sockets to backends
-    std::vector<bool> m_backendConnected;           //!< Connection status per backend
-    std::vector<Ptr<Packet>> m_backendRxBuffers;    //!< Per-backend receive buffers
+    std::vector<Ptr<Socket>> m_backendSockets;         //!< Sockets to backends
+    std::vector<bool> m_backendConnected;              //!< Connection status per backend
+    std::vector<Ptr<Packet>> m_backendRxBuffers;       //!< Per-backend receive buffers
     std::map<Ptr<Socket>, uint32_t> m_socketToBackend; //!< Map socket to backend index
 
     // Response routing: taskId -> pending info
     struct PendingResponse
     {
-        Ptr<Socket> clientSocket;  //!< The client socket to send response to
-        Address clientAddr;        //!< The client address
-        Time arrivalTime;          //!< When task was received from client
-        uint32_t backendIndex;     //!< Which backend is processing this task
+        Ptr<Socket> clientSocket; //!< The client socket to send response to
+        Address clientAddr;       //!< The client address
+        Time arrivalTime;         //!< When task was received from client
+        uint32_t backendIndex;    //!< Which backend is processing this task
     };
+
     std::unordered_map<uint64_t, PendingResponse> m_pendingResponses;
 
     // ========== Statistics ==========
-    uint64_t m_tasksForwarded;    //!< Number of tasks forwarded
-    uint64_t m_responsesRouted;   //!< Number of responses routed
-    uint64_t m_clientRx;          //!< Bytes received from clients
-    uint64_t m_backendRx;         //!< Bytes received from backends
+    uint64_t m_tasksForwarded;  //!< Number of tasks forwarded
+    uint64_t m_responsesRouted; //!< Number of responses routed
+    uint64_t m_clientRx;        //!< Bytes received from clients
+    uint64_t m_backendRx;       //!< Bytes received from backends
 
     // ========== Trace sources ==========
     TracedCallback<const OffloadHeader&, uint32_t> m_taskForwardedTrace;
