@@ -30,15 +30,15 @@ GpuAccelerator::GetTypeId()
             .SetGroupName("Distributed")
             .AddConstructor<GpuAccelerator>()
             .AddAttribute("ComputeRate",
-                          "Compute rate in FLOPS",
+                          "Compute rate in FLOPS (must be > 0)",
                           DoubleValue(1e12),
                           MakeDoubleAccessor(&GpuAccelerator::m_computeRate),
-                          MakeDoubleChecker<double>(0))
+                          MakeDoubleChecker<double>(1.0))
             .AddAttribute("MemoryBandwidth",
-                          "Memory bandwidth in bytes/sec",
+                          "Memory bandwidth in bytes/sec (must be > 0)",
                           DoubleValue(900e9),
                           MakeDoubleAccessor(&GpuAccelerator::m_memoryBandwidth),
-                          MakeDoubleChecker<double>(0))
+                          MakeDoubleChecker<double>(1.0))
             .AddTraceSource("QueueLength",
                             "Current number of tasks in queue",
                             MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
