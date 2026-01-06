@@ -21,6 +21,10 @@ TestCase* CreateOffloadServerNoGpuTestCase();
 TestCase* CreateOffloadClientMultiClientTestCase();
 TestCase* CreateClusterBasicTestCase();
 TestCase* CreateClusterIterationTestCase();
+TestCase* CreateRoundRobinSchedulerTestCase();
+TestCase* CreateRoundRobinEmptyClusterTestCase();
+TestCase* CreateRoundRobinSingleBackendTestCase();
+TestCase* CreateRoundRobinForkTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -40,6 +44,10 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateOffloadClientMultiClientTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterIterationTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateRoundRobinSchedulerTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateRoundRobinEmptyClusterTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateRoundRobinSingleBackendTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateRoundRobinForkTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;

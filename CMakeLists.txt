@@ -47,5 +47,6 @@ build_lib(
                  test/offload-server-test.cc
                  test/offload-client-test.cc
                  test/cluster-test.cc
+                 test/node-scheduler-test.cc
                  ${examples_as_tests_sources}
 )
