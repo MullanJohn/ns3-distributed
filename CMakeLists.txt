@@ -23,6 +23,7 @@ build_lib(
                  model/round-robin-scheduler.cc
                  model/load-balancer.cc
                  helper/distributed-helper.cc
+                 helper/load-balancer-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
@@ -36,6 +37,7 @@ build_lib(
                  model/round-robin-scheduler.h
                  model/load-balancer.h
                  helper/distributed-helper.h
+                 helper/load-balancer-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
