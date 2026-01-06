@@ -81,6 +81,7 @@ LoadBalancer::DoDispose()
     m_backendSockets.clear();
     m_backendConnected.clear();
     m_backendRxBuffers.clear();
+    m_socketToBackend.clear();
     m_pendingResponses.clear();
     m_scheduler = nullptr;
     Application::DoDispose();

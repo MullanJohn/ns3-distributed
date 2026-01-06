@@ -13,10 +13,10 @@
 #include <cstring>
 #include <sstream>
 
-NS_LOG_COMPONENT_DEFINE("OffloadHeader");
-
 namespace ns3
 {
+
+NS_LOG_COMPONENT_DEFINE("OffloadHeader");
 
 // Compile-time validation that SERIALIZED_SIZE matches actual serialization
 static_assert(OffloadHeader::SERIALIZED_SIZE ==
