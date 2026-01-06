@@ -109,6 +109,10 @@ OffloadClient::DoDispose()
     m_socket = nullptr;
     m_rxBuffer = nullptr;
     m_sendTimes.clear();
+    m_interArrivalTime = nullptr;
+    m_computeDemand = nullptr;
+    m_inputSize = nullptr;
+    m_outputSize = nullptr;
     Application::DoDispose();
 }
 

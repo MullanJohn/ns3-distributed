@@ -18,6 +18,15 @@ NS_LOG_COMPONENT_DEFINE("OffloadHeader");
 namespace ns3
 {
 
+// Compile-time validation that SERIALIZED_SIZE matches actual serialization
+static_assert(OffloadHeader::SERIALIZED_SIZE ==
+              sizeof(uint8_t) +     // messageType
+              sizeof(uint64_t) +    // taskId
+              sizeof(uint64_t) +    // computeDemand (as uint64_t)
+              sizeof(uint64_t) +    // inputSize
+              sizeof(uint64_t),     // outputSize
+              "OffloadHeader::SERIALIZED_SIZE does not match actual serialization");
+
 NS_OBJECT_ENSURE_REGISTERED(OffloadHeader);
 
 OffloadHeader::OffloadHeader()
