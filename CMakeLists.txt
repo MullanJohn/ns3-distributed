@@ -21,6 +21,7 @@ build_lib(
                  model/cluster.cc
                  model/node-scheduler.cc
                  model/round-robin-scheduler.cc
+                 model/load-balancer.cc
                  helper/distributed-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
@@ -33,6 +34,7 @@ build_lib(
                  model/cluster.h
                  model/node-scheduler.h
                  model/round-robin-scheduler.h
+                 model/load-balancer.h
                  helper/distributed-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
