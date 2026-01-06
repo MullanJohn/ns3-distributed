@@ -135,6 +135,12 @@ LoadBalancer::StartApplication()
         m_scheduler->Initialize(m_cluster);
     }
 
+    // Warn if cluster is empty
+    if (m_cluster.GetN() == 0)
+    {
+        NS_LOG_WARN("LoadBalancer started with empty cluster - no backends available");
+    }
+
     // Connect to all backends first
     ConnectToBackends();
 
