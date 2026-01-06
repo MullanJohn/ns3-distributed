@@ -1,16 +1,25 @@
+/*
+ * Copyright (c) 2025 UCC
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ *
+ * Author: John Mullan <122331816@umail.ucc.ie>
+ */
+
 #ifndef DISTRIBUTED_HELPER_H
 #define DISTRIBUTED_HELPER_H
 
-#include "ns3/distributed.h"
+/**
+ * @ingroup distributed
+ * @defgroup distributed-helper Distributed Computing Helpers
+ *
+ * Helper classes for configuring and installing distributed computing
+ * applications in ns-3 simulations.
+ */
 
-namespace ns3
-{
-
-// Each class should be documented using Doxygen,
-// and have an @ingroup distributed directive
-
-/* ... */
-
-} // namespace ns3
+// Helper headers
+#include "ns3/load-balancer-helper.h"
+#include "ns3/offload-client-helper.h"
+#include "ns3/offload-server-helper.h"
 
 #endif // DISTRIBUTED_HELPER_H
