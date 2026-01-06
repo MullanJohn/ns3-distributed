@@ -45,6 +45,14 @@ RoundRobinScheduler::~RoundRobinScheduler()
     NS_LOG_FUNCTION(this);
 }
 
+void
+RoundRobinScheduler::DoDispose()
+{
+    NS_LOG_FUNCTION(this);
+    m_nextIndex = 0;
+    NodeScheduler::DoDispose();
+}
+
 std::string
 RoundRobinScheduler::GetName() const
 {

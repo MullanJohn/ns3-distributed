@@ -60,6 +60,13 @@ Task::~Task()
 }
 
 void
+Task::DoDispose()
+{
+    NS_LOG_FUNCTION(this);
+    Object::DoDispose();
+}
+
+void
 Task::SetComputeDemand(double flops)
 {
     NS_LOG_FUNCTION(this << flops);

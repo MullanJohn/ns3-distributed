@@ -95,6 +95,9 @@ class Task : public Object
      */
     uint64_t GetTaskId() const;
 
+  protected:
+    void DoDispose() override;
+
   private:
     double m_computeDemand;   //!< Compute demand in FLOPS
     uint64_t m_inputSize;     //!< Input data size in bytes

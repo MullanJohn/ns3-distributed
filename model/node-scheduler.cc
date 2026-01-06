@@ -46,6 +46,14 @@ NodeScheduler::~NodeScheduler()
 }
 
 void
+NodeScheduler::DoDispose()
+{
+    NS_LOG_FUNCTION(this);
+    m_numBackends = 0;
+    Object::DoDispose();
+}
+
+void
 NodeScheduler::Initialize(const Cluster& cluster)
 {
     NS_LOG_FUNCTION(this << cluster.GetN());
