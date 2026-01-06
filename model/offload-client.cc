@@ -207,7 +207,12 @@ OffloadClient::StopApplication()
 
     if (m_socket)
     {
+        // Clear all socket callbacks to prevent invocation after shutdown
+        m_socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+        m_socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
+                                     MakeNullCallback<void, Ptr<Socket>>());
         m_socket->Close();
+        m_socket = nullptr;
         m_connected = false;
     }
 }

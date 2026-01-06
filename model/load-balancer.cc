@@ -180,27 +180,36 @@ LoadBalancer::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
-    // Close listening socket
+    // Close listening socket - clear callbacks before close
     if (m_listenSocket)
     {
-        m_listenSocket->Close();
         m_listenSocket->SetAcceptCallback(
             MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
             MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_listenSocket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                          MakeNullCallback<void, Ptr<Socket>>());
+        m_listenSocket->Close();
+        m_listenSocket = nullptr;
     }
 
-    // Close all client sockets
+    // Close all client sockets - clear callbacks before close
     for (auto& socket : m_clientSockets)
     {
+        socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+        socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                  MakeNullCallback<void, Ptr<Socket>>());
         socket->Close();
     }
     m_clientSockets.clear();
 
-    // Close all backend sockets
+    // Close all backend sockets - clear callbacks before close
     for (auto& socket : m_backendSockets)
     {
         if (socket)
         {
+            socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+            socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
+                                       MakeNullCallback<void, Ptr<Socket>>());
             socket->Close();
         }
     }
@@ -340,6 +349,11 @@ void
 LoadBalancer::CleanupClientSocket(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
+
+    // Clear callbacks before removing socket
+    socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+    socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                              MakeNullCallback<void, Ptr<Socket>>());
     m_clientSockets.remove(socket);
 
     // Remove pending responses for this client

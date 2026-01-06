@@ -208,23 +208,32 @@ OffloadServer::StopApplication()
             MakeCallback(&OffloadServer::OnTaskCompleted, this));
     }
 
-    // Close listening sockets
+    // Close listening sockets - clear callbacks before close
     if (m_socket)
     {
-        m_socket->Close();
         m_socket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
                                     MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                    MakeNullCallback<void, Ptr<Socket>>());
+        m_socket->Close();
+        m_socket = nullptr;
     }
     if (m_socket6)
     {
-        m_socket6->Close();
         m_socket6->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
                                      MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_socket6->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                     MakeNullCallback<void, Ptr<Socket>>());
+        m_socket6->Close();
+        m_socket6 = nullptr;
     }
 
-    // Close all accepted sockets
+    // Close all accepted sockets - clear callbacks before close
     for (auto& socket : m_socketList)
     {
+        socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+        socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                  MakeNullCallback<void, Ptr<Socket>>());
         socket->Close();
     }
     m_socketList.clear();
