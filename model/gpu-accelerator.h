@@ -9,21 +9,16 @@
 #ifndef GPU_ACCELERATOR_H
 #define GPU_ACCELERATOR_H
 
-#include "task.h"
+#include "accelerator.h"
 
 #include "ns3/event-id.h"
 #include "ns3/nstime.h"
-#include "ns3/object.h"
-#include "ns3/ptr.h"
-#include "ns3/traced-callback.h"
 #include "ns3/traced-value.h"
 
 #include <queue>
 
 namespace ns3
 {
-
-class Node;
 
 /**
  * @ingroup distributed
@@ -32,8 +27,10 @@ class Node;
  * GpuAccelerator models a GPU processing unit with configurable compute
  * rate and memory bandwidth. Tasks are processed using a three-phase model:
  * input transfer, compute, output transfer.
+ *
+ * This is a concrete implementation of the Accelerator interface.
  */
-class GpuAccelerator : public Object
+class GpuAccelerator : public Accelerator
 {
   public:
     /**
@@ -45,23 +42,11 @@ class GpuAccelerator : public Object
     GpuAccelerator();
     ~GpuAccelerator() override;
 
-    /**
-     * @brief Submit a task for execution.
-     * @param task The task to execute.
-     */
-    void SubmitTask(Ptr<Task> task);
-
-    /**
-     * @brief Get the current queue length.
-     * @return Number of tasks in queue (including currently executing).
-     */
-    uint32_t GetQueueLength() const;
-
-    /**
-     * @brief Check if accelerator is currently busy.
-     * @return True if executing a task.
-     */
-    bool IsBusy() const;
+    // Accelerator interface implementation
+    void SubmitTask(Ptr<Task> task) override;
+    std::string GetName() const override;
+    uint32_t GetQueueLength() const override;
+    bool IsBusy() const override;
 
     /**
      * @brief Get compute rate in FLOPS.
@@ -75,24 +60,8 @@ class GpuAccelerator : public Object
      */
     double GetMemoryBandwidth() const;
 
-    Ptr<Node> GetNode() const;
-
-    /**
-     * @brief TracedCallback signature for task events.
-     * @param task The task.
-     */
-    typedef void (*TaskTracedCallback)(Ptr<const Task> task);
-
-    /**
-     * @brief TracedCallback signature for task completion.
-     * @param task The completed task.
-     * @param duration The total processing duration.
-     */
-    typedef void (*TaskCompletedTracedCallback)(Ptr<const Task> task, Time duration);
-
   protected:
     void DoDispose() override;
-    void NotifyNewAggregate() override;
 
   private:
     /**
@@ -115,10 +84,7 @@ class GpuAccelerator : public Object
      */
     void OutputTransferComplete();
 
-    // Attributes
-
-    Ptr<Node> m_node;
-
+    // GPU-specific attributes
     double m_computeRate;     //!< Compute rate in FLOPS
     double m_memoryBandwidth; //!< Memory bandwidth in bytes/sec
 
@@ -134,10 +100,6 @@ class GpuAccelerator : public Object
 
     // Traced values
     TracedValue<uint32_t> m_queueLength; //!< Current queue length
-
-    // Trace sources
-    TracedCallback<Ptr<const Task>> m_taskStartedTrace;         //!< Task started
-    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace; //!< Task completed
 };
 
 } // namespace ns3

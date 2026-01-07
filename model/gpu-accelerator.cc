@@ -10,7 +10,6 @@
 
 #include "ns3/double.h"
 #include "ns3/log.h"
-#include "ns3/node.h"
 #include "ns3/simulator.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/uinteger.h"
@@ -24,39 +23,29 @@ NS_OBJECT_ENSURE_REGISTERED(GpuAccelerator);
 TypeId
 GpuAccelerator::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::GpuAccelerator")
-            .SetParent<Object>()
-            .SetGroupName("Distributed")
-            .AddConstructor<GpuAccelerator>()
-            .AddAttribute("ComputeRate",
-                          "Compute rate in FLOPS (must be > 0)",
-                          DoubleValue(1e12),
-                          MakeDoubleAccessor(&GpuAccelerator::m_computeRate),
-                          MakeDoubleChecker<double>(1.0))
-            .AddAttribute("MemoryBandwidth",
-                          "Memory bandwidth in bytes/sec (must be > 0)",
-                          DoubleValue(900e9),
-                          MakeDoubleAccessor(&GpuAccelerator::m_memoryBandwidth),
-                          MakeDoubleChecker<double>(1.0))
-            .AddTraceSource("QueueLength",
-                            "Current number of tasks in queue",
-                            MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
-                            "ns3::TracedValueCallback::Uint32")
-            .AddTraceSource("TaskStarted",
-                            "Trace fired when a task starts execution",
-                            MakeTraceSourceAccessor(&GpuAccelerator::m_taskStartedTrace),
-                            "ns3::GpuAccelerator::TaskTracedCallback")
-            .AddTraceSource("TaskCompleted",
-                            "Trace fired when a task completes",
-                            MakeTraceSourceAccessor(&GpuAccelerator::m_taskCompletedTrace),
-                            "ns3::GpuAccelerator::TaskCompletedTracedCallback");
+    static TypeId tid = TypeId("ns3::GpuAccelerator")
+                            .SetParent<Accelerator>()
+                            .SetGroupName("Distributed")
+                            .AddConstructor<GpuAccelerator>()
+                            .AddAttribute("ComputeRate",
+                                          "Compute rate in FLOPS (must be > 0)",
+                                          DoubleValue(1e12),
+                                          MakeDoubleAccessor(&GpuAccelerator::m_computeRate),
+                                          MakeDoubleChecker<double>(1.0))
+                            .AddAttribute("MemoryBandwidth",
+                                          "Memory bandwidth in bytes/sec (must be > 0)",
+                                          DoubleValue(900e9),
+                                          MakeDoubleAccessor(&GpuAccelerator::m_memoryBandwidth),
+                                          MakeDoubleChecker<double>(1.0))
+                            .AddTraceSource("QueueLength",
+                                            "Current number of tasks in queue",
+                                            MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
+                                            "ns3::TracedValueCallback::Uint32");
     return tid;
 }
 
 GpuAccelerator::GpuAccelerator()
-    : m_node(nullptr),
-      m_computeRate(1e12),
+    : m_computeRate(1e12),
       m_memoryBandwidth(900e9),
       m_currentTask(nullptr),
       m_busy(false),
@@ -72,22 +61,6 @@ GpuAccelerator::~GpuAccelerator()
 }
 
 void
-GpuAccelerator::NotifyNewAggregate()
-{
-    if (!m_node)
-    {
-        m_node = GetObject<Node>();
-    }
-    Object::NotifyNewAggregate();
-}
-
-Ptr<Node>
-GpuAccelerator::GetNode() const
-{
-    return m_node;
-}
-
-void
 GpuAccelerator::DoDispose()
 {
     NS_LOG_FUNCTION(this);
@@ -97,8 +70,13 @@ GpuAccelerator::DoDispose()
     {
         m_taskQueue.pop();
     }
-    m_node = nullptr;
-    Object::DoDispose();
+    Accelerator::DoDispose();
+}
+
+std::string
+GpuAccelerator::GetName() const
+{
+    return "GPU";
 }
 
 void
@@ -135,8 +113,7 @@ GpuAccelerator::StartNextTask()
 
     NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
 
-    // Fire task started trace before updating queue length
-    // This is symmetric with OutputTransferComplete() which also fires trace first
+    // Fire task started trace
     m_taskStartedTrace(m_currentTask);
 
     // Update queue length after trace (includes current task being processed)
