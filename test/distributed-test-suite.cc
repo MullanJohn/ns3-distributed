@@ -17,7 +17,7 @@ TestCase* CreateGpuAcceleratorQueueTestCase();
 TestCase* CreateOffloadHeaderTestCase();
 TestCase* CreateOffloadHeaderResponseTestCase();
 TestCase* CreateOffloadServerBasicTestCase();
-TestCase* CreateOffloadServerNoGpuTestCase();
+TestCase* CreateOffloadServerNoAcceleratorTestCase();
 TestCase* CreateOffloadClientMultiClientTestCase();
 TestCase* CreateClusterBasicTestCase();
 TestCase* CreateClusterIterationTestCase();
@@ -40,7 +40,7 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateOffloadHeaderTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadHeaderResponseTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadServerBasicTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateOffloadServerNoGpuTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOffloadServerNoAcceleratorTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadClientMultiClientTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterIterationTestCase(), TestCase::Duration::QUICK);
