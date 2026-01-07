@@ -86,8 +86,25 @@ OffloadServer::DoDispose()
     }
     m_socketList.clear();
 
-    m_socket = nullptr;
-    m_socket6 = nullptr;
+    // Close listening sockets with callback cleanup
+    if (m_socket)
+    {
+        m_socket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
+                                    MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                    MakeNullCallback<void, Ptr<Socket>>());
+        m_socket->Close();
+        m_socket = nullptr;
+    }
+    if (m_socket6)
+    {
+        m_socket6->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
+                                     MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_socket6->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                     MakeNullCallback<void, Ptr<Socket>>());
+        m_socket6->Close();
+        m_socket6 = nullptr;
+    }
     m_rxBuffer.clear();
     m_pendingTasks.clear();
     m_accelerator = nullptr;

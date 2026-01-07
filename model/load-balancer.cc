@@ -98,7 +98,16 @@ LoadBalancer::DoDispose()
     }
     m_backends.clear();
 
-    m_listenSocket = nullptr;
+    // Close listening socket with callback cleanup
+    if (m_listenSocket)
+    {
+        m_listenSocket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
+                                          MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_listenSocket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                          MakeNullCallback<void, Ptr<Socket>>());
+        m_listenSocket->Close();
+        m_listenSocket = nullptr;
+    }
     m_clientRxBuffers.clear();
     m_socketToBackend.clear();
     m_pendingResponses.clear();
