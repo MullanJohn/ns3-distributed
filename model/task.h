@@ -13,15 +13,21 @@
 #include "ns3/object.h"
 #include "ns3/ptr.h"
 
+#include <string>
+
 namespace ns3
 {
 
 /**
  * @ingroup distributed
- * @brief Represents a computational task to be executed on an accelerator.
+ * @brief Abstract base class representing a task to be executed on an accelerator.
  *
- * A Task encapsulates the compute demand (in FLOPS), input/output data sizes,
- * and timing metadata for simulation of distributed computing workloads.
+ * Task provides a common interface for all task types in the distributed computing
+ * simulation framework. Concrete implementations (e.g., ComputeTask) define specific
+ * task characteristics such as compute demand, I/O sizes, or inference parameters.
+ *
+ * All tasks have a unique identifier and arrival time metadata. Derived classes
+ * must implement GetTaskId() and GetName() to identify the task and its type.
  */
 class Task : public Object
 {
@@ -36,74 +42,41 @@ class Task : public Object
     ~Task() override;
 
     /**
-     * @brief Set the compute demand in FLOPS.
-     * @param flops The compute demand.
+     * @brief Get the unique task identifier.
+     * @return The task ID.
+     *
+     * Must be implemented by derived classes to provide task identification.
      */
-    void SetComputeDemand(double flops);
+    virtual uint64_t GetTaskId() const = 0;
 
     /**
-     * @brief Set the input data size in bytes.
-     * @param bytes The input size.
+     * @brief Get the task type name.
+     * @return A string identifying the task type (e.g., "ComputeTask", "InferenceTask").
+     *
+     * Used for logging and for dispatching tasks to appropriate accelerators or headers.
      */
-    void SetInputSize(uint64_t bytes);
-
-    /**
-     * @brief Set the output data size in bytes.
-     * @param bytes The output size.
-     */
-    void SetOutputSize(uint64_t bytes);
-
-    /**
-     * @brief Set the task arrival time.
-     * @param time The arrival time.
-     */
-    void SetArrivalTime(Time time);
-
-    /**
-     * @brief Set the unique task identifier.
-     * @param id The task ID.
-     */
-    void SetTaskId(uint64_t id);
-
-    /**
-     * @brief Get the compute demand in FLOPS.
-     * @return The compute demand.
-     */
-    double GetComputeDemand() const;
-
-    /**
-     * @brief Get the input data size in bytes.
-     * @return The input size.
-     */
-    uint64_t GetInputSize() const;
-
-    /**
-     * @brief Get the output data size in bytes.
-     * @return The output size.
-     */
-    uint64_t GetOutputSize() const;
+    virtual std::string GetName() const = 0;
 
     /**
      * @brief Get the task arrival time.
      * @return The arrival time.
+     *
+     * Default implementation returns the stored arrival time.
      */
-    Time GetArrivalTime() const;
+    virtual Time GetArrivalTime() const;
 
     /**
-     * @brief Get the unique task identifier.
-     * @return The task ID.
+     * @brief Set the task arrival time.
+     * @param time The arrival time.
+     *
+     * Default implementation stores the arrival time in m_arrivalTime.
      */
-    uint64_t GetTaskId() const;
+    virtual void SetArrivalTime(Time time);
 
   protected:
     void DoDispose() override;
 
-  private:
-    double m_computeDemand; //!< Compute demand in FLOPS
-    uint64_t m_inputSize;   //!< Input data size in bytes
-    uint64_t m_outputSize;  //!< Output data size in bytes
-    Time m_arrivalTime;     //!< Time when task arrived
-    uint64_t m_taskId;      //!< Unique task identifier
+    Time m_arrivalTime{Seconds(0)}; //!< Time when task arrived
 };
 
 } // namespace ns3
