@@ -10,6 +10,7 @@
 #define OFFLOAD_SERVER_H
 
 #include "accelerator.h"
+#include "compute-task.h"
 #include "offload-header.h"
 #include "task.h"
 
@@ -148,10 +149,10 @@ class OffloadServer : public Application
     /**
      * @brief Send a response to the client.
      * @param socket The client socket.
-     * @param task The completed task.
+     * @param task The completed compute task.
      * @param duration The processing duration.
      */
-    void SendResponse(Ptr<Socket> socket, Ptr<const Task> task, Time duration);
+    void SendResponse(Ptr<Socket> socket, Ptr<const ComputeTask> task, Time duration);
 
     /**
      * @brief Clean up pending tasks for a closed socket.
@@ -178,7 +179,7 @@ class OffloadServer : public Application
     struct PendingTask
     {
         Ptr<Socket> socket;
-        Ptr<Task> task;
+        Ptr<ComputeTask> task;
     };
 
     std::unordered_map<uint64_t, PendingTask> m_pendingTasks;
