@@ -9,7 +9,6 @@
 #ifndef OFFLOAD_SERVER_H
 #define OFFLOAD_SERVER_H
 
-#include "address-hash.h"
 #include "gpu-accelerator.h"
 #include "offload-header.h"
 #include "task.h"
@@ -21,7 +20,6 @@
 
 #include <list>
 #include <map>
-#include <unordered_map>
 
 namespace ns3
 {
@@ -130,9 +128,8 @@ class OffloadServer : public Application
     /**
      * @brief Process buffered data for a client, extracting complete messages.
      * @param socket The client socket.
-     * @param from The client address.
      */
-    void ProcessBuffer(Ptr<Socket> socket, const Address& from);
+    void ProcessBuffer(Ptr<Socket> socket);
 
     /**
      * @brief Process a complete task request.
@@ -171,16 +168,8 @@ class OffloadServer : public Application
     Ptr<Socket> m_socket6;               //!< IPv6 listening socket (used if only port is specified)
     std::list<Ptr<Socket>> m_socketList; //!< Accepted client sockets
 
-    // Per-client receive buffers (for TCP stream reassembly)
-    std::unordered_map<Address, Ptr<Packet>, AddressHash> m_rxBuffer;
-
-    /**
-     * @brief Map from socket to client address for buffer cleanup.
-     *
-     * When a socket disconnects, we need to find and remove the
-     * corresponding entry in m_rxBuffer which is keyed by Address.
-     */
-    std::map<Ptr<Socket>, Address> m_socketAddresses;
+    // Per-client receive buffers keyed by socket (for TCP stream reassembly)
+    std::map<Ptr<Socket>, Ptr<Packet>> m_rxBuffer;
 
     // GPU accelerator
     Ptr<GpuAccelerator> m_accelerator; //!< Cached accelerator reference

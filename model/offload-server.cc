@@ -89,7 +89,6 @@ OffloadServer::DoDispose()
     m_socket = nullptr;
     m_socket6 = nullptr;
     m_rxBuffer.clear();
-    m_socketAddresses.clear();
     m_pendingTasks.clear();
     m_accelerator = nullptr;
     Application::DoDispose();
@@ -260,9 +259,6 @@ OffloadServer::HandleAccept(Ptr<Socket> socket, const Address& from)
     socket->SetCloseCallbacks(MakeCallback(&OffloadServer::HandlePeerClose, this),
                               MakeCallback(&OffloadServer::HandlePeerError, this));
     m_socketList.push_back(socket);
-
-    // Track socket-to-address mapping for buffer cleanup on disconnect
-    m_socketAddresses[socket] = from;
 }
 
 void
@@ -284,10 +280,10 @@ OffloadServer::HandleRead(Ptr<Socket> socket)
         NS_LOG_DEBUG("Received " << packet->GetSize() << " bytes from " << from);
 
         // Add to buffer for this client (TCP stream reassembly)
-        auto it = m_rxBuffer.find(from);
+        auto it = m_rxBuffer.find(socket);
         if (it == m_rxBuffer.end())
         {
-            m_rxBuffer[from] = packet;
+            m_rxBuffer[socket] = packet;
         }
         else
         {
@@ -295,16 +291,16 @@ OffloadServer::HandleRead(Ptr<Socket> socket)
         }
 
         // Try to process complete messages from the buffer
-        ProcessBuffer(socket, from);
+        ProcessBuffer(socket);
     }
 }
 
 void
-OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
+OffloadServer::ProcessBuffer(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket << from);
+    NS_LOG_FUNCTION(this << socket);
 
-    auto it = m_rxBuffer.find(from);
+    auto it = m_rxBuffer.find(socket);
     if (it == m_rxBuffer.end())
     {
         return;
@@ -508,17 +504,12 @@ OffloadServer::CleanupSocket(Ptr<Socket> socket)
         }
     }
 
-    // Clean up receive buffer for this socket's address
-    auto addrIt = m_socketAddresses.find(socket);
-    if (addrIt != m_socketAddresses.end())
+    // Clean up receive buffer for this socket
+    auto bufferIt = m_rxBuffer.find(socket);
+    if (bufferIt != m_rxBuffer.end())
     {
-        auto bufferIt = m_rxBuffer.find(addrIt->second);
-        if (bufferIt != m_rxBuffer.end())
-        {
-            NS_LOG_DEBUG("Removing rx buffer for disconnected client");
-            m_rxBuffer.erase(bufferIt);
-        }
-        m_socketAddresses.erase(addrIt);
+        NS_LOG_DEBUG("Removing rx buffer for disconnected client");
+        m_rxBuffer.erase(bufferIt);
     }
 }
 
