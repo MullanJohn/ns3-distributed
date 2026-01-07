@@ -286,8 +286,7 @@ LoadBalancer::ProcessClientBuffer(Ptr<Socket> socket, const Address& from)
         buffer->PeekHeader(header);
 
         // Calculate total message size
-        uint64_t inputSize = header.GetInputSize();
-        uint64_t payloadSize = (inputSize > headerSize) ? (inputSize - headerSize) : 0;
+        uint64_t payloadSize = header.GetRequestPayloadSize();
         uint64_t totalMessageSize = headerSize + payloadSize;
 
         if (buffer->GetSize() < totalMessageSize)
@@ -508,8 +507,8 @@ LoadBalancer::ProcessBackendBuffer(uint32_t backendIndex)
         buffer->PeekHeader(header);
 
         // For responses, server sends header + outputSize bytes
-        uint64_t outputSize = header.GetOutputSize();
-        uint64_t totalMessageSize = headerSize + outputSize;
+        uint64_t payloadSize = header.GetResponsePayloadSize();
+        uint64_t totalMessageSize = headerSize + payloadSize;
 
         if (buffer->GetSize() < totalMessageSize)
         {
@@ -523,10 +522,10 @@ LoadBalancer::ProcessBackendBuffer(uint32_t backendIndex)
 
         // Extract payload
         Ptr<Packet> payload = Create<Packet>();
-        if (outputSize > 0)
+        if (payloadSize > 0)
         {
-            payload = buffer->CreateFragment(0, outputSize);
-            buffer->RemoveAtStart(outputSize);
+            payload = buffer->CreateFragment(0, payloadSize);
+            buffer->RemoveAtStart(payloadSize);
         }
 
         // Route the response

@@ -119,6 +119,22 @@ class OffloadHeader : public Header
     uint64_t GetOutputSize() const;
 
     /**
+     * @brief Get the payload size for a request message.
+     *
+     * Request payload is inputSize minus header overhead (or 0 if inputSize <= header).
+     * @return Payload size in bytes.
+     */
+    uint64_t GetRequestPayloadSize() const;
+
+    /**
+     * @brief Get the payload size for a response message.
+     *
+     * Response payload equals outputSize (no header overhead subtraction).
+     * @return Payload size in bytes.
+     */
+    uint64_t GetResponsePayloadSize() const;
+
+    /**
      * @brief Get a string representation of the header.
      * @return String representation.
      */

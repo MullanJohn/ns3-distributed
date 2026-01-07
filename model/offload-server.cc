@@ -322,9 +322,7 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
         buffer->PeekHeader(header);
 
         // Calculate total message size (header + payload)
-        // Client sends: header + max(0, inputSize - headerSize) payload bytes
-        uint64_t inputSize = header.GetInputSize();
-        uint64_t payloadSize = (inputSize > headerSize) ? (inputSize - headerSize) : 0;
+        uint64_t payloadSize = header.GetRequestPayloadSize();
         uint64_t totalMessageSize = headerSize + payloadSize;
 
         // Ensure we have the complete message

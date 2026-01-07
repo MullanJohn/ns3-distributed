@@ -209,4 +209,16 @@ OffloadHeader::GetOutputSize() const
     return m_outputSize;
 }
 
+uint64_t
+OffloadHeader::GetRequestPayloadSize() const
+{
+    return (m_inputSize > SERIALIZED_SIZE) ? (m_inputSize - SERIALIZED_SIZE) : 0;
+}
+
+uint64_t
+OffloadHeader::GetResponsePayloadSize() const
+{
+    return m_outputSize;
+}
+
 } // namespace ns3

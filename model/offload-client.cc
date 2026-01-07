@@ -384,9 +384,8 @@ OffloadClient::ProcessBuffer()
         }
 
         // Calculate total message size (header + output payload from server)
-        // Server sends: header + outputSize bytes
-        uint64_t outputSize = header.GetOutputSize();
-        uint64_t totalMessageSize = headerSize + outputSize;
+        uint64_t payloadSize = header.GetResponsePayloadSize();
+        uint64_t totalMessageSize = headerSize + payloadSize;
 
         // Ensure we have the complete message
         if (m_rxBuffer->GetSize() < totalMessageSize)
@@ -400,9 +399,9 @@ OffloadClient::ProcessBuffer()
         m_rxBuffer->RemoveAtStart(headerSize);
 
         // Remove output payload (we don't need the actual data, just consume it)
-        if (outputSize > 0)
+        if (payloadSize > 0)
         {
-            m_rxBuffer->RemoveAtStart(outputSize);
+            m_rxBuffer->RemoveAtStart(payloadSize);
         }
 
         // Validate that this response corresponds to a task we sent
