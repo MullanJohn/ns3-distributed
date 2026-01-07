@@ -6,6 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
+#include "ns3/compute-task.h"
 #include "ns3/double.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/simulator.h"
@@ -43,7 +44,7 @@ class GpuAcceleratorQueueTestCase : public TestCase
 
         for (uint32_t i = 0; i < 5; i++)
         {
-            Ptr<Task> task = CreateObject<Task>();
+            Ptr<ComputeTask> task = CreateObject<ComputeTask>();
             task->SetTaskId(i);
             task->SetComputeDemand(1e9);
             task->SetInputSize(1e6);

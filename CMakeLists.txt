@@ -14,6 +14,7 @@ build_lib(
     LIBNAME distributed
     SOURCE_FILES model/distributed.cc
                  model/task.cc
+                 model/compute-task.cc
                  model/accelerator.cc
                  model/gpu-accelerator.cc
                  model/offload-header.cc
@@ -29,6 +30,7 @@ build_lib(
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
                  model/task.h
+                 model/compute-task.h
                  model/accelerator.h
                  model/gpu-accelerator.h
                  model/offload-header.h

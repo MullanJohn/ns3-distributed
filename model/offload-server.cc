@@ -400,8 +400,8 @@ OffloadServer::ProcessTask(const OffloadHeader& header, Ptr<Socket> socket)
         return;
     }
 
-    // Create a Task object from the header
-    Ptr<Task> task = CreateObject<Task>();
+    // Create a ComputeTask object from the header
+    Ptr<ComputeTask> task = CreateObject<ComputeTask>();
     task->SetTaskId(header.GetTaskId());
     task->SetComputeDemand(header.GetComputeDemand());
     task->SetInputSize(header.GetInputSize());
@@ -435,12 +435,13 @@ OffloadServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
     }
 
     Ptr<Socket> socket = it->second.socket;
+    Ptr<ComputeTask> computeTask = it->second.task;
     m_pendingTasks.erase(it);
 
     // Check if socket is still valid
     if (socket)
     {
-        SendResponse(socket, task, duration);
+        SendResponse(socket, computeTask, duration);
     }
     else
     {
@@ -449,7 +450,7 @@ OffloadServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
 }
 
 void
-OffloadServer::SendResponse(Ptr<Socket> socket, Ptr<const Task> task, Time duration)
+OffloadServer::SendResponse(Ptr<Socket> socket, Ptr<const ComputeTask> task, Time duration)
 {
     NS_LOG_FUNCTION(this << socket << task->GetTaskId() << duration);
 
