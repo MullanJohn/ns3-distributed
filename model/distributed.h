@@ -17,7 +17,7 @@
  * accelerators, including load balancing across server clusters.
  *
  * Key components:
- * - Task: Represents a computational task with compute demand and I/O sizes
+ * - Task: Abstract interface for all task types (GetTaskId, GetName, ArrivalTime)
  * - Accelerator: Abstract interface for hardware accelerators (GPU, FPGA, ASIC)
  * - OffloadClient/OffloadServer: TCP-based client-server for task offloading
  * - LoadBalancer: Distributes tasks across a cluster of servers
@@ -27,6 +27,7 @@
 // Model headers
 #include "ns3/accelerator.h"
 #include "ns3/cluster.h"
+#include "ns3/compute-task.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/load-balancer.h"
 #include "ns3/node-scheduler.h"
