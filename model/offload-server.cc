@@ -75,9 +75,19 @@ void
 OffloadServer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
+
+    // Close all accepted sockets with callback cleanup
+    for (auto& socket : m_socketList)
+    {
+        socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+        socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                  MakeNullCallback<void, Ptr<Socket>>());
+        socket->Close();
+    }
+    m_socketList.clear();
+
     m_socket = nullptr;
     m_socket6 = nullptr;
-    m_socketList.clear();
     m_rxBuffer.clear();
     m_socketAddresses.clear();
     m_pendingTasks.clear();

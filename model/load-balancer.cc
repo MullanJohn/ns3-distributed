@@ -74,11 +74,33 @@ void
 LoadBalancer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
-    m_listenSocket = nullptr;
+
+    // Close all client sockets with callback cleanup
+    for (auto& socket : m_clientSockets)
+    {
+        socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+        socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                  MakeNullCallback<void, Ptr<Socket>>());
+        socket->Close();
+    }
     m_clientSockets.clear();
+
+    // Close all backend sockets with callback cleanup
+    for (auto& socket : m_backendSockets)
+    {
+        if (socket)
+        {
+            socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+            socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
+                                       MakeNullCallback<void, Ptr<Socket>>());
+            socket->Close();
+        }
+    }
+    m_backendSockets.clear();
+
+    m_listenSocket = nullptr;
     m_clientRxBuffers.clear();
     m_clientSocketAddresses.clear();
-    m_backendSockets.clear();
     m_backendConnected.clear();
     m_backendRxBuffers.clear();
     m_socketToBackend.clear();
