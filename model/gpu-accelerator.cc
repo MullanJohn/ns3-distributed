@@ -84,10 +84,18 @@ GpuAccelerator::SubmitTask(Ptr<Task> task)
 {
     NS_LOG_FUNCTION(this << task);
 
-    m_taskQueue.push(task);
+    // GpuAccelerator requires ComputeTask objects
+    Ptr<ComputeTask> computeTask = DynamicCast<ComputeTask>(task);
+    if (!computeTask)
+    {
+        NS_LOG_ERROR("GpuAccelerator requires ComputeTask objects, received: " << task->GetName());
+        return;
+    }
+
+    m_taskQueue.push(computeTask);
     m_queueLength = m_taskQueue.size() + (m_busy ? 1 : 0);
 
-    NS_LOG_DEBUG("Task " << task->GetTaskId() << " submitted, queue length: " << m_queueLength);
+    NS_LOG_DEBUG("Task " << computeTask->GetTaskId() << " submitted, queue length: " << m_queueLength);
 
     if (!m_busy)
     {
