@@ -78,7 +78,7 @@ OffloadClient::GetTypeId()
                             "ns3::OffloadClient::TaskSentTracedCallback")
             .AddTraceSource("ResponseReceived",
                             "Trace fired when a response is received",
-                            MakeTraceSourceAccessor(&OffloadClient::m_responseTrace),
+                            MakeTraceSourceAccessor(&OffloadClient::m_responseReceivedTrace),
                             "ns3::OffloadClient::ResponseReceivedTracedCallback");
     return tid;
 }
@@ -425,7 +425,7 @@ OffloadClient::ProcessBuffer()
                                                   << " (RTT=" << rtt.GetMilliSeconds() << "ms)");
 
         // Fire trace
-        m_responseTrace(header, rtt);
+        m_responseReceivedTrace(header, rtt);
     }
 }
 

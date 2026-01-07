@@ -35,7 +35,7 @@ Cluster::AddBackend(Ptr<Node> node, const Address& address)
 uint32_t
 Cluster::GetN() const
 {
-    return static_cast<uint32_t>(m_backends.size());
+    return m_backends.size();
 }
 
 const Cluster::Backend&
@@ -79,7 +79,6 @@ Cluster::IsEmpty() const
 void
 Cluster::Clear()
 {
-    NS_LOG_FUNCTION(this);
     m_backends.clear();
 }
 

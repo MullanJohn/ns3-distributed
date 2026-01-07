@@ -10,8 +10,6 @@
 #define OFFLOAD_CLIENT_H
 
 #include "offload-header.h"
-
-#include "ns3/address.h"
 #include "ns3/application.h"
 #include "ns3/event-id.h"
 #include "ns3/ptr.h"
@@ -168,8 +166,8 @@ class OffloadClient : public Application
     std::map<uint64_t, Time> m_sendTimes; //!< Map of task ID to send time
 
     // Trace sources
-    TracedCallback<const OffloadHeader&> m_taskSentTrace;       //!< Task sent trace
-    TracedCallback<const OffloadHeader&, Time> m_responseTrace; //!< Response received trace
+    TracedCallback<const OffloadHeader&> m_taskSentTrace;               //!< Task sent trace
+    TracedCallback<const OffloadHeader&, Time> m_responseReceivedTrace; //!< Response received trace
 };
 
 } // namespace ns3
