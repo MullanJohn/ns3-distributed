@@ -13,18 +13,19 @@
  * @defgroup distributed Distributed Computing Module
  *
  * This module provides classes for simulating distributed computing workloads
- * in ns-3. It models task offloading from clients to servers with GPU
+ * in ns-3. It models task offloading from clients to servers with hardware
  * accelerators, including load balancing across server clusters.
  *
  * Key components:
  * - Task: Represents a computational task with compute demand and I/O sizes
- * - GpuAccelerator: Models GPU processing with three-phase execution
+ * - Accelerator: Abstract interface for hardware accelerators (GPU, FPGA, ASIC)
  * - OffloadClient/OffloadServer: TCP-based client-server for task offloading
  * - LoadBalancer: Distributes tasks across a cluster of servers
  * - NodeScheduler: Abstract interface for scheduling policies
  */
 
 // Model headers
+#include "ns3/accelerator.h"
 #include "ns3/cluster.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/load-balancer.h"

@@ -146,11 +146,11 @@ OffloadServer::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
-    // Get the GpuAccelerator aggregated to this node
-    m_accelerator = GetNode()->GetObject<GpuAccelerator>();
+    // Get the Accelerator aggregated to this node
+    m_accelerator = GetNode()->GetObject<Accelerator>();
     if (!m_accelerator)
     {
-        NS_LOG_WARN("No GpuAccelerator aggregated to this node. Tasks will be rejected.");
+        NS_LOG_WARN("No Accelerator aggregated to this node. Tasks will be rejected.");
     }
     else
     {

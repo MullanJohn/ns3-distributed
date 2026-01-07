@@ -7,6 +7,7 @@
  */
 
 #include "ns3/double.h"
+#include "ns3/accelerator.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/internet-stack-helper.h"
@@ -26,13 +27,13 @@ namespace
 
 /**
  * @ingroup distributed-tests
- * @brief Test OffloadServer receives tasks and submits to GPU
+ * @brief Test OffloadServer receives tasks and submits to Accelerator
  */
 class OffloadServerBasicTestCase : public TestCase
 {
   public:
     OffloadServerBasicTestCase()
-        : TestCase("Test OffloadServer basic task reception and GPU submission"),
+        : TestCase("Test OffloadServer basic task reception and Accelerator submission"),
           m_taskReceived(false),
           m_taskCompleted(false)
     {
@@ -71,9 +72,13 @@ class OffloadServerBasicTestCase : public TestCase
         server->SetStartTime(Seconds(0.0));
         server->SetStopTime(Seconds(10.0));
 
-        // Verify GPU is accessible from server's node
+        // Verify accelerator is accessible from server's node (via both interfaces)
+        Ptr<Accelerator> nodeAccel = serverNode->GetObject<Accelerator>();
+        NS_TEST_ASSERT_MSG_NE(nodeAccel, nullptr, "Accelerator should be aggregated to node");
+        NS_TEST_ASSERT_MSG_EQ(nodeAccel->GetName(), "GPU", "Accelerator should be a GPU");
+
         Ptr<GpuAccelerator> nodeGpu = serverNode->GetObject<GpuAccelerator>();
-        NS_TEST_ASSERT_MSG_NE(nodeGpu, nullptr, "GPU should be aggregated to node");
+        NS_TEST_ASSERT_MSG_NE(nodeGpu, nullptr, "GpuAccelerator should be accessible");
 
         // Run and cleanup
         Simulator::Run();
@@ -99,20 +104,20 @@ class OffloadServerBasicTestCase : public TestCase
 
 /**
  * @ingroup distributed-tests
- * @brief Test OffloadServer handles missing GPU gracefully
+ * @brief Test OffloadServer handles missing Accelerator gracefully
  */
-class OffloadServerNoGpuTestCase : public TestCase
+class OffloadServerNoAcceleratorTestCase : public TestCase
 {
   public:
-    OffloadServerNoGpuTestCase()
-        : TestCase("Test OffloadServer handles missing GPU gracefully")
+    OffloadServerNoAcceleratorTestCase()
+        : TestCase("Test OffloadServer handles missing Accelerator gracefully")
     {
     }
 
   private:
     void DoRun() override
     {
-        // Create a node WITHOUT GpuAccelerator
+        // Create a node WITHOUT Accelerator
         Ptr<Node> serverNode = CreateObject<Node>();
 
         // Install internet stack (required for TCP sockets)
@@ -146,9 +151,9 @@ CreateOffloadServerBasicTestCase()
 }
 
 TestCase*
-CreateOffloadServerNoGpuTestCase()
+CreateOffloadServerNoAcceleratorTestCase()
 {
-    return new OffloadServerNoGpuTestCase;
+    return new OffloadServerNoAcceleratorTestCase;
 }
 
 } // namespace ns3
