@@ -30,15 +30,15 @@ GpuAccelerator::GetTypeId()
             .SetGroupName("Distributed")
             .AddConstructor<GpuAccelerator>()
             .AddAttribute("ComputeRate",
-                          "Compute rate in FLOPS",
+                          "Compute rate in FLOPS (must be > 0)",
                           DoubleValue(1e12),
                           MakeDoubleAccessor(&GpuAccelerator::m_computeRate),
-                          MakeDoubleChecker<double>(0))
+                          MakeDoubleChecker<double>(1.0))
             .AddAttribute("MemoryBandwidth",
-                          "Memory bandwidth in bytes/sec",
+                          "Memory bandwidth in bytes/sec (must be > 0)",
                           DoubleValue(900e9),
                           MakeDoubleAccessor(&GpuAccelerator::m_memoryBandwidth),
-                          MakeDoubleChecker<double>(0))
+                          MakeDoubleChecker<double>(1.0))
             .AddTraceSource("QueueLength",
                             "Current number of tasks in queue",
                             MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
@@ -132,12 +132,15 @@ GpuAccelerator::StartNextTask()
     m_taskQueue.pop();
     m_busy = true;
     m_taskStartTime = Simulator::Now();
-    m_queueLength = m_taskQueue.size() + 1;
 
     NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
 
-    // Fire task started trace
+    // Fire task started trace before updating queue length
+    // This is symmetric with OutputTransferComplete() which also fires trace first
     m_taskStartedTrace(m_currentTask);
+
+    // Update queue length after trace (includes current task being processed)
+    m_queueLength = m_taskQueue.size() + 1;
 
     // Calculate input transfer time
     Time inputTransferTime = Seconds(m_currentTask->GetInputSize() / m_memoryBandwidth);

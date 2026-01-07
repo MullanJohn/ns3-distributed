@@ -35,13 +35,14 @@ Cluster::AddBackend(Ptr<Node> node, const Address& address)
 uint32_t
 Cluster::GetN() const
 {
-    return static_cast<uint32_t>(m_backends.size());
+    return m_backends.size();
 }
 
 const Cluster::Backend&
 Cluster::Get(uint32_t i) const
 {
-    NS_ASSERT_MSG(i < m_backends.size(), "Index " << i << " out of range (size=" << m_backends.size() << ")");
+    NS_ASSERT_MSG(i < m_backends.size(),
+                  "Index " << i << " out of range (size=" << m_backends.size() << ")");
     return m_backends[i];
 }
 
@@ -78,7 +79,6 @@ Cluster::IsEmpty() const
 void
 Cluster::Clear()
 {
-    NS_LOG_FUNCTION(this);
     m_backends.clear();
 }
 

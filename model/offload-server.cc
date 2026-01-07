@@ -75,9 +75,36 @@ void
 OffloadServer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
-    m_socket = nullptr;
-    m_socket6 = nullptr;
+
+    // Close all accepted sockets with callback cleanup
+    for (auto& socket : m_socketList)
+    {
+        socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+        socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                  MakeNullCallback<void, Ptr<Socket>>());
+        socket->Close();
+    }
     m_socketList.clear();
+
+    // Close listening sockets with callback cleanup
+    if (m_socket)
+    {
+        m_socket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
+                                    MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                    MakeNullCallback<void, Ptr<Socket>>());
+        m_socket->Close();
+        m_socket = nullptr;
+    }
+    if (m_socket6)
+    {
+        m_socket6->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
+                                     MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_socket6->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                     MakeNullCallback<void, Ptr<Socket>>());
+        m_socket6->Close();
+        m_socket6 = nullptr;
+    }
     m_rxBuffer.clear();
     m_pendingTasks.clear();
     m_accelerator = nullptr;
@@ -147,14 +174,14 @@ OffloadServer::StartApplication()
         else if (InetSocketAddress::IsMatchingType(local))
         {
             m_port = InetSocketAddress::ConvertFrom(local).GetPort();
-            NS_LOG_INFO("Binding to " << InetSocketAddress::ConvertFrom(local).GetIpv4()
-                                      << ":" << m_port);
+            NS_LOG_INFO("Binding to " << InetSocketAddress::ConvertFrom(local).GetIpv4() << ":"
+                                      << m_port);
         }
         else if (Inet6SocketAddress::IsMatchingType(local))
         {
             m_port = Inet6SocketAddress::ConvertFrom(local).GetPort();
-            NS_LOG_INFO("Binding to " << Inet6SocketAddress::ConvertFrom(local).GetIpv6()
-                                      << ":" << m_port);
+            NS_LOG_INFO("Binding to " << Inet6SocketAddress::ConvertFrom(local).GetIpv6() << ":"
+                                      << m_port);
         }
 
         if (m_socket->Bind(local) == -1)
@@ -208,23 +235,32 @@ OffloadServer::StopApplication()
             MakeCallback(&OffloadServer::OnTaskCompleted, this));
     }
 
-    // Close listening sockets
+    // Close listening sockets - clear callbacks before close
     if (m_socket)
     {
-        m_socket->Close();
         m_socket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
                                     MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                    MakeNullCallback<void, Ptr<Socket>>());
+        m_socket->Close();
+        m_socket = nullptr;
     }
     if (m_socket6)
     {
-        m_socket6->Close();
         m_socket6->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
                                      MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_socket6->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                     MakeNullCallback<void, Ptr<Socket>>());
+        m_socket6->Close();
+        m_socket6 = nullptr;
     }
 
-    // Close all accepted sockets
+    // Close all accepted sockets - clear callbacks before close
     for (auto& socket : m_socketList)
     {
+        socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+        socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
+                                  MakeNullCallback<void, Ptr<Socket>>());
         socket->Close();
     }
     m_socketList.clear();
@@ -261,10 +297,10 @@ OffloadServer::HandleRead(Ptr<Socket> socket)
         NS_LOG_DEBUG("Received " << packet->GetSize() << " bytes from " << from);
 
         // Add to buffer for this client (TCP stream reassembly)
-        auto it = m_rxBuffer.find(from);
+        auto it = m_rxBuffer.find(socket);
         if (it == m_rxBuffer.end())
         {
-            m_rxBuffer[from] = packet;
+            m_rxBuffer[socket] = packet;
         }
         else
         {
@@ -272,16 +308,16 @@ OffloadServer::HandleRead(Ptr<Socket> socket)
         }
 
         // Try to process complete messages from the buffer
-        ProcessBuffer(socket, from);
+        ProcessBuffer(socket);
     }
 }
 
 void
-OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
+OffloadServer::ProcessBuffer(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket << from);
+    NS_LOG_FUNCTION(this << socket);
 
-    auto it = m_rxBuffer.find(from);
+    auto it = m_rxBuffer.find(socket);
     if (it == m_rxBuffer.end())
     {
         return;
@@ -289,8 +325,8 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
 
     Ptr<Packet> buffer = it->second;
 
-    // Header size is constant (33 bytes) - cache to avoid repeated object construction
-    static const uint32_t headerSize = OffloadHeader().GetSerializedSize();
+    // Header size is constant (33 bytes)
+    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
 
     // Process all complete messages in the buffer
     while (buffer->GetSize() > 0)
@@ -300,8 +336,8 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
 
         if (buffer->GetSize() < headerSize)
         {
-            NS_LOG_DEBUG("Buffer has " << buffer->GetSize()
-                                       << " bytes, need " << headerSize << " for header");
+            NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << headerSize
+                                       << " for header");
             break;
         }
 
@@ -309,16 +345,14 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
         buffer->PeekHeader(header);
 
         // Calculate total message size (header + payload)
-        // Client sends: header + max(0, inputSize - headerSize) payload bytes
-        uint64_t inputSize = header.GetInputSize();
-        uint64_t payloadSize = (inputSize > headerSize) ? (inputSize - headerSize) : 0;
+        uint64_t payloadSize = header.GetRequestPayloadSize();
         uint64_t totalMessageSize = headerSize + payloadSize;
 
         // Ensure we have the complete message
         if (totalMessageSize > buffer->GetSize())
         {
-            NS_LOG_DEBUG("Buffer has " << buffer->GetSize()
-                                       << " bytes, need " << totalMessageSize << " for full message");
+            NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << totalMessageSize
+                                       << " for full message");
             break;
         }
 
@@ -356,8 +390,7 @@ OffloadServer::ProcessTask(const OffloadHeader& header, Ptr<Socket> socket)
     m_tasksReceived++;
     m_taskReceivedTrace(header);
 
-    NS_LOG_INFO("Received task " << header.GetTaskId()
-                                 << " (compute=" << header.GetComputeDemand()
+    NS_LOG_INFO("Received task " << header.GetTaskId() << " (compute=" << header.GetComputeDemand()
                                  << ", input=" << header.GetInputSize()
                                  << ", output=" << header.GetOutputSize() << ")");
 
@@ -440,9 +473,9 @@ OffloadServer::SendResponse(Ptr<Socket> socket, Ptr<const Task> task, Time durat
         m_tasksCompleted++;
         m_taskCompletedTrace(response, duration);
 
-        NS_LOG_INFO("Sent response for task " << task->GetTaskId()
-                                              << " (output=" << outputSize << " bytes"
-                                              << ", duration=" << duration.GetMilliSeconds() << "ms)");
+        NS_LOG_INFO("Sent response for task "
+                    << task->GetTaskId() << " (output=" << outputSize << " bytes"
+                    << ", duration=" << duration.GetMilliSeconds() << "ms)");
     }
     else
     {
@@ -488,8 +521,13 @@ OffloadServer::CleanupSocket(Ptr<Socket> socket)
         }
     }
 
-    // Note: We don't clear the rx buffer here as it's keyed by Address, not Socket.
-    // Stale buffer entries will be overwritten if the same client reconnects.
+    // Clean up receive buffer for this socket
+    auto bufferIt = m_rxBuffer.find(socket);
+    if (bufferIt != m_rxBuffer.end())
+    {
+        NS_LOG_DEBUG("Removing rx buffer for disconnected client");
+        m_rxBuffer.erase(bufferIt);
+    }
 }
 
 } // namespace ns3

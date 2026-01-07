@@ -25,6 +25,14 @@ namespace ns3
 
 class Node;
 
+/**
+ * @ingroup distributed
+ * @brief GPU accelerator for processing computational tasks.
+ *
+ * GpuAccelerator models a GPU processing unit with configurable compute
+ * rate and memory bandwidth. Tasks are processed using a three-phase model:
+ * input transfer, compute, output transfer.
+ */
 class GpuAccelerator : public Object
 {
   public:

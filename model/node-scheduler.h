@@ -138,6 +138,8 @@ class NodeScheduler : public Object
     virtual Ptr<NodeScheduler> Fork() = 0;
 
   protected:
+    void DoDispose() override;
+
     uint32_t m_numBackends; //!< Cached number of backends from Initialize()
 };
 

@@ -78,7 +78,7 @@ OffloadClient::GetTypeId()
                             "ns3::OffloadClient::TaskSentTracedCallback")
             .AddTraceSource("ResponseReceived",
                             "Trace fired when a response is received",
-                            MakeTraceSourceAccessor(&OffloadClient::m_responseTrace),
+                            MakeTraceSourceAccessor(&OffloadClient::m_responseReceivedTrace),
                             "ns3::OffloadClient::ResponseReceivedTracedCallback");
     return tid;
 }
@@ -106,9 +106,14 @@ void
 OffloadClient::DoDispose()
 {
     NS_LOG_FUNCTION(this);
+    Simulator::Cancel(m_sendEvent);
     m_socket = nullptr;
     m_rxBuffer = nullptr;
     m_sendTimes.clear();
+    m_interArrivalTime = nullptr;
+    m_computeDemand = nullptr;
+    m_inputSize = nullptr;
+    m_outputSize = nullptr;
     Application::DoDispose();
 }
 
@@ -162,12 +167,11 @@ OffloadClient::StartApplication()
 
         if (!m_local.IsInvalid())
         {
-            NS_ABORT_MSG_IF(
-                (Inet6SocketAddress::IsMatchingType(m_peer) &&
-                 InetSocketAddress::IsMatchingType(m_local)) ||
-                    (InetSocketAddress::IsMatchingType(m_peer) &&
-                     Inet6SocketAddress::IsMatchingType(m_local)),
-                "Incompatible peer and local address IP version");
+            NS_ABORT_MSG_IF((Inet6SocketAddress::IsMatchingType(m_peer) &&
+                             InetSocketAddress::IsMatchingType(m_local)) ||
+                                (InetSocketAddress::IsMatchingType(m_peer) &&
+                                 Inet6SocketAddress::IsMatchingType(m_local)),
+                            "Incompatible peer and local address IP version");
 
             if (m_socket->Bind(m_local) == -1)
             {
@@ -207,7 +211,12 @@ OffloadClient::StopApplication()
 
     if (m_socket)
     {
+        // Clear all socket callbacks to prevent invocation after shutdown
+        m_socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+        m_socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
+                                     MakeNullCallback<void, Ptr<Socket>>());
         m_socket->Close();
+        m_socket = nullptr;
         m_connected = false;
     }
 }
@@ -356,8 +365,8 @@ OffloadClient::ProcessBuffer()
 {
     NS_LOG_FUNCTION(this);
 
-    // Header size is constant (33 bytes) - cache to avoid repeated object construction
-    static const uint32_t headerSize = OffloadHeader().GetSerializedSize();
+    // Header size is constant (33 bytes)
+    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
 
     while (m_rxBuffer->GetSize() >= headerSize)
     {
@@ -375,15 +384,14 @@ OffloadClient::ProcessBuffer()
         }
 
         // Calculate total message size (header + output payload from server)
-        // Server sends: header + outputSize bytes
-        uint64_t outputSize = header.GetOutputSize();
-        uint64_t totalMessageSize = headerSize + outputSize;
+        uint64_t payloadSize = header.GetResponsePayloadSize();
+        uint64_t totalMessageSize = headerSize + payloadSize;
 
         // Ensure we have the complete message
         if (m_rxBuffer->GetSize() < totalMessageSize)
         {
-            NS_LOG_DEBUG("Buffer has " << m_rxBuffer->GetSize()
-                         << " bytes, need " << totalMessageSize << " for full response");
+            NS_LOG_DEBUG("Buffer has " << m_rxBuffer->GetSize() << " bytes, need "
+                                       << totalMessageSize << " for full response");
             break;
         }
 
@@ -391,9 +399,9 @@ OffloadClient::ProcessBuffer()
         m_rxBuffer->RemoveAtStart(headerSize);
 
         // Remove output payload (we don't need the actual data, just consume it)
-        if (outputSize > 0)
+        if (payloadSize > 0)
         {
-            m_rxBuffer->RemoveAtStart(outputSize);
+            m_rxBuffer->RemoveAtStart(payloadSize);
         }
 
         // Validate that this response corresponds to a task we sent
@@ -403,7 +411,7 @@ OffloadClient::ProcessBuffer()
             // Response for a task we didn't send - could be a malformed packet
             // or a routing error. Log and skip to avoid corrupting statistics.
             NS_LOG_WARN("Received response for unknown task " << header.GetTaskId()
-                        << " (not sent by this client)");
+                                                              << " (not sent by this client)");
             continue;
         }
 
@@ -414,10 +422,10 @@ OffloadClient::ProcessBuffer()
         m_responsesReceived++;
 
         NS_LOG_INFO("Received response for task " << header.GetTaskId()
-                    << " (RTT=" << rtt.GetMilliSeconds() << "ms)");
+                                                  << " (RTT=" << rtt.GetMilliSeconds() << "ms)");
 
         // Fire trace
-        m_responseTrace(header, rtt);
+        m_responseReceivedTrace(header, rtt);
     }
 }
 

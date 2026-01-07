@@ -20,9 +20,8 @@ NS_OBJECT_ENSURE_REGISTERED(NodeScheduler);
 TypeId
 NodeScheduler::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::NodeScheduler")
-                            .SetParent<Object>()
-                            .SetGroupName("Distributed");
+    static TypeId tid =
+        TypeId("ns3::NodeScheduler").SetParent<Object>().SetGroupName("Distributed");
     // Note: No AddConstructor because this is an abstract class
     return tid;
 }
@@ -43,6 +42,14 @@ NodeScheduler::NodeScheduler(const NodeScheduler& other)
 NodeScheduler::~NodeScheduler()
 {
     NS_LOG_FUNCTION(this);
+}
+
+void
+NodeScheduler::DoDispose()
+{
+    NS_LOG_FUNCTION(this);
+    m_numBackends = 0;
+    Object::DoDispose();
 }
 
 void

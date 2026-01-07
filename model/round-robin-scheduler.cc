@@ -45,6 +45,14 @@ RoundRobinScheduler::~RoundRobinScheduler()
     NS_LOG_FUNCTION(this);
 }
 
+void
+RoundRobinScheduler::DoDispose()
+{
+    NS_LOG_FUNCTION(this);
+    m_nextIndex = 0;
+    NodeScheduler::DoDispose();
+}
+
 std::string
 RoundRobinScheduler::GetName() const
 {
@@ -64,14 +72,21 @@ RoundRobinScheduler::SelectBackend(const OffloadHeader& header, const Cluster& c
 {
     NS_LOG_FUNCTION(this << header.GetTaskId());
 
-    if (cluster.GetN() == 0)
+    uint32_t n = cluster.GetN();
+    if (n == 0)
     {
         NS_LOG_WARN("No backends available in cluster");
         return -1;
     }
 
+    // Safety: ensure index is in bounds even if cluster size changed
+    if (m_nextIndex >= n)
+    {
+        m_nextIndex = 0;
+    }
+
     uint32_t selected = m_nextIndex;
-    m_nextIndex = (m_nextIndex + 1) % cluster.GetN();
+    m_nextIndex = (m_nextIndex + 1) % n;
 
     NS_LOG_DEBUG("Selected backend " << selected << " for task " << header.GetTaskId()
                                      << " (next will be " << m_nextIndex << ")");

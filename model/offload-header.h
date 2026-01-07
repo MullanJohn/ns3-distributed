@@ -29,6 +29,18 @@ class OffloadHeader : public Header
 {
   public:
     /**
+     * @brief Serialized size of the header in bytes.
+     *
+     * The header consists of:
+     * - messageType: 1 byte
+     * - taskId: 8 bytes
+     * - computeDemand: 8 bytes
+     * - inputSize: 8 bytes
+     * - outputSize: 8 bytes
+     */
+    static constexpr uint32_t SERIALIZED_SIZE = 33;
+
+    /**
      * @brief Get the type ID.
      * @return The object TypeId.
      */
@@ -42,8 +54,8 @@ class OffloadHeader : public Header
      */
     enum MessageType
     {
-        TASK_REQUEST,  //!< Client sending task to server
-        TASK_RESPONSE  //!< Server returning result to client
+        TASK_REQUEST, //!< Client sending task to server
+        TASK_RESPONSE //!< Server returning result to client
     };
 
     /**
@@ -107,6 +119,22 @@ class OffloadHeader : public Header
     uint64_t GetOutputSize() const;
 
     /**
+     * @brief Get the payload size for a request message.
+     *
+     * Request payload is inputSize minus header overhead (or 0 if inputSize <= header).
+     * @return Payload size in bytes.
+     */
+    uint64_t GetRequestPayloadSize() const;
+
+    /**
+     * @brief Get the payload size for a response message.
+     *
+     * Response payload equals outputSize (no header overhead subtraction).
+     * @return Payload size in bytes.
+     */
+    uint64_t GetResponsePayloadSize() const;
+
+    /**
      * @brief Get a string representation of the header.
      * @return String representation.
      */
@@ -120,11 +148,11 @@ class OffloadHeader : public Header
     void Print(std::ostream& os) const override;
 
   private:
-    MessageType m_messageType;  //!< Message type (request/response)
-    uint64_t m_taskId;          //!< Unique task identifier
-    double m_computeDemand;     //!< Compute demand in FLOPS
-    uint64_t m_inputSize;       //!< Input data size in bytes
-    uint64_t m_outputSize;      //!< Output data size in bytes
+    MessageType m_messageType; //!< Message type (request/response)
+    uint64_t m_taskId;         //!< Unique task identifier
+    double m_computeDemand;    //!< Compute demand in FLOPS
+    uint64_t m_inputSize;      //!< Input data size in bytes
+    uint64_t m_outputSize;     //!< Output data size in bytes
 };
 
 } // namespace ns3

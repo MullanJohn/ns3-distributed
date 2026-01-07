@@ -65,6 +65,9 @@ class RoundRobinScheduler : public NodeScheduler
     int32_t SelectBackend(const OffloadHeader& header, const Cluster& cluster) override;
     Ptr<NodeScheduler> Fork() override;
 
+  protected:
+    void DoDispose() override;
+
   private:
     uint32_t m_nextIndex; //!< Index of the next backend to select
 };

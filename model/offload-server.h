@@ -15,13 +15,11 @@
 
 #include "ns3/address.h"
 #include "ns3/application.h"
-#include "ns3/inet-socket-address.h"
-#include "ns3/inet6-socket-address.h"
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 
 #include <list>
-#include <unordered_map>
+#include <map>
 
 namespace ns3
 {
@@ -130,9 +128,8 @@ class OffloadServer : public Application
     /**
      * @brief Process buffered data for a client, extracting complete messages.
      * @param socket The client socket.
-     * @param from The client address.
      */
-    void ProcessBuffer(Ptr<Socket> socket, const Address& from);
+    void ProcessBuffer(Ptr<Socket> socket);
 
     /**
      * @brief Process a complete task request.
@@ -162,46 +159,20 @@ class OffloadServer : public Application
      */
     void CleanupSocket(Ptr<Socket> socket);
 
-    /**
-     * @brief Hashing for the Address class (for buffer map).
-     */
-    struct AddressHash
-    {
-        /**
-         * @brief Hash operator for Address.
-         * @param x The address to hash.
-         * @return The hash value.
-         */
-        size_t operator()(const Address& x) const
-        {
-            if (InetSocketAddress::IsMatchingType(x))
-            {
-                InetSocketAddress a = InetSocketAddress::ConvertFrom(x);
-                return Ipv4AddressHash()(a.GetIpv4());
-            }
-            else if (Inet6SocketAddress::IsMatchingType(x))
-            {
-                Inet6SocketAddress a = Inet6SocketAddress::ConvertFrom(x);
-                return Ipv6AddressHash()(a.GetIpv6());
-            }
-            return 0;
-        }
-    };
-
     // Configuration
-    Address m_local;   //!< Local address to bind to
-    uint16_t m_port;   //!< Port to listen on
+    Address m_local; //!< Local address to bind to
+    uint16_t m_port; //!< Port to listen on
 
     // Sockets
-    Ptr<Socket> m_socket;   //!< IPv4 listening socket
-    Ptr<Socket> m_socket6;  //!< IPv6 listening socket (used if only port is specified)
+    Ptr<Socket> m_socket;                //!< IPv4 listening socket
+    Ptr<Socket> m_socket6;               //!< IPv6 listening socket (used if only port is specified)
     std::list<Ptr<Socket>> m_socketList; //!< Accepted client sockets
 
-    // Per-client receive buffers (for TCP stream reassembly)
-    std::unordered_map<Address, Ptr<Packet>, AddressHash> m_rxBuffer;
+    // Per-client receive buffers keyed by socket (for TCP stream reassembly)
+    std::map<Ptr<Socket>, Ptr<Packet>> m_rxBuffer;
 
     // GPU accelerator
-    Ptr<GpuAccelerator> m_accelerator;  //!< Cached accelerator reference
+    Ptr<GpuAccelerator> m_accelerator; //!< Cached accelerator reference
 
     // Pending tasks: taskId -> (socket, task)
     struct PendingTask
@@ -209,12 +180,13 @@ class OffloadServer : public Application
         Ptr<Socket> socket;
         Ptr<Task> task;
     };
+
     std::unordered_map<uint64_t, PendingTask> m_pendingTasks;
 
     // Statistics
-    uint64_t m_tasksReceived;   //!< Number of tasks received
-    uint64_t m_tasksCompleted;  //!< Number of tasks completed
-    uint64_t m_totalRx;         //!< Total bytes received
+    uint64_t m_tasksReceived;  //!< Number of tasks received
+    uint64_t m_tasksCompleted; //!< Number of tasks completed
+    uint64_t m_totalRx;        //!< Total bytes received
 
     // Trace sources
     TracedCallback<const OffloadHeader&> m_taskReceivedTrace;        //!< Task received
