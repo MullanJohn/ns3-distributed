@@ -9,7 +9,6 @@
 #ifndef LOAD_BALANCER_H
 #define LOAD_BALANCER_H
 
-#include "address-hash.h"
 #include "cluster.h"
 #include "node-scheduler.h"
 #include "offload-header.h"
@@ -23,7 +22,6 @@
 
 #include <list>
 #include <map>
-#include <unordered_map>
 #include <vector>
 
 namespace ns3
@@ -209,16 +207,20 @@ class LoadBalancer : public Application
     Ptr<Socket> m_listenSocket; //!< Listening socket for clients
 
     // Client connections
-    std::list<Ptr<Socket>> m_clientSockets; //!< Connected client sockets
-    std::unordered_map<Address, Ptr<Packet>, AddressHash>
-        m_clientRxBuffers; //!< Per-client receive buffers
-    std::map<Ptr<Socket>, Address>
-        m_clientSocketAddresses; //!< Socket-to-address for buffer cleanup
+    std::list<Ptr<Socket>> m_clientSockets;        //!< Connected client sockets
+    std::map<Ptr<Socket>, Ptr<Packet>> m_clientRxBuffers; //!< Per-client receive buffers
 
-    // Backend connections
-    std::vector<Ptr<Socket>> m_backendSockets;         //!< Sockets to backends
-    std::vector<bool> m_backendConnected;              //!< Connection status per backend
-    std::vector<Ptr<Packet>> m_backendRxBuffers;       //!< Per-backend receive buffers
+    /**
+     * @brief State for a single backend connection.
+     */
+    struct BackendConnection
+    {
+        Ptr<Socket> socket;   //!< TCP socket to backend
+        bool connected;       //!< Connection established
+        Ptr<Packet> rxBuffer; //!< Receive buffer for responses
+    };
+
+    std::vector<BackendConnection> m_backends;         //!< Backend connection state
     std::map<Ptr<Socket>, uint32_t> m_socketToBackend; //!< Map socket to backend index
 
     // Response routing: taskId -> pending info

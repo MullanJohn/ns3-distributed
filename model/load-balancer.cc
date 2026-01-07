@@ -86,23 +86,20 @@ LoadBalancer::DoDispose()
     m_clientSockets.clear();
 
     // Close all backend sockets with callback cleanup
-    for (auto& socket : m_backendSockets)
+    for (auto& backend : m_backends)
     {
-        if (socket)
+        if (backend.socket)
         {
-            socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
-            socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
-                                       MakeNullCallback<void, Ptr<Socket>>());
-            socket->Close();
+            backend.socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+            backend.socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
+                                               MakeNullCallback<void, Ptr<Socket>>());
+            backend.socket->Close();
         }
     }
-    m_backendSockets.clear();
+    m_backends.clear();
 
     m_listenSocket = nullptr;
     m_clientRxBuffers.clear();
-    m_clientSocketAddresses.clear();
-    m_backendConnected.clear();
-    m_backendRxBuffers.clear();
     m_socketToBackend.clear();
     m_pendingResponses.clear();
     m_scheduler = nullptr;
@@ -215,17 +212,17 @@ LoadBalancer::StopApplication()
     m_clientSockets.clear();
 
     // Close all backend sockets - clear callbacks before close
-    for (auto& socket : m_backendSockets)
+    for (auto& backend : m_backends)
     {
-        if (socket)
+        if (backend.socket)
         {
-            socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
-            socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
-                                       MakeNullCallback<void, Ptr<Socket>>());
-            socket->Close();
+            backend.socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
+            backend.socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
+                                               MakeNullCallback<void, Ptr<Socket>>());
+            backend.socket->Close();
         }
     }
-    m_backendSockets.clear();
+    m_backends.clear();
 }
 
 // ========== Client-facing methods ==========
@@ -241,9 +238,6 @@ LoadBalancer::HandleClientAccept(Ptr<Socket> socket, const Address& from)
     socket->SetCloseCallbacks(MakeCallback(&LoadBalancer::HandleClientClose, this),
                               MakeCallback(&LoadBalancer::HandleClientError, this));
     m_clientSockets.push_back(socket);
-
-    // Track socket-to-address mapping for buffer cleanup on disconnect
-    m_clientSocketAddresses[socket] = from;
 }
 
 void
@@ -264,11 +258,11 @@ LoadBalancer::HandleClientRead(Ptr<Socket> socket)
         m_clientRx += packet->GetSize();
         NS_LOG_DEBUG("Received " << packet->GetSize() << " bytes from client");
 
-        // Add to buffer for this client
-        auto it = m_clientRxBuffers.find(from);
+        // Add to buffer for this client (keyed by socket)
+        auto it = m_clientRxBuffers.find(socket);
         if (it == m_clientRxBuffers.end())
         {
-            m_clientRxBuffers[from] = packet;
+            m_clientRxBuffers[socket] = packet;
         }
         else
         {
@@ -285,7 +279,7 @@ LoadBalancer::ProcessClientBuffer(Ptr<Socket> socket, const Address& from)
 {
     NS_LOG_FUNCTION(this << socket << from);
 
-    auto it = m_clientRxBuffers.find(from);
+    auto it = m_clientRxBuffers.find(socket);
     if (it == m_clientRxBuffers.end())
     {
         return;
@@ -384,17 +378,12 @@ LoadBalancer::CleanupClientSocket(Ptr<Socket> socket)
         }
     }
 
-    // Clean up receive buffer for this client's address
-    auto addrIt = m_clientSocketAddresses.find(socket);
-    if (addrIt != m_clientSocketAddresses.end())
+    // Clean up receive buffer for this client
+    auto bufferIt = m_clientRxBuffers.find(socket);
+    if (bufferIt != m_clientRxBuffers.end())
     {
-        auto bufferIt = m_clientRxBuffers.find(addrIt->second);
-        if (bufferIt != m_clientRxBuffers.end())
-        {
-            NS_LOG_DEBUG("Removing client rx buffer for disconnected client");
-            m_clientRxBuffers.erase(bufferIt);
-        }
-        m_clientSocketAddresses.erase(addrIt);
+        NS_LOG_DEBUG("Removing client rx buffer for disconnected client");
+        m_clientRxBuffers.erase(bufferIt);
     }
 }
 
@@ -405,13 +394,11 @@ LoadBalancer::ConnectToBackends()
 {
     NS_LOG_FUNCTION(this);
 
-    m_backendSockets.resize(m_cluster.GetN());
-    m_backendConnected.resize(m_cluster.GetN(), false);
-    m_backendRxBuffers.resize(m_cluster.GetN());
+    m_backends.resize(m_cluster.GetN());
 
     for (uint32_t i = 0; i < m_cluster.GetN(); i++)
     {
-        const Cluster::Backend& backend = m_cluster.Get(i);
+        const Cluster::Backend& clusterBackend = m_cluster.Get(i);
 
         Ptr<Socket> socket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
 
@@ -425,10 +412,11 @@ LoadBalancer::ConnectToBackends()
         socket->SetConnectCallback(MakeCallback(&LoadBalancer::HandleBackendConnected, this),
                                    MakeCallback(&LoadBalancer::HandleBackendFailed, this));
 
-        socket->Connect(backend.address);
+        socket->Connect(clusterBackend.address);
 
-        m_backendSockets[i] = socket;
-        m_backendRxBuffers[i] = Create<Packet>();
+        m_backends[i].socket = socket;
+        m_backends[i].connected = false;
+        m_backends[i].rxBuffer = Create<Packet>();
         m_socketToBackend[socket] = i;
 
         NS_LOG_DEBUG("Connecting to backend " << i);
@@ -449,7 +437,7 @@ LoadBalancer::HandleBackendConnected(Ptr<Socket> socket)
     uint32_t backendIndex = it->second;
 
     NS_LOG_INFO("Connected to backend " << backendIndex);
-    m_backendConnected[backendIndex] = true;
+    m_backends[backendIndex].connected = true;
 
     // Set up receive callback
     socket->SetRecvCallback(MakeCallback(&LoadBalancer::HandleBackendRead, this));
@@ -469,7 +457,7 @@ LoadBalancer::HandleBackendFailed(Ptr<Socket> socket)
     uint32_t backendIndex = it->second;
 
     NS_LOG_ERROR("Failed to connect to backend " << backendIndex);
-    m_backendConnected[backendIndex] = false;
+    m_backends[backendIndex].connected = false;
 }
 
 void
@@ -499,7 +487,7 @@ LoadBalancer::HandleBackendRead(Ptr<Socket> socket)
         NS_LOG_DEBUG("Received " << packet->GetSize() << " bytes from backend " << backendIndex);
 
         // Add to buffer for this backend
-        m_backendRxBuffers[backendIndex]->AddAtEnd(packet);
+        m_backends[backendIndex].rxBuffer->AddAtEnd(packet);
 
         // Process complete messages
         ProcessBackendBuffer(backendIndex);
@@ -511,7 +499,7 @@ LoadBalancer::ProcessBackendBuffer(uint32_t backendIndex)
 {
     NS_LOG_FUNCTION(this << backendIndex);
 
-    Ptr<Packet> buffer = m_backendRxBuffers[backendIndex];
+    Ptr<Packet> buffer = m_backends[backendIndex].rxBuffer;
     static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
 
     while (buffer->GetSize() > 0)
@@ -577,7 +565,7 @@ LoadBalancer::ForwardTask(const OffloadHeader& header,
         return;
     }
 
-    if (!m_backendConnected[backendIndex])
+    if (!m_backends[backendIndex].connected)
     {
         NS_LOG_ERROR("Backend " << backendIndex << " not connected, dropping task "
                                 << header.GetTaskId());
@@ -596,7 +584,7 @@ LoadBalancer::ForwardTask(const OffloadHeader& header,
     Ptr<Packet> forwardPacket = payload->Copy();
     forwardPacket->AddHeader(header);
 
-    int sent = m_backendSockets[backendIndex]->Send(forwardPacket);
+    int sent = m_backends[backendIndex].socket->Send(forwardPacket);
     if (sent > 0)
     {
         m_tasksForwarded++;
