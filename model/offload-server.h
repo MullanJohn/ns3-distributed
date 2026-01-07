@@ -9,7 +9,7 @@
 #ifndef OFFLOAD_SERVER_H
 #define OFFLOAD_SERVER_H
 
-#include "gpu-accelerator.h"
+#include "accelerator.h"
 #include "offload-header.h"
 #include "task.h"
 
@@ -32,7 +32,7 @@ class Packet;
  * @brief TCP server application for receiving and processing offloaded tasks.
  *
  * OffloadServer listens for TCP connections from OffloadClient applications,
- * receives task requests, submits them to the GpuAccelerator aggregated to
+ * receives task requests, submits them to the Accelerator aggregated to
  * the node, and sends responses back when tasks complete.
  *
  * Since TCP is a stream protocol, the server buffers incoming data per-client
@@ -171,8 +171,8 @@ class OffloadServer : public Application
     // Per-client receive buffers keyed by socket (for TCP stream reassembly)
     std::map<Ptr<Socket>, Ptr<Packet>> m_rxBuffer;
 
-    // GPU accelerator
-    Ptr<GpuAccelerator> m_accelerator; //!< Cached accelerator reference
+    // Accelerator
+    Ptr<Accelerator> m_accelerator; //!< Cached accelerator reference
 
     // Pending tasks: taskId -> (socket, task)
     struct PendingTask
