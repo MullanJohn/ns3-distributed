@@ -21,26 +21,25 @@ NS_OBJECT_ENSURE_REGISTERED(Task);
 TypeId
 Task::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::Task")
-            .SetParent<Object>()
-            .SetGroupName("Distributed")
-            .AddConstructor<Task>()
-            .AddAttribute("ComputeDemand",
-                          "Compute demand in FLOPS",
-                          DoubleValue(1e9),
-                          MakeDoubleAccessor(&Task::m_computeDemand),
-                          MakeDoubleChecker<double>(0))
-            .AddAttribute("InputSize",
-                          "Input data size in bytes",
-                          UintegerValue(1024),
-                          MakeUintegerAccessor(&Task::m_inputSize),
-                          MakeUintegerChecker<uint64_t>())
-            .AddAttribute("OutputSize",
-                          "Output data size in bytes",
-                          UintegerValue(1024),
-                          MakeUintegerAccessor(&Task::m_outputSize),
-                          MakeUintegerChecker<uint64_t>());
+    static TypeId tid = TypeId("ns3::Task")
+                            .SetParent<Object>()
+                            .SetGroupName("Distributed")
+                            .AddConstructor<Task>()
+                            .AddAttribute("ComputeDemand",
+                                          "Compute demand in FLOPS",
+                                          DoubleValue(1e9),
+                                          MakeDoubleAccessor(&Task::m_computeDemand),
+                                          MakeDoubleChecker<double>(0))
+                            .AddAttribute("InputSize",
+                                          "Input data size in bytes",
+                                          UintegerValue(1024),
+                                          MakeUintegerAccessor(&Task::m_inputSize),
+                                          MakeUintegerChecker<uint64_t>())
+                            .AddAttribute("OutputSize",
+                                          "Output data size in bytes",
+                                          UintegerValue(1024),
+                                          MakeUintegerAccessor(&Task::m_outputSize),
+                                          MakeUintegerChecker<uint64_t>());
     return tid;
 }
 

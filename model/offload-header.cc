@@ -20,11 +20,11 @@ NS_LOG_COMPONENT_DEFINE("OffloadHeader");
 
 // Compile-time validation that SERIALIZED_SIZE matches actual serialization
 static_assert(OffloadHeader::SERIALIZED_SIZE ==
-              sizeof(uint8_t) +     // messageType
-              sizeof(uint64_t) +    // taskId
-              sizeof(uint64_t) +    // computeDemand (as uint64_t)
-              sizeof(uint64_t) +    // inputSize
-              sizeof(uint64_t),     // outputSize
+                  sizeof(uint8_t) +      // messageType
+                      sizeof(uint64_t) + // taskId
+                      sizeof(uint64_t) + // computeDemand (as uint64_t)
+                      sizeof(uint64_t) + // inputSize
+                      sizeof(uint64_t),  // outputSize
               "OffloadHeader::SERIALIZED_SIZE does not match actual serialization");
 
 NS_OBJECT_ENSURE_REGISTERED(OffloadHeader);
@@ -62,11 +62,11 @@ OffloadHeader::GetInstanceTypeId() const
 uint32_t
 OffloadHeader::GetSerializedSize() const
 {
-    return sizeof(uint8_t) +   // m_messageType
-           sizeof(uint64_t) +  // m_taskId
-           sizeof(uint64_t) +  // m_computeDemand (as uint64_t)
-           sizeof(uint64_t) +  // m_inputSize
-           sizeof(uint64_t);   // m_outputSize
+    return sizeof(uint8_t) +  // m_messageType
+           sizeof(uint64_t) + // m_taskId
+           sizeof(uint64_t) + // m_computeDemand (as uint64_t)
+           sizeof(uint64_t) + // m_inputSize
+           sizeof(uint64_t);  // m_outputSize
 }
 
 void
@@ -97,7 +97,7 @@ OffloadHeader::Deserialize(Buffer::Iterator start)
     if (messageTypeByte > TASK_RESPONSE)
     {
         NS_LOG_WARN("Invalid message type " << static_cast<int>(messageTypeByte)
-                    << " received in OffloadHeader");
+                                            << " received in OffloadHeader");
     }
     m_messageType = static_cast<MessageType>(messageTypeByte);
 

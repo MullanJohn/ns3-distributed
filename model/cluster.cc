@@ -41,7 +41,8 @@ Cluster::GetN() const
 const Cluster::Backend&
 Cluster::Get(uint32_t i) const
 {
-    NS_ASSERT_MSG(i < m_backends.size(), "Index " << i << " out of range (size=" << m_backends.size() << ")");
+    NS_ASSERT_MSG(i < m_backends.size(),
+                  "Index " << i << " out of range (size=" << m_backends.size() << ")");
     return m_backends[i];
 }
 

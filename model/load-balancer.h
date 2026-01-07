@@ -212,7 +212,8 @@ class LoadBalancer : public Application
     std::list<Ptr<Socket>> m_clientSockets; //!< Connected client sockets
     std::unordered_map<Address, Ptr<Packet>, AddressHash>
         m_clientRxBuffers; //!< Per-client receive buffers
-    std::map<Ptr<Socket>, Address> m_clientSocketAddresses; //!< Socket-to-address for buffer cleanup
+    std::map<Ptr<Socket>, Address>
+        m_clientSocketAddresses; //!< Socket-to-address for buffer cleanup
 
     // Backend connections
     std::vector<Ptr<Socket>> m_backendSockets;         //!< Sockets to backends

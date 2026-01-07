@@ -140,36 +140,36 @@ class OffloadClient : public Application
     void ProcessBuffer();
 
     // Socket
-    Ptr<Socket> m_socket;  //!< TCP socket
-    Address m_peer;        //!< Remote server address
-    Address m_local;       //!< Local bind address
-    bool m_connected;      //!< Connection state
+    Ptr<Socket> m_socket; //!< TCP socket
+    Address m_peer;       //!< Remote server address
+    Address m_local;      //!< Local bind address
+    bool m_connected;     //!< Connection state
 
     // Random variable streams
-    Ptr<RandomVariableStream> m_interArrivalTime;  //!< Inter-arrival time RNG
-    Ptr<RandomVariableStream> m_computeDemand;     //!< Compute demand RNG
-    Ptr<RandomVariableStream> m_inputSize;         //!< Input size RNG
-    Ptr<RandomVariableStream> m_outputSize;        //!< Output size RNG
+    Ptr<RandomVariableStream> m_interArrivalTime; //!< Inter-arrival time RNG
+    Ptr<RandomVariableStream> m_computeDemand;    //!< Compute demand RNG
+    Ptr<RandomVariableStream> m_inputSize;        //!< Input size RNG
+    Ptr<RandomVariableStream> m_outputSize;       //!< Output size RNG
 
     // Configuration
-    uint64_t m_maxTasks;  //!< Maximum tasks to send (0 = unlimited)
+    uint64_t m_maxTasks; //!< Maximum tasks to send (0 = unlimited)
 
     // State
-    static uint32_t s_nextClientId;  //!< Counter for assigning unique client IDs
-    uint32_t m_clientId;             //!< Unique ID for this client instance
-    EventId m_sendEvent;             //!< Next send event
-    uint64_t m_taskCount;            //!< Number of tasks sent
-    uint64_t m_totalTx;              //!< Total bytes transmitted
-    uint64_t m_totalRx;              //!< Total bytes received
+    static uint32_t s_nextClientId; //!< Counter for assigning unique client IDs
+    uint32_t m_clientId;            //!< Unique ID for this client instance
+    EventId m_sendEvent;            //!< Next send event
+    uint64_t m_taskCount;           //!< Number of tasks sent
+    uint64_t m_totalTx;             //!< Total bytes transmitted
+    uint64_t m_totalRx;             //!< Total bytes received
 
     // Response handling
-    Ptr<Packet> m_rxBuffer;                         //!< Receive buffer for TCP stream
-    uint64_t m_responsesReceived;                   //!< Number of responses received
-    std::map<uint64_t, Time> m_sendTimes;           //!< Map of task ID to send time
+    Ptr<Packet> m_rxBuffer;               //!< Receive buffer for TCP stream
+    uint64_t m_responsesReceived;         //!< Number of responses received
+    std::map<uint64_t, Time> m_sendTimes; //!< Map of task ID to send time
 
     // Trace sources
-    TracedCallback<const OffloadHeader&> m_taskSentTrace;           //!< Task sent trace
-    TracedCallback<const OffloadHeader&, Time> m_responseTrace;     //!< Response received trace
+    TracedCallback<const OffloadHeader&> m_taskSentTrace;       //!< Task sent trace
+    TracedCallback<const OffloadHeader&, Time> m_responseTrace; //!< Response received trace
 };
 
 } // namespace ns3

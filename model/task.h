@@ -99,11 +99,11 @@ class Task : public Object
     void DoDispose() override;
 
   private:
-    double m_computeDemand;   //!< Compute demand in FLOPS
-    uint64_t m_inputSize;     //!< Input data size in bytes
-    uint64_t m_outputSize;    //!< Output data size in bytes
-    Time m_arrivalTime;       //!< Time when task arrived
-    uint64_t m_taskId;        //!< Unique task identifier
+    double m_computeDemand; //!< Compute demand in FLOPS
+    uint64_t m_inputSize;   //!< Input data size in bytes
+    uint64_t m_outputSize;  //!< Output data size in bytes
+    Time m_arrivalTime;     //!< Time when task arrived
+    uint64_t m_taskId;      //!< Unique task identifier
 };
 
 } // namespace ns3

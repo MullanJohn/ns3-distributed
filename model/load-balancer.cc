@@ -156,15 +156,13 @@ LoadBalancer::StartApplication()
         }
 
         m_listenSocket->Listen();
-        m_listenSocket->SetAcceptCallback(
-            MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
-            MakeCallback(&LoadBalancer::HandleClientAccept, this));
-        m_listenSocket->SetCloseCallbacks(
-            MakeCallback(&LoadBalancer::HandleClientClose, this),
-            MakeCallback(&LoadBalancer::HandleClientError, this));
+        m_listenSocket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
+                                          MakeCallback(&LoadBalancer::HandleClientAccept, this));
+        m_listenSocket->SetCloseCallbacks(MakeCallback(&LoadBalancer::HandleClientClose, this),
+                                          MakeCallback(&LoadBalancer::HandleClientError, this));
 
-        NS_LOG_INFO("LoadBalancer listening on port " << m_port
-                    << " with " << m_cluster.GetN() << " backends");
+        NS_LOG_INFO("LoadBalancer listening on port " << m_port << " with " << m_cluster.GetN()
+                                                      << " backends");
     }
 }
 
@@ -176,9 +174,8 @@ LoadBalancer::StopApplication()
     // Close listening socket - clear callbacks before close
     if (m_listenSocket)
     {
-        m_listenSocket->SetAcceptCallback(
-            MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
-            MakeNullCallback<void, Ptr<Socket>, const Address&>());
+        m_listenSocket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
+                                          MakeNullCallback<void, Ptr<Socket>, const Address&>());
         m_listenSocket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
                                           MakeNullCallback<void, Ptr<Socket>>());
         m_listenSocket->Close();
@@ -215,7 +212,8 @@ void
 LoadBalancer::HandleClientAccept(Ptr<Socket> socket, const Address& from)
 {
     NS_LOG_FUNCTION(this << socket << from);
-    NS_LOG_INFO("Accepted client connection from " << InetSocketAddress::ConvertFrom(from).GetIpv4());
+    NS_LOG_INFO("Accepted client connection from "
+                << InetSocketAddress::ConvertFrom(from).GetIpv4());
 
     socket->SetRecvCallback(MakeCallback(&LoadBalancer::HandleClientRead, this));
     socket->SetCloseCallbacks(MakeCallback(&LoadBalancer::HandleClientClose, this),
@@ -291,8 +289,7 @@ LoadBalancer::ProcessClientBuffer(Ptr<Socket> socket, const Address& from)
 
         if (buffer->GetSize() < totalMessageSize)
         {
-            NS_LOG_DEBUG("Buffer has " << buffer->GetSize()
-                         << " bytes, need " << totalMessageSize);
+            NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << totalMessageSize);
             break;
         }
 
@@ -403,9 +400,8 @@ LoadBalancer::ConnectToBackends()
             continue;
         }
 
-        socket->SetConnectCallback(
-            MakeCallback(&LoadBalancer::HandleBackendConnected, this),
-            MakeCallback(&LoadBalancer::HandleBackendFailed, this));
+        socket->SetConnectCallback(MakeCallback(&LoadBalancer::HandleBackendConnected, this),
+                                   MakeCallback(&LoadBalancer::HandleBackendFailed, this));
 
         socket->Connect(backend.address);
 
@@ -512,8 +508,8 @@ LoadBalancer::ProcessBackendBuffer(uint32_t backendIndex)
 
         if (buffer->GetSize() < totalMessageSize)
         {
-            NS_LOG_DEBUG("Backend buffer has " << buffer->GetSize()
-                         << " bytes, need " << totalMessageSize);
+            NS_LOG_DEBUG("Backend buffer has " << buffer->GetSize() << " bytes, need "
+                                               << totalMessageSize);
             break;
         }
 
@@ -562,7 +558,7 @@ LoadBalancer::ForwardTask(const OffloadHeader& header,
     if (!m_backendConnected[backendIndex])
     {
         NS_LOG_ERROR("Backend " << backendIndex << " not connected, dropping task "
-                     << header.GetTaskId());
+                                << header.GetTaskId());
         return;
     }
 
@@ -589,8 +585,8 @@ LoadBalancer::ForwardTask(const OffloadHeader& header,
     }
     else
     {
-        NS_LOG_ERROR("Failed to forward task " << header.GetTaskId()
-                     << " to backend " << backendIndex);
+        NS_LOG_ERROR("Failed to forward task " << header.GetTaskId() << " to backend "
+                                               << backendIndex);
         m_pendingResponses.erase(header.GetTaskId());
     }
 }
@@ -634,8 +630,8 @@ LoadBalancer::RouteResponse(const OffloadHeader& header, Ptr<Packet> payload, ui
         m_responsesRouted++;
         m_responseRoutedTrace(header, latency);
 
-        NS_LOG_INFO("Routed response for task " << header.GetTaskId()
-                    << " to client (latency=" << latency.GetMilliSeconds() << "ms)");
+        NS_LOG_INFO("Routed response for task " << header.GetTaskId() << " to client (latency="
+                                                << latency.GetMilliSeconds() << "ms)");
     }
     else
     {

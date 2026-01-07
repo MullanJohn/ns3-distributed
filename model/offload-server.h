@@ -163,12 +163,12 @@ class OffloadServer : public Application
     void CleanupSocket(Ptr<Socket> socket);
 
     // Configuration
-    Address m_local;   //!< Local address to bind to
-    uint16_t m_port;   //!< Port to listen on
+    Address m_local; //!< Local address to bind to
+    uint16_t m_port; //!< Port to listen on
 
     // Sockets
-    Ptr<Socket> m_socket;   //!< IPv4 listening socket
-    Ptr<Socket> m_socket6;  //!< IPv6 listening socket (used if only port is specified)
+    Ptr<Socket> m_socket;                //!< IPv4 listening socket
+    Ptr<Socket> m_socket6;               //!< IPv6 listening socket (used if only port is specified)
     std::list<Ptr<Socket>> m_socketList; //!< Accepted client sockets
 
     // Per-client receive buffers (for TCP stream reassembly)
@@ -183,7 +183,7 @@ class OffloadServer : public Application
     std::map<Ptr<Socket>, Address> m_socketAddresses;
 
     // GPU accelerator
-    Ptr<GpuAccelerator> m_accelerator;  //!< Cached accelerator reference
+    Ptr<GpuAccelerator> m_accelerator; //!< Cached accelerator reference
 
     // Pending tasks: taskId -> (socket, task)
     struct PendingTask
@@ -191,12 +191,13 @@ class OffloadServer : public Application
         Ptr<Socket> socket;
         Ptr<Task> task;
     };
+
     std::unordered_map<uint64_t, PendingTask> m_pendingTasks;
 
     // Statistics
-    uint64_t m_tasksReceived;   //!< Number of tasks received
-    uint64_t m_tasksCompleted;  //!< Number of tasks completed
-    uint64_t m_totalRx;         //!< Total bytes received
+    uint64_t m_tasksReceived;  //!< Number of tasks received
+    uint64_t m_tasksCompleted; //!< Number of tasks completed
+    uint64_t m_totalRx;        //!< Total bytes received
 
     // Trace sources
     TracedCallback<const OffloadHeader&> m_taskReceivedTrace;        //!< Task received

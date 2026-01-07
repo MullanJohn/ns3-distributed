@@ -54,8 +54,8 @@ class OffloadHeader : public Header
      */
     enum MessageType
     {
-        TASK_REQUEST,  //!< Client sending task to server
-        TASK_RESPONSE  //!< Server returning result to client
+        TASK_REQUEST, //!< Client sending task to server
+        TASK_RESPONSE //!< Server returning result to client
     };
 
     /**
@@ -148,11 +148,11 @@ class OffloadHeader : public Header
     void Print(std::ostream& os) const override;
 
   private:
-    MessageType m_messageType;  //!< Message type (request/response)
-    uint64_t m_taskId;          //!< Unique task identifier
-    double m_computeDemand;     //!< Compute demand in FLOPS
-    uint64_t m_inputSize;       //!< Input data size in bytes
-    uint64_t m_outputSize;      //!< Output data size in bytes
+    MessageType m_messageType; //!< Message type (request/response)
+    uint64_t m_taskId;         //!< Unique task identifier
+    double m_computeDemand;    //!< Compute demand in FLOPS
+    uint64_t m_inputSize;      //!< Input data size in bytes
+    uint64_t m_outputSize;     //!< Output data size in bytes
 };
 
 } // namespace ns3

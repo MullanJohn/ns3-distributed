@@ -148,14 +148,14 @@ OffloadServer::StartApplication()
         else if (InetSocketAddress::IsMatchingType(local))
         {
             m_port = InetSocketAddress::ConvertFrom(local).GetPort();
-            NS_LOG_INFO("Binding to " << InetSocketAddress::ConvertFrom(local).GetIpv4()
-                                      << ":" << m_port);
+            NS_LOG_INFO("Binding to " << InetSocketAddress::ConvertFrom(local).GetIpv4() << ":"
+                                      << m_port);
         }
         else if (Inet6SocketAddress::IsMatchingType(local))
         {
             m_port = Inet6SocketAddress::ConvertFrom(local).GetPort();
-            NS_LOG_INFO("Binding to " << Inet6SocketAddress::ConvertFrom(local).GetIpv6()
-                                      << ":" << m_port);
+            NS_LOG_INFO("Binding to " << Inet6SocketAddress::ConvertFrom(local).GetIpv6() << ":"
+                                      << m_port);
         }
 
         if (m_socket->Bind(local) == -1)
@@ -313,8 +313,8 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
 
         if (buffer->GetSize() < headerSize)
         {
-            NS_LOG_DEBUG("Buffer has " << buffer->GetSize()
-                                       << " bytes, need " << headerSize << " for header");
+            NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << headerSize
+                                       << " for header");
             break;
         }
 
@@ -328,8 +328,8 @@ OffloadServer::ProcessBuffer(Ptr<Socket> socket, const Address& from)
         // Ensure we have the complete message
         if (totalMessageSize > buffer->GetSize())
         {
-            NS_LOG_DEBUG("Buffer has " << buffer->GetSize()
-                                       << " bytes, need " << totalMessageSize << " for full message");
+            NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << totalMessageSize
+                                       << " for full message");
             break;
         }
 
@@ -367,8 +367,7 @@ OffloadServer::ProcessTask(const OffloadHeader& header, Ptr<Socket> socket)
     m_tasksReceived++;
     m_taskReceivedTrace(header);
 
-    NS_LOG_INFO("Received task " << header.GetTaskId()
-                                 << " (compute=" << header.GetComputeDemand()
+    NS_LOG_INFO("Received task " << header.GetTaskId() << " (compute=" << header.GetComputeDemand()
                                  << ", input=" << header.GetInputSize()
                                  << ", output=" << header.GetOutputSize() << ")");
 
@@ -451,9 +450,9 @@ OffloadServer::SendResponse(Ptr<Socket> socket, Ptr<const Task> task, Time durat
         m_tasksCompleted++;
         m_taskCompletedTrace(response, duration);
 
-        NS_LOG_INFO("Sent response for task " << task->GetTaskId()
-                                              << " (output=" << outputSize << " bytes"
-                                              << ", duration=" << duration.GetMilliSeconds() << "ms)");
+        NS_LOG_INFO("Sent response for task "
+                    << task->GetTaskId() << " (output=" << outputSize << " bytes"
+                    << ", duration=" << duration.GetMilliSeconds() << "ms)");
     }
     else
     {
