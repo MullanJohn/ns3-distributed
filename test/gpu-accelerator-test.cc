@@ -6,6 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
+#include "ns3/compute-task.h"
 #include "ns3/double.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/simulator.h"
@@ -43,7 +44,7 @@ class GpuAcceleratorTestCase : public TestCase
         gpu->TraceConnectWithoutContext("TaskCompleted",
                                         MakeCallback(&GpuAcceleratorTestCase::TaskCompleted, this));
 
-        Ptr<Task> task = CreateObject<Task>();
+        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
         task->SetComputeDemand(1e11); // 100 GFLOP
         task->SetInputSize(1e10);     // 10 GB
         task->SetOutputSize(1e10);    // 10 GB
