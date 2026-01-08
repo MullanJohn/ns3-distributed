@@ -558,7 +558,7 @@ LoadBalancer::ProcessBackendBuffer(uint32_t backendIndex)
 // ========== Task forwarding and response routing ==========
 
 void
-LoadBalancer::ForwardTask(const OffloadHeader& header,
+LoadBalancer::ForwardTask(const TaskHeader& header,
                           Ptr<Packet> payload,
                           Ptr<Socket> clientSocket,
                           const Address& clientAddr)
@@ -611,7 +611,7 @@ LoadBalancer::ForwardTask(const OffloadHeader& header,
 }
 
 void
-LoadBalancer::RouteResponse(const OffloadHeader& header, Ptr<Packet> payload, uint32_t backendIndex)
+LoadBalancer::RouteResponse(const TaskHeader& header, Ptr<Packet> payload, uint32_t backendIndex)
 {
     NS_LOG_FUNCTION(this << header.GetTaskId() << backendIndex);
 
