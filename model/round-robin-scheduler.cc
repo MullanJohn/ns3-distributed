@@ -68,7 +68,7 @@ RoundRobinScheduler::Initialize(const Cluster& cluster)
 }
 
 int32_t
-RoundRobinScheduler::SelectBackend(const OffloadHeader& header, const Cluster& cluster)
+RoundRobinScheduler::SelectBackend(const TaskHeader& header, const Cluster& cluster)
 {
     NS_LOG_FUNCTION(this << header.GetTaskId());
 

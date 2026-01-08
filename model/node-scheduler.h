@@ -10,7 +10,7 @@
 #define NODE_SCHEDULER_H
 
 #include "cluster.h"
-#include "offload-header.h"
+#include "task-header.h"
 
 #include "ns3/nstime.h"
 #include "ns3/object.h"
@@ -100,7 +100,7 @@ class NodeScheduler : public Object
      * @return Index into the cluster (0 to GetN()-1), or -1 if no backend
      *         is available (e.g., all backends down).
      */
-    virtual int32_t SelectBackend(const OffloadHeader& header, const Cluster& cluster) = 0;
+    virtual int32_t SelectBackend(const TaskHeader& header, const Cluster& cluster) = 0;
 
     /**
      * @brief Notify the scheduler that a task was sent to a backend.
@@ -112,7 +112,7 @@ class NodeScheduler : public Object
      * @param backendIndex The index of the backend that was selected.
      * @param header The task header that was sent.
      */
-    virtual void NotifyTaskSent(uint32_t backendIndex, const OffloadHeader& header);
+    virtual void NotifyTaskSent(uint32_t backendIndex, const TaskHeader& header);
 
     /**
      * @brief Notify the scheduler that a task completed on a backend.

@@ -61,7 +61,7 @@ NodeScheduler::Initialize(const Cluster& cluster)
 }
 
 void
-NodeScheduler::NotifyTaskSent(uint32_t backendIndex, const OffloadHeader& header)
+NodeScheduler::NotifyTaskSent(uint32_t backendIndex, const TaskHeader& header)
 {
     NS_LOG_FUNCTION(this << backendIndex << header.GetTaskId());
     // Default implementation does nothing - stateful schedulers override this

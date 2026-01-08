@@ -108,14 +108,14 @@ class LoadBalancer : public Application
      * @param header The task header.
      * @param backendIndex The backend index selected.
      */
-    typedef void (*TaskForwardedCallback)(const OffloadHeader& header, uint32_t backendIndex);
+    typedef void (*TaskForwardedCallback)(const TaskHeader& header, uint32_t backendIndex);
 
     /**
      * @brief Trace callback signature for response routed events.
      * @param header The response header.
      * @param totalLatency Time from task receipt to response forwarded.
      */
-    typedef void (*ResponseRoutedCallback)(const OffloadHeader& header, Time totalLatency);
+    typedef void (*ResponseRoutedCallback)(const TaskHeader& header, Time totalLatency);
 
   protected:
     void DoDispose() override;
@@ -188,7 +188,7 @@ class LoadBalancer : public Application
     /**
      * @brief Forward a task to a backend.
      */
-    void ForwardTask(const OffloadHeader& header,
+    void ForwardTask(const TaskHeader& header,
                      Ptr<Packet> payload,
                      Ptr<Socket> clientSocket,
                      const Address& clientAddr);
@@ -196,7 +196,7 @@ class LoadBalancer : public Application
     /**
      * @brief Route a response back to the client.
      */
-    void RouteResponse(const OffloadHeader& header, Ptr<Packet> payload, uint32_t backendIndex);
+    void RouteResponse(const TaskHeader& header, Ptr<Packet> payload, uint32_t backendIndex);
 
     // ========== Configuration ==========
     uint16_t m_port;                //!< Port to listen on
@@ -241,8 +241,8 @@ class LoadBalancer : public Application
     uint64_t m_backendRx;       //!< Bytes received from backends
 
     // ========== Trace sources ==========
-    TracedCallback<const OffloadHeader&, uint32_t> m_taskForwardedTrace;
-    TracedCallback<const OffloadHeader&, Time> m_responseRoutedTrace;
+    TracedCallback<const TaskHeader&, uint32_t> m_taskForwardedTrace;
+    TracedCallback<const TaskHeader&, Time> m_responseRoutedTrace;
 };
 
 } // namespace ns3

@@ -9,7 +9,7 @@
 #ifndef OFFLOAD_HEADER_H
 #define OFFLOAD_HEADER_H
 
-#include "ns3/header.h"
+#include "task-header.h"
 
 #include <ostream>
 #include <string>
@@ -24,8 +24,11 @@ namespace ns3
  * This header serializes task metadata for transmission between
  * offload clients and servers. It includes the task identifier,
  * compute demand, and input/output data sizes.
+ *
+ * OffloadHeader is a concrete implementation of TaskHeader
+ * designed for compute offloading scenarios.
  */
-class OffloadHeader : public Header
+class OffloadHeader : public TaskHeader
 {
   public:
     /**
@@ -49,38 +52,13 @@ class OffloadHeader : public Header
     OffloadHeader();
     ~OffloadHeader() override;
 
-    /**
-     * @brief Message types for offload protocol.
-     */
-    enum MessageType
-    {
-        TASK_REQUEST, //!< Client sending task to server
-        TASK_RESPONSE //!< Server returning result to client
-    };
-
-    /**
-     * @brief Set the message type.
-     * @param messageType The message type.
-     */
-    void SetMessageType(MessageType messageType);
-
-    /**
-     * @brief Get the message type.
-     * @return The message type.
-     */
-    MessageType GetMessageType() const;
-
-    /**
-     * @brief Set the task identifier.
-     * @param taskId The unique task ID.
-     */
-    void SetTaskId(uint64_t taskId);
-
-    /**
-     * @brief Get the task identifier.
-     * @return The task ID.
-     */
-    uint64_t GetTaskId() const;
+    // DistributedHeader interface implementation
+    MessageType GetMessageType() const override;
+    void SetMessageType(MessageType messageType) override;
+    uint64_t GetTaskId() const override;
+    void SetTaskId(uint64_t taskId) override;
+    uint64_t GetRequestPayloadSize() const override;
+    uint64_t GetResponsePayloadSize() const override;
 
     /**
      * @brief Set the compute demand in FLOPS.
@@ -117,22 +95,6 @@ class OffloadHeader : public Header
      * @return The output size.
      */
     uint64_t GetOutputSize() const;
-
-    /**
-     * @brief Get the payload size for a request message.
-     *
-     * Request payload is inputSize minus header overhead (or 0 if inputSize <= header).
-     * @return Payload size in bytes.
-     */
-    uint64_t GetRequestPayloadSize() const;
-
-    /**
-     * @brief Get the payload size for a response message.
-     *
-     * Response payload equals outputSize (no header overhead subtraction).
-     * @return Payload size in bytes.
-     */
-    uint64_t GetResponsePayloadSize() const;
 
     /**
      * @brief Get a string representation of the header.

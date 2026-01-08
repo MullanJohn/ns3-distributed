@@ -107,11 +107,11 @@ ResponseReceived(uint32_t clientId, const OffloadHeader& header, Time rtt)
 /**
  * Callback for when a task is forwarded by the load balancer.
  *
- * @param header The offload header.
+ * @param header The task header.
  * @param backendIndex The backend server index.
  */
 static void
-TaskForwarded(const OffloadHeader& header, uint32_t backendIndex)
+TaskForwarded(const TaskHeader& header, uint32_t backendIndex)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [LoadBalancer] Task " << header.GetTaskId()
@@ -121,11 +121,11 @@ TaskForwarded(const OffloadHeader& header, uint32_t backendIndex)
 /**
  * Callback for when a response is routed by the load balancer.
  *
- * @param header The offload header.
+ * @param header The task header.
  * @param latency Time from task receipt to response forwarded.
  */
 static void
-ResponseRouted(const OffloadHeader& header, Time latency)
+ResponseRouted(const TaskHeader& header, Time latency)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [LoadBalancer] Task " << header.GetTaskId()

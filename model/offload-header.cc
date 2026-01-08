@@ -30,7 +30,7 @@ static_assert(OffloadHeader::SERIALIZED_SIZE ==
 NS_OBJECT_ENSURE_REGISTERED(OffloadHeader);
 
 OffloadHeader::OffloadHeader()
-    : Header(),
+    : TaskHeader(),
       m_messageType(TASK_REQUEST),
       m_taskId(0),
       m_computeDemand(0.0),
@@ -49,7 +49,7 @@ TypeId
 OffloadHeader::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::OffloadHeader").SetParent<Header>().AddConstructor<OffloadHeader>();
+        TypeId("ns3::OffloadHeader").SetParent<TaskHeader>().AddConstructor<OffloadHeader>();
     return tid;
 }
 
@@ -122,10 +122,10 @@ OffloadHeader::Print(std::ostream& os) const
     switch (m_messageType)
     {
     case TASK_REQUEST:
-        os << "TaskRequest";
+        os << "Request";
         break;
     case TASK_RESPONSE:
-        os << "TaskResponse";
+        os << "Response";
         break;
     default:
         os << "Unknown";
@@ -151,7 +151,7 @@ OffloadHeader::SetMessageType(MessageType messageType)
     m_messageType = messageType;
 }
 
-OffloadHeader::MessageType
+TaskHeader::MessageType
 OffloadHeader::GetMessageType() const
 {
     return m_messageType;

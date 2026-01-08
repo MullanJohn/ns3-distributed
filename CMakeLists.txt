@@ -13,6 +13,7 @@ endif()
 build_lib(
     LIBNAME distributed
     SOURCE_FILES model/distributed.cc
+                 model/task-header.cc
                  model/task.cc
                  model/compute-task.cc
                  model/accelerator.cc
@@ -29,6 +30,7 @@ build_lib(
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
+                 model/task-header.h
                  model/task.h
                  model/compute-task.h
                  model/accelerator.h
@@ -51,6 +53,7 @@ build_lib(
     TEST_SOURCES test/distributed-test-suite.cc
                  test/gpu-accelerator-test.cc
                  test/gpu-accelerator-queue-test.cc
+                 test/task-header-test.cc
                  test/offload-header-test.cc
                  test/offload-server-test.cc
                  test/offload-client-test.cc

@@ -14,6 +14,9 @@ namespace ns3
 // Factories implemented in the other .cc files
 TestCase* CreateGpuAcceleratorTestCase();
 TestCase* CreateGpuAcceleratorQueueTestCase();
+TestCase* CreateTaskHeaderInterfaceTestCase();
+TestCase* CreateTaskHeaderPolymorphismTestCase();
+TestCase* CreateTaskHeaderPayloadSizeTestCase();
 TestCase* CreateOffloadHeaderTestCase();
 TestCase* CreateOffloadHeaderResponseTestCase();
 TestCase* CreateOffloadServerBasicTestCase();
@@ -37,6 +40,9 @@ DistributedTestSuite::DistributedTestSuite()
 {
     AddTestCase(CreateGpuAcceleratorTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateGpuAcceleratorQueueTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTaskHeaderInterfaceTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTaskHeaderPolymorphismTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTaskHeaderPayloadSizeTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadHeaderTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadHeaderResponseTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadServerBasicTestCase(), TestCase::Duration::QUICK);
