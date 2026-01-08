@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef DISTRIBUTED_HEADER_H
-#define DISTRIBUTED_HEADER_H
+#ifndef TASK_HEADER_H
+#define TASK_HEADER_H
 
 #include "ns3/header.h"
 
@@ -18,12 +18,16 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Abstract base class for distributed computing protocol headers.
+ * @brief Abstract base class for task-based protocol headers.
  *
- * DistributedHeader defines the minimal interface for headers used in
- * distributed computing scenarios.
+ * TaskHeader defines the minimal interface for headers used in
+ * distributed computing scenarios. It provides:
+ * - Message type identification (request vs response)
+ * - Task identification for routing and correlation
+ * - Payload size calculation for TCP stream reassembly
  *
- * Concrete implementations add task-specific fields.
+ * Concrete implementations (e.g., OffloadHeader) add task-specific
+ * fields like compute demand, I/O sizes, or inference parameters.
  *
  * LoadBalancer and NodeScheduler use this interface to route messages
  * without inspecting task-specific fields.
@@ -32,11 +36,11 @@ namespace ns3
  * @code
  * // Create a concrete header
  * OffloadHeader concrete;
- * concrete.SetMessageType(DistributedHeader::DISTRIBUTED_REQUEST);
+ * concrete.SetMessageType(TaskHeader::TASK_REQUEST);
  * concrete.SetTaskId(42);
  *
  * // Use via base class reference for routing
- * const DistributedHeader& base = concrete;
+ * const TaskHeader& base = concrete;
  * if (base.IsRequest())
  * {
  *     uint64_t taskId = base.GetTaskId();
@@ -44,19 +48,16 @@ namespace ns3
  * }
  * @endcode
  */
-class DistributedHeader : public Header
+class TaskHeader : public Header
 {
   public:
     /**
-     * @brief Message types for distributed computing protocols.
-     *
-     * Derived classes may define additional message type aliases
-     * for semantic clarity (e.g., TASK_REQUEST = DISTRIBUTED_REQUEST).
+     * @brief Message types for task-based protocols.
      */
     enum MessageType
     {
-        DISTRIBUTED_REQUEST = 0, //!< Generic request message (client to server)
-        DISTRIBUTED_RESPONSE = 1 //!< Generic response message (server to client)
+        TASK_REQUEST = 0,  //!< Request message (client to server)
+        TASK_RESPONSE = 1  //!< Response message (server to client)
     };
 
     /**
@@ -68,17 +69,17 @@ class DistributedHeader : public Header
     /**
      * @brief Default constructor.
      */
-    DistributedHeader();
+    TaskHeader();
 
     /**
      * @brief Virtual destructor.
      */
-    ~DistributedHeader() override;
+    ~TaskHeader() override;
 
     /**
      * @brief Get the message type.
      *
-     * Returns DISTRIBUTED_REQUEST or DISTRIBUTED_RESPONSE for standard messages.
+     * Returns TASK_REQUEST or TASK_RESPONSE for standard messages.
      * Derived classes may define additional message types beyond these.
      *
      * @return The message type.
@@ -129,17 +130,17 @@ class DistributedHeader : public Header
 
     /**
      * @brief Check if this is a request message.
-     * @return True if message type equals DISTRIBUTED_REQUEST.
+     * @return True if message type equals TASK_REQUEST.
      */
     bool IsRequest() const;
 
     /**
      * @brief Check if this is a response message.
-     * @return True if message type equals DISTRIBUTED_RESPONSE.
+     * @return True if message type equals TASK_RESPONSE.
      */
     bool IsResponse() const;
 };
 
 } // namespace ns3
 
-#endif // DISTRIBUTED_HEADER_H
+#endif // TASK_HEADER_H
