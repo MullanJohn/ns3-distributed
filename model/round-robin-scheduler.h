@@ -62,7 +62,7 @@ class RoundRobinScheduler : public NodeScheduler
     // Inherited from NodeScheduler
     std::string GetName() const override;
     void Initialize(const Cluster& cluster) override;
-    int32_t SelectBackend(const OffloadHeader& header, const Cluster& cluster) override;
+    int32_t SelectBackend(const TaskHeader& header, const Cluster& cluster) override;
     Ptr<NodeScheduler> Fork() override;
 
   protected:
