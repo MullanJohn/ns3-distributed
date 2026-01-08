@@ -53,6 +53,7 @@ build_lib(
     TEST_SOURCES test/distributed-test-suite.cc
                  test/gpu-accelerator-test.cc
                  test/gpu-accelerator-queue-test.cc
+                 test/task-header-test.cc
                  test/offload-header-test.cc
                  test/offload-server-test.cc
                  test/offload-client-test.cc
