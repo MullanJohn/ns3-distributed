@@ -13,7 +13,7 @@ endif()
 build_lib(
     LIBNAME distributed
     SOURCE_FILES model/distributed.cc
-                 model/distributed-header.cc
+                 model/task-header.cc
                  model/task.cc
                  model/compute-task.cc
                  model/accelerator.cc
@@ -30,7 +30,7 @@ build_lib(
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
-                 model/distributed-header.h
+                 model/task-header.h
                  model/task.h
                  model/compute-task.h
                  model/accelerator.h

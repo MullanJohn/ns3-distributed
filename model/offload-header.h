@@ -9,7 +9,7 @@
 #ifndef OFFLOAD_HEADER_H
 #define OFFLOAD_HEADER_H
 
-#include "distributed-header.h"
+#include "task-header.h"
 
 #include <ostream>
 #include <string>
@@ -25,10 +25,10 @@ namespace ns3
  * offload clients and servers. It includes the task identifier,
  * compute demand, and input/output data sizes.
  *
- * OffloadHeader is a concrete implementation of DistributedHeader
+ * OffloadHeader is a concrete implementation of TaskHeader
  * designed for compute offloading scenarios.
  */
-class OffloadHeader : public DistributedHeader
+class OffloadHeader : public TaskHeader
 {
   public:
     /**

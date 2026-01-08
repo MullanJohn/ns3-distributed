@@ -30,8 +30,8 @@ static_assert(OffloadHeader::SERIALIZED_SIZE ==
 NS_OBJECT_ENSURE_REGISTERED(OffloadHeader);
 
 OffloadHeader::OffloadHeader()
-    : DistributedHeader(),
-      m_messageType(DISTRIBUTED_REQUEST),
+    : TaskHeader(),
+      m_messageType(TASK_REQUEST),
       m_taskId(0),
       m_computeDemand(0.0),
       m_inputSize(0),
@@ -49,7 +49,7 @@ TypeId
 OffloadHeader::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::OffloadHeader").SetParent<DistributedHeader>().AddConstructor<OffloadHeader>();
+        TypeId("ns3::OffloadHeader").SetParent<TaskHeader>().AddConstructor<OffloadHeader>();
     return tid;
 }
 
@@ -94,7 +94,7 @@ OffloadHeader::Deserialize(Buffer::Iterator start)
     Buffer::Iterator original = start;
 
     uint8_t messageTypeByte = start.ReadU8();
-    if (messageTypeByte > DISTRIBUTED_RESPONSE)
+    if (messageTypeByte > TASK_RESPONSE)
     {
         NS_LOG_WARN("Invalid message type " << static_cast<int>(messageTypeByte)
                                             << " received in OffloadHeader");
@@ -121,10 +121,10 @@ OffloadHeader::Print(std::ostream& os) const
     os << "(Type: ";
     switch (m_messageType)
     {
-    case DISTRIBUTED_REQUEST:
+    case TASK_REQUEST:
         os << "Request";
         break;
-    case DISTRIBUTED_RESPONSE:
+    case TASK_RESPONSE:
         os << "Response";
         break;
     default:
@@ -151,7 +151,7 @@ OffloadHeader::SetMessageType(MessageType messageType)
     m_messageType = messageType;
 }
 
-DistributedHeader::MessageType
+TaskHeader::MessageType
 OffloadHeader::GetMessageType() const
 {
     return m_messageType;
