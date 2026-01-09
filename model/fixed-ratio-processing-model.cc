@@ -11,7 +11,6 @@
 #include "compute-task.h"
 #include "gpu-accelerator.h"
 
-#include "ns3/double.h"
 #include "ns3/log.h"
 
 namespace ns3
@@ -28,23 +27,11 @@ FixedRatioProcessingModel::GetTypeId()
         TypeId("ns3::FixedRatioProcessingModel")
             .SetParent<ProcessingModel>()
             .SetGroupName("Distributed")
-            .AddConstructor<FixedRatioProcessingModel>()
-            .AddAttribute("FlopsPerByte",
-                          "Compute intensity: FLOPS required per byte of input (>= 0)",
-                          DoubleValue(100.0),
-                          MakeDoubleAccessor(&FixedRatioProcessingModel::m_flopsPerByte),
-                          MakeDoubleChecker<double>(0.0))
-            .AddAttribute("OutputRatio",
-                          "Ratio of output size to input size (>= 0)",
-                          DoubleValue(1.0),
-                          MakeDoubleAccessor(&FixedRatioProcessingModel::m_outputRatio),
-                          MakeDoubleChecker<double>(0.0));
+            .AddConstructor<FixedRatioProcessingModel>();
     return tid;
 }
 
 FixedRatioProcessingModel::FixedRatioProcessingModel()
-    : m_flopsPerByte(100.0),
-      m_outputRatio(1.0)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -113,18 +100,6 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
                          << " total=" << totalTime);
 
     return Result(totalTime, outputSize);
-}
-
-double
-FixedRatioProcessingModel::GetFlopsPerByte() const
-{
-    return m_flopsPerByte;
-}
-
-double
-FixedRatioProcessingModel::GetOutputRatio() const
-{
-    return m_outputRatio;
 }
 
 } // namespace ns3
