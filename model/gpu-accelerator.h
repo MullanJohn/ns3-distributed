@@ -11,6 +11,7 @@
 
 #include "accelerator.h"
 #include "compute-task.h"
+#include "processing-model.h"
 
 #include "ns3/event-id.h"
 #include "ns3/nstime.h"
@@ -25,9 +26,9 @@ namespace ns3
  * @ingroup distributed
  * @brief GPU accelerator for processing computational tasks.
  *
- * GpuAccelerator models a GPU processing unit with configurable compute
- * rate and memory bandwidth. Tasks are processed using a three-phase model:
- * input transfer, compute, output transfer.
+ * GpuAccelerator models a GPU processing unit. Task processing time
+ * is determined by the attached ProcessingModel, which must be set
+ * before tasks can be submitted.
  *
  * This is a concrete implementation of the Accelerator interface.
  */
@@ -71,23 +72,14 @@ class GpuAccelerator : public Accelerator
     void StartNextTask();
 
     /**
-     * @brief Called when input transfer completes.
+     * @brief Called when ProcessingModel completes task processing.
      */
-    void InputTransferComplete();
-
-    /**
-     * @brief Called when compute phase completes.
-     */
-    void ComputeComplete();
-
-    /**
-     * @brief Called when output transfer completes (task done).
-     */
-    void OutputTransferComplete();
+    void ProcessingComplete();
 
     // GPU-specific attributes
-    double m_computeRate;     //!< Compute rate in FLOPS
-    double m_memoryBandwidth; //!< Memory bandwidth in bytes/sec
+    double m_computeRate;               //!< Compute rate in FLOPS
+    double m_memoryBandwidth;           //!< Memory bandwidth in bytes/sec
+    Ptr<ProcessingModel> m_processingModel;  //!< Processing model for timing calculation
 
     // State
     std::queue<Ptr<ComputeTask>> m_taskQueue; //!< Queue of pending compute tasks
