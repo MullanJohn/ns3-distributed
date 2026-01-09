@@ -18,6 +18,8 @@
 namespace ns3
 {
 
+class Accelerator;  // Forward declaration
+
 /**
  * @ingroup distributed
  * @brief Abstract base class for compute processing models.
@@ -104,9 +106,10 @@ class ProcessingModel : public Object
      * type is not supported, return a Result with success=false.
      *
      * @param task The task to process (const to prevent modification).
+     * @param accelerator The accelerator providing hardware characteristics.
      * @return Result containing processing time, output size, and success status.
      */
-    virtual Result Process(Ptr<const Task> task) const = 0;
+    virtual Result Process(Ptr<const Task> task, Ptr<const Accelerator> accelerator) const = 0;
 
     /**
      * @brief Get the name of this processing model.
