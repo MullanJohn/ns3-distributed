@@ -121,6 +121,13 @@ class Accelerator : public Object
      */
     typedef void (*TaskCompletedTracedCallback)(Ptr<const Task> task, Time duration);
 
+    /**
+     * @brief TracedCallback signature for task failure.
+     * @param task The failed task.
+     * @param reason Description of why the task failed.
+     */
+    typedef void (*TaskFailedTracedCallback)(Ptr<const Task> task, std::string reason);
+
   protected:
     void DoDispose() override;
     void NotifyNewAggregate() override;
@@ -128,8 +135,9 @@ class Accelerator : public Object
     Ptr<Node> m_node; //!< Node this accelerator is aggregated to
 
     // Trace sources for subclasses to fire
-    TracedCallback<Ptr<const Task>> m_taskStartedTrace;         //!< Task started
-    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace; //!< Task completed
+    TracedCallback<Ptr<const Task>> m_taskStartedTrace;              //!< Task started
+    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace;      //!< Task completed
+    TracedCallback<Ptr<const Task>, std::string> m_taskFailedTrace;  //!< Task failed
 };
 
 } // namespace ns3
