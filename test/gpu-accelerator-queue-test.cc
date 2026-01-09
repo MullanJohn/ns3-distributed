@@ -8,7 +8,9 @@
 
 #include "ns3/compute-task.h"
 #include "ns3/double.h"
+#include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
+#include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/task.h"
 #include "ns3/test.h"
@@ -34,9 +36,14 @@ class GpuAcceleratorQueueTestCase : public TestCase
   private:
     void DoRun() override
     {
+        // Create processing model
+        Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+
+        // Create GPU accelerator with processing model
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12));
+        gpu->SetAttribute("ProcessingModel", PointerValue(model));
 
         gpu->TraceConnectWithoutContext(
             "TaskCompleted",
