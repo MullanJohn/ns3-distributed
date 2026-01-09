@@ -18,6 +18,8 @@ build_lib(
                  model/compute-task.cc
                  model/accelerator.cc
                  model/gpu-accelerator.cc
+                 model/processing-model.cc
+                 model/fixed-ratio-processing-model.cc
                  model/offload-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
@@ -35,6 +37,8 @@ build_lib(
                  model/compute-task.h
                  model/accelerator.h
                  model/gpu-accelerator.h
+                 model/processing-model.h
+                 model/fixed-ratio-processing-model.h
                  model/offload-header.h
                  model/offload-client.h
                  model/offload-server.h
@@ -59,5 +63,6 @@ build_lib(
                  test/offload-client-test.cc
                  test/cluster-test.cc
                  test/node-scheduler-test.cc
+                 test/fixed-ratio-processing-test.cc
                  ${examples_as_tests_sources}
 )

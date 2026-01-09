@@ -9,6 +9,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/cluster.h"
 #include "ns3/core-module.h"
+#include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/internet-module.h"
 #include "ns3/load-balancer-helper.h"
@@ -267,6 +268,9 @@ main(int argc, char* argv[])
     // Enable routing
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
+    // Create processing model
+    Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+
     // Create GPU accelerators and aggregate to server nodes
     std::vector<Ptr<GpuAccelerator>> gpus(numServers);
     for (uint32_t i = 0; i < numServers; ++i)
@@ -274,6 +278,7 @@ main(int argc, char* argv[])
         gpus[i] = CreateObject<GpuAccelerator>();
         gpus[i]->SetAttribute("ComputeRate", DoubleValue(computeRate));
         gpus[i]->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+        gpus[i]->SetAttribute("ProcessingModel", PointerValue(model));
         serverNodes.Get(i)->AggregateObject(gpus[i]);
     }
 

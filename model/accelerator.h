@@ -32,17 +32,20 @@ class Node;
  * Example usage:
  * @code
  * // Create a concrete accelerator (e.g., GPU)
- * Ptr<Accelerator> accel = CreateObject<GpuAccelerator>();
- * node->AggregateObject(accel);
+ * Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+ * gpu->SetAttribute("ProcessingModel", PointerValue(processingModel));
+ * node->AggregateObject(gpu);
  *
  * // Connect to trace sources
- * accel->TraceConnectWithoutContext("TaskStarted", MakeCallback(&OnStart));
- * accel->TraceConnectWithoutContext("TaskCompleted", MakeCallback(&OnComplete));
+ * gpu->TraceConnectWithoutContext("TaskStarted", MakeCallback(&OnStart));
+ * gpu->TraceConnectWithoutContext("TaskCompleted", MakeCallback(&OnComplete));
  *
  * // Submit a task
- * Ptr<Task> task = CreateObject<Task>();
+ * Ptr<ComputeTask> task = CreateObject<ComputeTask>();
  * task->SetComputeDemand(1e9);
- * accel->SubmitTask(task);
+ * task->SetInputSize(1e6);
+ * task->SetOutputSize(1e6);
+ * gpu->SubmitTask(task);
  * @endcode
  */
 class Accelerator : public Object
@@ -121,6 +124,13 @@ class Accelerator : public Object
      */
     typedef void (*TaskCompletedTracedCallback)(Ptr<const Task> task, Time duration);
 
+    /**
+     * @brief TracedCallback signature for task failure.
+     * @param task The failed task.
+     * @param reason Description of why the task failed.
+     */
+    typedef void (*TaskFailedTracedCallback)(Ptr<const Task> task, std::string reason);
+
   protected:
     void DoDispose() override;
     void NotifyNewAggregate() override;
@@ -128,8 +138,9 @@ class Accelerator : public Object
     Ptr<Node> m_node; //!< Node this accelerator is aggregated to
 
     // Trace sources for subclasses to fire
-    TracedCallback<Ptr<const Task>> m_taskStartedTrace;         //!< Task started
-    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace; //!< Task completed
+    TracedCallback<Ptr<const Task>> m_taskStartedTrace;              //!< Task started
+    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace;      //!< Task completed
+    TracedCallback<Ptr<const Task>, std::string> m_taskFailedTrace;  //!< Task failed
 };
 
 } // namespace ns3

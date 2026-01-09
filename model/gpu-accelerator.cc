@@ -10,9 +10,9 @@
 
 #include "ns3/double.h"
 #include "ns3/log.h"
+#include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/trace-source-accessor.h"
-#include "ns3/uinteger.h"
 
 namespace ns3
 {
@@ -37,6 +37,11 @@ GpuAccelerator::GetTypeId()
                                           DoubleValue(900e9),
                                           MakeDoubleAccessor(&GpuAccelerator::m_memoryBandwidth),
                                           MakeDoubleChecker<double>(1.0))
+                            .AddAttribute("ProcessingModel",
+                                          "Processing model for timing calculation",
+                                          PointerValue(),
+                                          MakePointerAccessor(&GpuAccelerator::m_processingModel),
+                                          MakePointerChecker<ProcessingModel>())
                             .AddTraceSource("QueueLength",
                                             "Current number of tasks in queue",
                                             MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
@@ -47,6 +52,7 @@ GpuAccelerator::GetTypeId()
 GpuAccelerator::GpuAccelerator()
     : m_computeRate(1e12),
       m_memoryBandwidth(900e9),
+      m_processingModel(nullptr),
       m_currentTask(nullptr),
       m_busy(false),
       m_tasksCompleted(0),
@@ -66,6 +72,7 @@ GpuAccelerator::DoDispose()
     NS_LOG_FUNCTION(this);
     Simulator::Cancel(m_currentEvent);
     m_currentTask = nullptr;
+    m_processingModel = nullptr;
     while (!m_taskQueue.empty())
     {
         m_taskQueue.pop();
@@ -84,18 +91,11 @@ GpuAccelerator::SubmitTask(Ptr<Task> task)
 {
     NS_LOG_FUNCTION(this << task);
 
-    // GpuAccelerator requires ComputeTask objects
-    Ptr<ComputeTask> computeTask = DynamicCast<ComputeTask>(task);
-    if (!computeTask)
-    {
-        NS_LOG_ERROR("GpuAccelerator requires ComputeTask objects, received: " << task->GetName());
-        return;
-    }
-
-    m_taskQueue.push(computeTask);
+    m_taskQueue.push(task);
     m_queueLength = m_taskQueue.size() + (m_busy ? 1 : 0);
 
-    NS_LOG_DEBUG("Task " << computeTask->GetTaskId() << " submitted, queue length: " << m_queueLength);
+    NS_LOG_DEBUG("Task " << task->GetTaskId()
+                         << " submitted, queue length: " << m_queueLength);
 
     if (!m_busy)
     {
@@ -116,6 +116,16 @@ GpuAccelerator::StartNextTask()
 
     m_currentTask = m_taskQueue.front();
     m_taskQueue.pop();
+
+    if (!m_processingModel)
+    {
+        NS_LOG_ERROR("GpuAccelerator requires a ProcessingModel to be set");
+        m_taskFailedTrace(m_currentTask, "No ProcessingModel configured");
+        m_currentTask = nullptr;
+        m_queueLength = m_taskQueue.size();
+        StartNextTask();
+        return;
+    }
     m_busy = true;
     m_taskStartTime = Simulator::Now();
 
@@ -127,41 +137,27 @@ GpuAccelerator::StartNextTask()
     // Update queue length after trace (includes current task being processed)
     m_queueLength = m_taskQueue.size() + 1;
 
-    // Calculate input transfer time
-    Time inputTransferTime = Seconds(m_currentTask->GetInputSize() / m_memoryBandwidth);
-    NS_LOG_DEBUG("Input transfer time: " << inputTransferTime);
+    // Use ProcessingModel for timing calculation, passing this accelerator
+    ProcessingModel::Result result = m_processingModel->Process(m_currentTask, this);
+    if (!result.success)
+    {
+        NS_LOG_ERROR("ProcessingModel failed for task " << m_currentTask->GetTaskId());
+        m_taskFailedTrace(m_currentTask, "ProcessingModel returned failure");
+        m_currentTask = nullptr;
+        m_busy = false;
+        m_queueLength = m_taskQueue.size();
+        StartNextTask();
+        return;
+    }
 
-    m_currentEvent =
-        Simulator::Schedule(inputTransferTime, &GpuAccelerator::InputTransferComplete, this);
+    NS_LOG_DEBUG("Processing time: " << result.processingTime);
+    m_currentEvent = Simulator::Schedule(result.processingTime,
+                                          &GpuAccelerator::ProcessingComplete,
+                                          this);
 }
 
 void
-GpuAccelerator::InputTransferComplete()
-{
-    NS_LOG_FUNCTION(this);
-
-    // Calculate compute time
-    Time computeTime = Seconds(m_currentTask->GetComputeDemand() / m_computeRate);
-    NS_LOG_DEBUG("Compute time: " << computeTime);
-
-    m_currentEvent = Simulator::Schedule(computeTime, &GpuAccelerator::ComputeComplete, this);
-}
-
-void
-GpuAccelerator::ComputeComplete()
-{
-    NS_LOG_FUNCTION(this);
-
-    // Calculate output transfer time
-    Time outputTransferTime = Seconds(m_currentTask->GetOutputSize() / m_memoryBandwidth);
-    NS_LOG_DEBUG("Output transfer time: " << outputTransferTime);
-
-    m_currentEvent =
-        Simulator::Schedule(outputTransferTime, &GpuAccelerator::OutputTransferComplete, this);
-}
-
-void
-GpuAccelerator::OutputTransferComplete()
+GpuAccelerator::ProcessingComplete()
 {
     NS_LOG_FUNCTION(this);
 

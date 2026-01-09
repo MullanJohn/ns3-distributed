@@ -33,7 +33,11 @@ Accelerator::GetTypeId()
             .AddTraceSource("TaskCompleted",
                             "Trace fired when a task completes execution.",
                             MakeTraceSourceAccessor(&Accelerator::m_taskCompletedTrace),
-                            "ns3::Accelerator::TaskCompletedTracedCallback");
+                            "ns3::Accelerator::TaskCompletedTracedCallback")
+            .AddTraceSource("TaskFailed",
+                            "Trace fired when a task fails to process.",
+                            MakeTraceSourceAccessor(&Accelerator::m_taskFailedTrace),
+                            "ns3::Accelerator::TaskFailedTracedCallback");
     return tid;
 }
 

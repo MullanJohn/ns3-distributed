@@ -7,8 +7,10 @@
  */
 
 #include "ns3/double.h"
+#include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/inet-socket-address.h"
+#include "ns3/pointer.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
 #include "ns3/offload-client-helper.h"
@@ -68,10 +70,14 @@ class OffloadClientMultiClientTestCase : public TestCase
         ipv4.SetBase("10.1.2.0", "255.255.255.0");
         Ipv4InterfaceContainer if2 = ipv4.Assign(dev2);
 
+        // Create processing model
+        Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+
         // Create and configure GPU on server
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));     // 1 TFLOPS
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11)); // 100 GB/s
+        gpu->SetAttribute("ProcessingModel", PointerValue(model));
         serverNode->AggregateObject(gpu);
 
         // Install OffloadServer on server node

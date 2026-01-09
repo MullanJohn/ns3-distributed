@@ -8,6 +8,7 @@
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
+#include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
@@ -191,10 +192,14 @@ main(int argc, char* argv[])
         serverAddresses.push_back(interfaces.GetAddress(1));
     }
 
+    // Create processing model
+    Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+
     // Create GPU accelerator and aggregate to server node
     Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
     gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
     gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+    gpu->SetAttribute("ProcessingModel", PointerValue(model));
     serverNode.Get(0)->AggregateObject(gpu);
 
     // Connect GPU trace source
