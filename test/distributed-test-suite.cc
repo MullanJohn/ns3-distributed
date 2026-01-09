@@ -28,6 +28,9 @@ TestCase* CreateRoundRobinSchedulerTestCase();
 TestCase* CreateRoundRobinEmptyClusterTestCase();
 TestCase* CreateRoundRobinSingleBackendTestCase();
 TestCase* CreateRoundRobinForkTestCase();
+TestCase* CreateFixedRatioProcessingModelTestCase();
+TestCase* CreateFixedRatioVariedHardwareTestCase();
+TestCase* CreateProcessingModelResultTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -54,6 +57,9 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateRoundRobinEmptyClusterTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateRoundRobinSingleBackendTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateRoundRobinForkTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFixedRatioProcessingModelTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFixedRatioVariedHardwareTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateProcessingModelResultTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;

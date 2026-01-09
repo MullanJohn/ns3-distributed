@@ -63,5 +63,6 @@ build_lib(
                  test/offload-client-test.cc
                  test/cluster-test.cc
                  test/node-scheduler-test.cc
+                 test/fixed-ratio-processing-test.cc
                  ${examples_as_tests_sources}
 )
