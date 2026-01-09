@@ -10,8 +10,8 @@
 #define GPU_ACCELERATOR_H
 
 #include "accelerator.h"
-#include "compute-task.h"
 #include "processing-model.h"
+#include "task.h"
 
 #include "ns3/event-id.h"
 #include "ns3/nstime.h"
@@ -82,8 +82,8 @@ class GpuAccelerator : public Accelerator
     Ptr<ProcessingModel> m_processingModel;  //!< Processing model for timing calculation
 
     // State
-    std::queue<Ptr<ComputeTask>> m_taskQueue; //!< Queue of pending compute tasks
-    Ptr<ComputeTask> m_currentTask;           //!< Currently executing compute task
+    std::queue<Ptr<Task>> m_taskQueue; //!< Queue of pending tasks
+    Ptr<Task> m_currentTask;           //!< Currently executing task
     bool m_busy;                       //!< True if processing a task
     EventId m_currentEvent;            //!< Current scheduled event
     Time m_taskStartTime;              //!< When current task started

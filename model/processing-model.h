@@ -32,13 +32,19 @@ class Accelerator;  // Forward declaration
  *
  * Example usage:
  * @code
- * Ptr<ProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
- * model->SetAttribute("ComputeRate", DoubleValue(1e12));
+ * Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
  *
- * Ptr<Task> task = CreateObject<ComputeTask>();
- * // ... configure task ...
+ * Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+ * gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
+ * gpu->SetAttribute("MemoryBandwidth", DoubleValue(900e9));
+ * gpu->SetAttribute("ProcessingModel", PointerValue(model));
  *
- * ProcessingModel::Result result = model->Process(task);
+ * Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+ * task->SetComputeDemand(1e9);
+ * task->SetInputSize(1e6);
+ * task->SetOutputSize(1e6);
+ *
+ * ProcessingModel::Result result = model->Process(task, gpu);
  * if (result.success)
  * {
  *     Simulator::Schedule(result.processingTime, &OnComplete, result.outputSize);

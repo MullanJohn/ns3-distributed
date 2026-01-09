@@ -91,18 +91,10 @@ GpuAccelerator::SubmitTask(Ptr<Task> task)
 {
     NS_LOG_FUNCTION(this << task);
 
-    // GpuAccelerator requires ComputeTask objects
-    Ptr<ComputeTask> computeTask = DynamicCast<ComputeTask>(task);
-    if (!computeTask)
-    {
-        NS_LOG_ERROR("GpuAccelerator requires ComputeTask objects, received: " << task->GetName());
-        return;
-    }
-
-    m_taskQueue.push(computeTask);
+    m_taskQueue.push(task);
     m_queueLength = m_taskQueue.size() + (m_busy ? 1 : 0);
 
-    NS_LOG_DEBUG("Task " << computeTask->GetTaskId()
+    NS_LOG_DEBUG("Task " << task->GetTaskId()
                          << " submitted, queue length: " << m_queueLength);
 
     if (!m_busy)
@@ -122,14 +114,18 @@ GpuAccelerator::StartNextTask()
         return;
     }
 
+    m_currentTask = m_taskQueue.front();
+    m_taskQueue.pop();
+
     if (!m_processingModel)
     {
         NS_LOG_ERROR("GpuAccelerator requires a ProcessingModel to be set");
+        m_taskFailedTrace(m_currentTask, "No ProcessingModel configured");
+        m_currentTask = nullptr;
+        m_queueLength = m_taskQueue.size();
+        StartNextTask();
         return;
     }
-
-    m_currentTask = m_taskQueue.front();
-    m_taskQueue.pop();
     m_busy = true;
     m_taskStartTime = Simulator::Now();
 
@@ -146,7 +142,9 @@ GpuAccelerator::StartNextTask()
     if (!result.success)
     {
         NS_LOG_ERROR("ProcessingModel failed for task " << m_currentTask->GetTaskId());
+        m_taskFailedTrace(m_currentTask, "ProcessingModel returned failure");
         m_currentTask = nullptr;
+        m_busy = false;
         m_queueLength = m_taskQueue.size();
         StartNextTask();
         return;
