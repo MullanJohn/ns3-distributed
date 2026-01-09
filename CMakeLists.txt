@@ -19,6 +19,7 @@ build_lib(
                  model/accelerator.cc
                  model/gpu-accelerator.cc
                  model/processing-model.cc
+                 model/fixed-ratio-processing-model.cc
                  model/offload-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
@@ -37,6 +38,7 @@ build_lib(
                  model/accelerator.h
                  model/gpu-accelerator.h
                  model/processing-model.h
+                 model/fixed-ratio-processing-model.h
                  model/offload-header.h
                  model/offload-client.h
                  model/offload-server.h
