@@ -68,5 +68,6 @@ build_lib(
                  test/cluster-test.cc
                  test/node-scheduler-test.cc
                  test/fixed-ratio-processing-test.cc
+                 test/queue-scheduler-test.cc
                  ${examples_as_tests_sources}
 )

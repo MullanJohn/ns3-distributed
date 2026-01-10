@@ -31,6 +31,10 @@ TestCase* CreateRoundRobinForkTestCase();
 TestCase* CreateFixedRatioProcessingModelTestCase();
 TestCase* CreateFixedRatioVariedHardwareTestCase();
 TestCase* CreateProcessingModelResultTestCase();
+TestCase* CreateFifoQueueSchedulerEnqueueDequeueTestCase();
+TestCase* CreateFifoQueueSchedulerOrderTestCase();
+TestCase* CreateFifoQueueSchedulerEmptyTestCase();
+TestCase* CreateFifoQueueSchedulerPeekTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -60,6 +64,10 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateFixedRatioProcessingModelTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateFixedRatioVariedHardwareTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateProcessingModelResultTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFifoQueueSchedulerEnqueueDequeueTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFifoQueueSchedulerOrderTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFifoQueueSchedulerEmptyTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFifoQueueSchedulerPeekTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
