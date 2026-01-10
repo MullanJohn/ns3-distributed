@@ -17,7 +17,7 @@ build_lib(
                  model/task.cc
                  model/compute-task.cc
                  model/connection-manager.cc
-                 mode/tcp-connection-manager.cc
+                 model/tcp-connection-manager.cc
                  model/udp-connection-manager.cc
                  model/accelerator.cc
                  model/gpu-accelerator.cc
@@ -78,5 +78,6 @@ build_lib(
                  test/fixed-ratio-processing-test.cc
                  test/fifo-queue-scheduler-test.cc
                  test/batching-queue-scheduler-test.cc
+                 test/connection-manager-test.cc
                  ${examples_as_tests_sources}
 )
