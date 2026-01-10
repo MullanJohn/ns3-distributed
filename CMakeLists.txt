@@ -18,6 +18,7 @@ build_lib(
                  model/compute-task.cc
                  model/connection-manager.cc
                  mode/tcp-connection-manager.cc
+                 model/udp-connection-manager.cc
                  model/accelerator.cc
                  model/gpu-accelerator.cc
                  model/processing-model.cc
@@ -42,6 +43,7 @@ build_lib(
                  model/compute-task.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
+                 model/udp-connection-manager.h
                  model/accelerator.h
                  model/gpu-accelerator.h
                  model/processing-model.h
