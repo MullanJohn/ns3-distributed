@@ -42,6 +42,11 @@ GpuAccelerator::GetTypeId()
                                           PointerValue(),
                                           MakePointerAccessor(&GpuAccelerator::m_processingModel),
                                           MakePointerChecker<ProcessingModel>())
+                            .AddAttribute("QueueScheduler",
+                                          "Queue scheduler for task management",
+                                          PointerValue(),
+                                          MakePointerAccessor(&GpuAccelerator::m_queueScheduler),
+                                          MakePointerChecker<QueueScheduler>())
                             .AddTraceSource("QueueLength",
                                             "Current number of tasks in queue",
                                             MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
@@ -53,6 +58,7 @@ GpuAccelerator::GpuAccelerator()
     : m_computeRate(1e12),
       m_memoryBandwidth(900e9),
       m_processingModel(nullptr),
+      m_queueScheduler(nullptr),
       m_currentTask(nullptr),
       m_busy(false),
       m_tasksCompleted(0),
@@ -73,9 +79,10 @@ GpuAccelerator::DoDispose()
     Simulator::Cancel(m_currentEvent);
     m_currentTask = nullptr;
     m_processingModel = nullptr;
-    while (!m_taskQueue.empty())
+    if (m_queueScheduler)
     {
-        m_taskQueue.pop();
+        m_queueScheduler->Clear();
+        m_queueScheduler = nullptr;
     }
     Accelerator::DoDispose();
 }
@@ -91,8 +98,15 @@ GpuAccelerator::SubmitTask(Ptr<Task> task)
 {
     NS_LOG_FUNCTION(this << task);
 
-    m_taskQueue.push(task);
-    m_queueLength = m_taskQueue.size() + (m_busy ? 1 : 0);
+    if (!m_queueScheduler)
+    {
+        NS_LOG_ERROR("GpuAccelerator requires a QueueScheduler to be set");
+        m_taskFailedTrace(task, "No QueueScheduler configured");
+        return;
+    }
+
+    m_queueScheduler->Enqueue(task);
+    m_queueLength = m_queueScheduler->GetLength() + (m_busy ? 1 : 0);
 
     NS_LOG_DEBUG("Task " << task->GetTaskId()
                          << " submitted, queue length: " << m_queueLength);
@@ -108,21 +122,20 @@ GpuAccelerator::StartNextTask()
 {
     NS_LOG_FUNCTION(this);
 
-    if (m_taskQueue.empty())
+    if (m_queueScheduler->IsEmpty())
     {
         m_busy = false;
         return;
     }
 
-    m_currentTask = m_taskQueue.front();
-    m_taskQueue.pop();
+    m_currentTask = m_queueScheduler->Dequeue();
 
     if (!m_processingModel)
     {
         NS_LOG_ERROR("GpuAccelerator requires a ProcessingModel to be set");
         m_taskFailedTrace(m_currentTask, "No ProcessingModel configured");
         m_currentTask = nullptr;
-        m_queueLength = m_taskQueue.size();
+        m_queueLength = m_queueScheduler->GetLength();
         StartNextTask();
         return;
     }
@@ -135,7 +148,7 @@ GpuAccelerator::StartNextTask()
     m_taskStartedTrace(m_currentTask);
 
     // Update queue length after trace (includes current task being processed)
-    m_queueLength = m_taskQueue.size() + 1;
+    m_queueLength = m_queueScheduler->GetLength() + 1;
 
     // Use ProcessingModel for timing calculation, passing this accelerator
     ProcessingModel::Result result = m_processingModel->Process(m_currentTask, this);
@@ -145,7 +158,7 @@ GpuAccelerator::StartNextTask()
         m_taskFailedTrace(m_currentTask, "ProcessingModel returned failure");
         m_currentTask = nullptr;
         m_busy = false;
-        m_queueLength = m_taskQueue.size();
+        m_queueLength = m_queueScheduler->GetLength();
         StartNextTask();
         return;
     }
@@ -171,7 +184,7 @@ GpuAccelerator::ProcessingComplete()
 
     m_tasksCompleted++;
     m_currentTask = nullptr;
-    m_queueLength = m_taskQueue.size();
+    m_queueLength = m_queueScheduler->GetLength();
 
     // Start next task if available
     StartNextTask();

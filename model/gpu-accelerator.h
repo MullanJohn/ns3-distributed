@@ -11,13 +11,12 @@
 
 #include "accelerator.h"
 #include "processing-model.h"
+#include "queue-scheduler.h"
 #include "task.h"
 
 #include "ns3/event-id.h"
 #include "ns3/nstime.h"
 #include "ns3/traced-value.h"
-
-#include <queue>
 
 namespace ns3
 {
@@ -80,9 +79,9 @@ class GpuAccelerator : public Accelerator
     double m_computeRate;               //!< Compute rate in FLOPS
     double m_memoryBandwidth;           //!< Memory bandwidth in bytes/sec
     Ptr<ProcessingModel> m_processingModel;  //!< Processing model for timing calculation
+    Ptr<QueueScheduler> m_queueScheduler;    //!< Queue scheduler for task management
 
     // State
-    std::queue<Ptr<Task>> m_taskQueue; //!< Queue of pending tasks
     Ptr<Task> m_currentTask;           //!< Currently executing task
     bool m_busy;                       //!< True if processing a task
     EventId m_currentEvent;            //!< Current scheduled event
