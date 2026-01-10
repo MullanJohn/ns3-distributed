@@ -21,6 +21,7 @@ build_lib(
                  model/processing-model.cc
                  model/fixed-ratio-processing-model.cc
                  model/queue-scheduler.cc
+                 model/fifo-queue-scheduler.cc
                  model/offload-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
@@ -41,6 +42,7 @@ build_lib(
                  model/processing-model.h
                  model/fixed-ratio-processing-model.h
                  model/queue-scheduler.h
+                 model/fifo-queue-scheduler.h
                  model/offload-header.h
                  model/offload-client.h
                  model/offload-server.h
