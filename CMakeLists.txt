@@ -20,6 +20,7 @@ build_lib(
                  model/gpu-accelerator.cc
                  model/processing-model.cc
                  model/fixed-ratio-processing-model.cc
+                 model/queue-scheduler.cc
                  model/offload-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
@@ -39,6 +40,7 @@ build_lib(
                  model/gpu-accelerator.h
                  model/processing-model.h
                  model/fixed-ratio-processing-model.h
+                 model/queue-scheduler.h
                  model/offload-header.h
                  model/offload-client.h
                  model/offload-server.h
