@@ -8,6 +8,7 @@
 
 #include "ns3/compute-task.h"
 #include "ns3/double.h"
+#include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/pointer.h"
@@ -37,14 +38,16 @@ class GpuAcceleratorTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create processing model
+        // Create processing model and queue scheduler
         Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+        Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
-        // Create GPU accelerator with processing model
+        // Create GPU accelerator with processing model and queue scheduler
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));     // 1 TFLOPS
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11)); // 100 GB/s
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
+        gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
 
         gpu->TraceConnectWithoutContext("TaskStarted",
                                         MakeCallback(&GpuAcceleratorTestCase::TaskStarted, this));
