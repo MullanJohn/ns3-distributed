@@ -71,5 +71,6 @@ build_lib(
                  test/node-scheduler-test.cc
                  test/fixed-ratio-processing-test.cc
                  test/fifo-queue-scheduler-test.cc
+                 test/batching-queue-scheduler-test.cc
                  ${examples_as_tests_sources}
 )

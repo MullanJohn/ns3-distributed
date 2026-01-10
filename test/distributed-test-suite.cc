@@ -35,6 +35,9 @@ TestCase* CreateFifoQueueSchedulerEnqueueDequeueTestCase();
 TestCase* CreateFifoQueueSchedulerOrderTestCase();
 TestCase* CreateFifoQueueSchedulerEmptyTestCase();
 TestCase* CreateFifoQueueSchedulerPeekTestCase();
+TestCase* CreateBatchingQueueSchedulerSingleTestCase();
+TestCase* CreateBatchingQueueSchedulerBatchTestCase();
+TestCase* CreateBatchingQueueSchedulerPartialBatchTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -68,6 +71,9 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateFifoQueueSchedulerOrderTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateFifoQueueSchedulerEmptyTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateFifoQueueSchedulerPeekTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateBatchingQueueSchedulerSingleTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateBatchingQueueSchedulerBatchTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateBatchingQueueSchedulerPartialBatchTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
