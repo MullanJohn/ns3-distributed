@@ -84,6 +84,16 @@ class TcpConnectionManager : public ConnectionManager
      */
     static const ConnectionId INVALID_CONNECTION = 0;
 
+    /**
+     * @brief Callback signature for TCP connection events.
+     *
+     * Used for new connection notifications (server/client) and
+     * connection close notifications.
+     *
+     * @param peer The address of the remote peer.
+     */
+    typedef Callback<void, const Address&> ConnectionCallback;
+
     // ConnectionManager interface implementation
     void SetNode(Ptr<Node> node) override;
     Ptr<Node> GetNode() const override;
@@ -93,12 +103,30 @@ class TcpConnectionManager : public ConnectionManager
     void Send(Ptr<Packet> packet) override;
     void Send(Ptr<Packet> packet, const Address& to) override;
     void SetReceiveCallback(ReceiveCallback callback) override;
-    void SetConnectionCallback(ConnectionCallback callback) override;
-    void SetCloseCallback(ConnectionCallback callback) override;
     void Close() override;
     void Close(const Address& peer) override;
     std::string GetName() const override;
     bool IsReliable() const override;
+
+    /**
+     * @brief Set the callback for new connection events (TCP-specific).
+     *
+     * For servers, invoked when a new client connects.
+     * For clients, invoked when connection is established.
+     *
+     * @param callback The connection callback.
+     */
+    void SetConnectionCallback(ConnectionCallback callback);
+
+    /**
+     * @brief Set the callback for connection close events (TCP-specific).
+     *
+     * Invoked when a connection is closed, either by the remote peer
+     * or due to an error.
+     *
+     * @param callback The close callback.
+     */
+    void SetCloseCallback(ConnectionCallback callback);
 
     /**
      * @brief Acquire an idle connection from the pool (client mode).

@@ -88,16 +88,6 @@ class ConnectionManager : public Object
     typedef Callback<void, Ptr<Packet>, const Address&> ReceiveCallback;
 
     /**
-     * @brief Callback signature for connection events.
-     *
-     * Used for new connection notifications (server mode) and
-     * connection close notifications.
-     *
-     * @param peer The address of the remote peer.
-     */
-    typedef Callback<void, const Address&> ConnectionCallback;
-
-    /**
      * @brief Set the node this connection manager operates on.
      *
      * Must be called before Bind() or Connect().
@@ -174,27 +164,6 @@ class ConnectionManager : public Object
      * @param callback The receive callback.
      */
     virtual void SetReceiveCallback(ReceiveCallback callback) = 0;
-
-    /**
-     * @brief Set the callback for new connection events.
-     *
-     * For TCP servers, invoked when a new client connects.
-     * For TCP clients, invoked when connection is established.
-     * For UDP, may be invoked once after Bind() or not at all.
-     *
-     * @param callback The connection callback.
-     */
-    virtual void SetConnectionCallback(ConnectionCallback callback) = 0;
-
-    /**
-     * @brief Set the callback for connection close events.
-     *
-     * Invoked when a connection is closed, either by the remote peer
-     * or due to an error.
-     *
-     * @param callback The close callback.
-     */
-    virtual void SetCloseCallback(ConnectionCallback callback) = 0;
 
     /**
      * @brief Close all connections and release resources.
