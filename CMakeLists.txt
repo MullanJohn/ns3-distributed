@@ -16,6 +16,7 @@ build_lib(
                  model/task-header.cc
                  model/task.cc
                  model/compute-task.cc
+                 model/connection-manager.cc
                  model/accelerator.cc
                  model/gpu-accelerator.cc
                  model/processing-model.cc
@@ -38,6 +39,7 @@ build_lib(
                  model/task-header.h
                  model/task.h
                  model/compute-task.h
+                 model/connection-manager.h
                  model/accelerator.h
                  model/gpu-accelerator.h
                  model/processing-model.h
