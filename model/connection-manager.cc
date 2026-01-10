@@ -13,14 +13,14 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("ConnectionManager");
+NS_LOG_COMPONENT_DEFINE("DistributedConnectionManager");
 
 NS_OBJECT_ENSURE_REGISTERED(ConnectionManager);
 
 TypeId
 ConnectionManager::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::ConnectionManager")
+    static TypeId tid = TypeId("ns3::distributed::ConnectionManager")
                             .SetParent<Object>()
                             .SetGroupName("Distributed");
     return tid;
