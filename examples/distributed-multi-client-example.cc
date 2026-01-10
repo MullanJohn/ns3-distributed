@@ -8,6 +8,7 @@
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
+#include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/internet-module.h"
@@ -192,14 +193,16 @@ main(int argc, char* argv[])
         serverAddresses.push_back(interfaces.GetAddress(1));
     }
 
-    // Create processing model
+    // Create processing model and queue scheduler
     Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+    Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
     // Create GPU accelerator and aggregate to server node
     Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
     gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
     gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
     gpu->SetAttribute("ProcessingModel", PointerValue(model));
+    gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
     serverNode.Get(0)->AggregateObject(gpu);
 
     // Connect GPU trace source

@@ -13,6 +13,7 @@ namespace ns3
 
 // Factories implemented in the other .cc files
 TestCase* CreateGpuAcceleratorTestCase();
+TestCase* CreateGpuAcceleratorNoSchedulerTestCase();
 TestCase* CreateGpuAcceleratorQueueTestCase();
 TestCase* CreateTaskHeaderInterfaceTestCase();
 TestCase* CreateTaskHeaderPolymorphismTestCase();
@@ -31,6 +32,13 @@ TestCase* CreateRoundRobinForkTestCase();
 TestCase* CreateFixedRatioProcessingModelTestCase();
 TestCase* CreateFixedRatioVariedHardwareTestCase();
 TestCase* CreateProcessingModelResultTestCase();
+TestCase* CreateFifoQueueSchedulerEnqueueDequeueTestCase();
+TestCase* CreateFifoQueueSchedulerOrderTestCase();
+TestCase* CreateFifoQueueSchedulerEmptyTestCase();
+TestCase* CreateFifoQueueSchedulerPeekTestCase();
+TestCase* CreateBatchingQueueSchedulerSingleTestCase();
+TestCase* CreateBatchingQueueSchedulerBatchTestCase();
+TestCase* CreateBatchingQueueSchedulerPartialBatchTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -42,6 +50,7 @@ DistributedTestSuite::DistributedTestSuite()
     : TestSuite("distributed", Type::UNIT)
 {
     AddTestCase(CreateGpuAcceleratorTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateGpuAcceleratorNoSchedulerTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateGpuAcceleratorQueueTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTaskHeaderInterfaceTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTaskHeaderPolymorphismTestCase(), TestCase::Duration::QUICK);
@@ -60,6 +69,13 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateFixedRatioProcessingModelTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateFixedRatioVariedHardwareTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateProcessingModelResultTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFifoQueueSchedulerEnqueueDequeueTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFifoQueueSchedulerOrderTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFifoQueueSchedulerEmptyTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFifoQueueSchedulerPeekTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateBatchingQueueSchedulerSingleTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateBatchingQueueSchedulerBatchTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateBatchingQueueSchedulerPartialBatchTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;

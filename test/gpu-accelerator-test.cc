@@ -8,6 +8,7 @@
 
 #include "ns3/compute-task.h"
 #include "ns3/double.h"
+#include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/pointer.h"
@@ -37,14 +38,16 @@ class GpuAcceleratorTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create processing model
+        // Create processing model and queue scheduler
         Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+        Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
-        // Create GPU accelerator with processing model
+        // Create GPU accelerator with processing model and queue scheduler
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));     // 1 TFLOPS
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11)); // 100 GB/s
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
+        gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
 
         gpu->TraceConnectWithoutContext("TaskStarted",
                                         MakeCallback(&GpuAcceleratorTestCase::TaskStarted, this));
@@ -89,12 +92,85 @@ class GpuAcceleratorTestCase : public TestCase
     Time m_lastDuration;
 };
 
+/**
+ * @ingroup distributed-tests
+ * @brief Test GpuAccelerator fails gracefully without QueueScheduler
+ */
+class GpuAcceleratorNoSchedulerTestCase : public TestCase
+{
+  public:
+    GpuAcceleratorNoSchedulerTestCase()
+        : TestCase("Test GpuAccelerator fails without QueueScheduler"),
+          m_failedCount(0),
+          m_startedCount(0)
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        // Create GPU accelerator WITHOUT QueueScheduler
+        Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
+        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11));
+
+        gpu->TraceConnectWithoutContext(
+            "TaskFailed",
+            MakeCallback(&GpuAcceleratorNoSchedulerTestCase::TaskFailed, this));
+        gpu->TraceConnectWithoutContext(
+            "TaskStarted",
+            MakeCallback(&GpuAcceleratorNoSchedulerTestCase::TaskStarted, this));
+
+        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+        task->SetTaskId(1);
+        task->SetComputeDemand(1e9);
+        task->SetInputSize(1e6);
+        task->SetOutputSize(1e6);
+
+        gpu->SubmitTask(task);
+
+        // Task should fail immediately, not be queued
+        NS_TEST_ASSERT_MSG_EQ(gpu->GetQueueLength(), 0, "Queue should be empty (no scheduler)");
+        NS_TEST_ASSERT_MSG_EQ(gpu->IsBusy(), false, "GPU should not be busy");
+
+        Simulator::Run();
+        Simulator::Destroy();
+
+        NS_TEST_ASSERT_MSG_EQ(m_failedCount, 1, "Task should have failed");
+        NS_TEST_ASSERT_MSG_EQ(m_startedCount, 0, "No task should have started");
+        NS_TEST_ASSERT_MSG_NE(m_lastFailReason.find("QueueScheduler"),
+                              std::string::npos,
+                              "Failure reason should mention QueueScheduler");
+    }
+
+    void TaskFailed(Ptr<const Task>, std::string reason)
+    {
+        m_failedCount++;
+        m_lastFailReason = reason;
+    }
+
+    void TaskStarted(Ptr<const Task>)
+    {
+        m_startedCount++;
+    }
+
+    uint32_t m_failedCount;
+    uint32_t m_startedCount;
+    std::string m_lastFailReason;
+};
+
 } // namespace
 
 TestCase*
 CreateGpuAcceleratorTestCase()
 {
     return new GpuAcceleratorTestCase;
+}
+
+TestCase*
+CreateGpuAcceleratorNoSchedulerTestCase()
+{
+    return new GpuAcceleratorNoSchedulerTestCase;
 }
 
 } // namespace ns3

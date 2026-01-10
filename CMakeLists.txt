@@ -20,6 +20,9 @@ build_lib(
                  model/gpu-accelerator.cc
                  model/processing-model.cc
                  model/fixed-ratio-processing-model.cc
+                 model/queue-scheduler.cc
+                 model/fifo-queue-scheduler.cc
+                 model/batching-queue-scheduler.cc
                  model/offload-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
@@ -39,6 +42,9 @@ build_lib(
                  model/gpu-accelerator.h
                  model/processing-model.h
                  model/fixed-ratio-processing-model.h
+                 model/queue-scheduler.h
+                 model/fifo-queue-scheduler.h
+                 model/batching-queue-scheduler.h
                  model/offload-header.h
                  model/offload-client.h
                  model/offload-server.h
@@ -64,5 +70,7 @@ build_lib(
                  test/cluster-test.cc
                  test/node-scheduler-test.cc
                  test/fixed-ratio-processing-test.cc
+                 test/fifo-queue-scheduler-test.cc
+                 test/batching-queue-scheduler-test.cc
                  ${examples_as_tests_sources}
 )
