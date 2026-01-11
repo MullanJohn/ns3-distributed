@@ -27,7 +27,7 @@ NS_OBJECT_ENSURE_REGISTERED(TcpConnectionManager);
 TypeId
 TcpConnectionManager::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::TcpConnectionManager")
+    static TypeId tid = TypeId("ns3::distributed::TcpConnectionManager")
                             .SetParent<ConnectionManager>()
                             .SetGroupName("Distributed")
                             .AddConstructor<TcpConnectionManager>()

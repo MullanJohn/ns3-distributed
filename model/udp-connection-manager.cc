@@ -23,7 +23,7 @@ NS_OBJECT_ENSURE_REGISTERED(UdpConnectionManager);
 TypeId
 UdpConnectionManager::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::UdpConnectionManager")
+    static TypeId tid = TypeId("ns3::distributed::UdpConnectionManager")
                             .SetParent<ConnectionManager>()
                             .SetGroupName("Distributed")
                             .AddConstructor<UdpConnectionManager>();
