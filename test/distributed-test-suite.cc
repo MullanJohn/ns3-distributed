@@ -41,6 +41,7 @@ TestCase* CreateBatchingQueueSchedulerBatchTestCase();
 TestCase* CreateBatchingQueueSchedulerPartialBatchTestCase();
 TestCase* CreateTcpConnectionManagerBasicTestCase();
 TestCase* CreateTcpConnectionManagerPoolingTestCase();
+TestCase* CreateTcpConnectionManagerClosePeerTestCase();
 TestCase* CreateUdpConnectionManagerBasicTestCase();
 TestCase* CreateConnectionManagerPropertiesTestCase();
 TestCase* CreateTcpConnectionManagerIpv6TestCase();
@@ -83,6 +84,7 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateBatchingQueueSchedulerPartialBatchTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTcpConnectionManagerBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTcpConnectionManagerPoolingTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTcpConnectionManagerClosePeerTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateUdpConnectionManagerBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConnectionManagerPropertiesTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTcpConnectionManagerIpv6TestCase(), TestCase::Duration::QUICK);

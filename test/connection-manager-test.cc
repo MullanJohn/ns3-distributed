@@ -268,6 +268,111 @@ class TcpConnectionManagerPoolingTestCase : public TestCase
 
 /**
  * @ingroup distributed-tests
+ * @brief Test TcpConnectionManager Close(peer) closes all pooled connections
+ */
+class TcpConnectionManagerClosePeerTestCase : public TestCase
+{
+  public:
+    TcpConnectionManagerClosePeerTestCase()
+        : TestCase("Test TcpConnectionManager Close(peer) closes all pooled connections"),
+          m_port(9000)
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        // Create 2 nodes
+        NodeContainer nodes;
+        nodes.Create(2);
+        Ptr<Node> serverNode = nodes.Get(0);
+        Ptr<Node> clientNode = nodes.Get(1);
+
+        // Create point-to-point link
+        PointToPointHelper p2p;
+        p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
+        p2p.SetChannelAttribute("Delay", StringValue("1ms"));
+        NetDeviceContainer devices = p2p.Install(nodes);
+
+        // Install internet stack
+        InternetStackHelper internet;
+        internet.Install(nodes);
+
+        // Assign IP addresses
+        Ipv4AddressHelper ipv4;
+        ipv4.SetBase("10.1.1.0", "255.255.255.0");
+        Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
+
+        m_serverAddr = InetSocketAddress(interfaces.GetAddress(0), m_port);
+
+        // Create server
+        m_serverConn = CreateObject<TcpConnectionManager>();
+        m_serverConn->SetNode(serverNode);
+        m_serverConn->SetReceiveCallback(
+            MakeCallback(&TcpConnectionManagerClosePeerTestCase::ServerReceive, this));
+
+        // Create client with pool size 3
+        m_clientConn = CreateObject<TcpConnectionManager>();
+        m_clientConn->SetAttribute("PoolSize", UintegerValue(3));
+        m_clientConn->SetNode(clientNode);
+
+        // Schedule operations
+        Simulator::Schedule(Seconds(0.0),
+                            &TcpConnectionManagerClosePeerTestCase::ServerBind,
+                            this);
+        Simulator::Schedule(Seconds(0.1),
+                            &TcpConnectionManagerClosePeerTestCase::ClientConnect,
+                            this);
+        Simulator::Schedule(Seconds(0.5),
+                            &TcpConnectionManagerClosePeerTestCase::TestClosePeer,
+                            this);
+
+        Simulator::Stop(Seconds(1.0));
+        Simulator::Run();
+
+        m_serverConn->Close();
+
+        Simulator::Destroy();
+    }
+
+    void ServerBind()
+    {
+        m_serverConn->Bind(m_port);
+    }
+
+    void ClientConnect()
+    {
+        m_clientConn->Connect(m_serverAddr);
+    }
+
+    void ServerReceive(Ptr<Packet> packet, const Address& from)
+    {
+    }
+
+    void TestClosePeer()
+    {
+        // Verify we have 3 pooled connections
+        NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetConnectionCount(),
+                              3,
+                              "Should have 3 connections in pool before Close(peer)");
+
+        // Close using the peer address - should close ALL pooled connections
+        m_clientConn->Close(m_serverAddr);
+
+        // Verify all connections are closed
+        NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetConnectionCount(),
+                              0,
+                              "Close(peer) should close all pooled connections");
+    }
+
+    uint16_t m_port;
+    Address m_serverAddr;
+    Ptr<TcpConnectionManager> m_serverConn;
+    Ptr<TcpConnectionManager> m_clientConn;
+};
+
+/**
+ * @ingroup distributed-tests
  * @brief Test UdpConnectionManager basic communication
  */
 class UdpConnectionManagerBasicTestCase : public TestCase
@@ -533,6 +638,12 @@ TestCase*
 CreateTcpConnectionManagerPoolingTestCase()
 {
     return new TcpConnectionManagerPoolingTestCase;
+}
+
+TestCase*
+CreateTcpConnectionManagerClosePeerTestCase()
+{
+    return new TcpConnectionManagerClosePeerTestCase;
 }
 
 TestCase*
