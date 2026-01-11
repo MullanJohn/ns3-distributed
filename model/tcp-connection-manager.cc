@@ -340,12 +340,20 @@ TcpConnectionManager::CleanupSocket(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
 
-    // Clear callbacks
+    if (!socket)
+    {
+        return;
+    }
+
+    // Clear callbacks before closing to prevent re-entrant calls
     socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
     socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
                                MakeNullCallback<void, Ptr<Socket>>());
     socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
                               MakeNullCallback<void, Ptr<Socket>>());
+
+    // Close the socket
+    socket->Close();
 
     // Remove from peer mapping
     auto peerIt = m_socketToPeer.find(socket);
@@ -526,9 +534,7 @@ TcpConnectionManager::Close(const Address& peer)
     auto it = m_peerToSocket.find(peer);
     if (it != m_peerToSocket.end())
     {
-        Ptr<Socket> socket = it->second;
-        CleanupSocket(socket);
-        socket->Close();
+        CleanupSocket(it->second);
     }
     else
     {
