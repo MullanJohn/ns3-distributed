@@ -39,6 +39,12 @@ TestCase* CreateFifoQueueSchedulerPeekTestCase();
 TestCase* CreateBatchingQueueSchedulerSingleTestCase();
 TestCase* CreateBatchingQueueSchedulerBatchTestCase();
 TestCase* CreateBatchingQueueSchedulerPartialBatchTestCase();
+TestCase* CreateTcpConnectionManagerBasicTestCase();
+TestCase* CreateTcpConnectionManagerPoolingTestCase();
+TestCase* CreateTcpConnectionManagerClosePeerTestCase();
+TestCase* CreateUdpConnectionManagerBasicTestCase();
+TestCase* CreateConnectionManagerPropertiesTestCase();
+TestCase* CreateTcpConnectionManagerIpv6TestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -76,6 +82,12 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateBatchingQueueSchedulerSingleTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateBatchingQueueSchedulerBatchTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateBatchingQueueSchedulerPartialBatchTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTcpConnectionManagerBasicTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTcpConnectionManagerPoolingTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTcpConnectionManagerClosePeerTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateUdpConnectionManagerBasicTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateConnectionManagerPropertiesTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTcpConnectionManagerIpv6TestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;

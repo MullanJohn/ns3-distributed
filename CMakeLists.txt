@@ -16,6 +16,9 @@ build_lib(
                  model/task-header.cc
                  model/task.cc
                  model/compute-task.cc
+                 model/connection-manager.cc
+                 model/tcp-connection-manager.cc
+                 model/udp-connection-manager.cc
                  model/accelerator.cc
                  model/gpu-accelerator.cc
                  model/processing-model.cc
@@ -38,6 +41,9 @@ build_lib(
                  model/task-header.h
                  model/task.h
                  model/compute-task.h
+                 model/connection-manager.h
+                 model/tcp-connection-manager.h
+                 model/udp-connection-manager.h
                  model/accelerator.h
                  model/gpu-accelerator.h
                  model/processing-model.h
@@ -72,5 +78,6 @@ build_lib(
                  test/fixed-ratio-processing-test.cc
                  test/fifo-queue-scheduler-test.cc
                  test/batching-queue-scheduler-test.cc
+                 test/connection-manager-test.cc
                  ${examples_as_tests_sources}
 )
