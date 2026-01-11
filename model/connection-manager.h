@@ -15,6 +15,7 @@
 #include "ns3/object.h"
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
+#include "ns3/traced-callback.h"
 
 #include <string>
 
@@ -196,6 +197,38 @@ class ConnectionManager : public Object
 
   protected:
     void DoDispose() override;
+
+    /**
+     * @brief Traced callback signature for packet transmission/reception.
+     *
+     * @param packet The packet being sent or received.
+     * @param address The remote address (destination for Tx, source for Rx).
+     */
+    typedef void (*PacketAddressTracedCallback)(Ptr<const Packet> packet, const Address& address);
+
+    /**
+     * @brief Trace fired when a packet is successfully sent.
+     *
+     * Provides the packet and destination address. Useful for measuring
+     * throughput and correlating requests with responses via packet UID.
+     */
+    TracedCallback<Ptr<const Packet>, const Address&> m_txTrace;
+
+    /**
+     * @brief Trace fired when a packet is received.
+     *
+     * Provides the packet and source address. Combined with Tx trace,
+     * enables latency measurement for request-response patterns.
+     */
+    TracedCallback<Ptr<const Packet>, const Address&> m_rxTrace;
+
+    /**
+     * @brief Trace fired when a packet send fails.
+     *
+     * Provides the packet and intended destination. Reasons include:
+     * no connection available, socket error, or pool exhausted.
+     */
+    TracedCallback<Ptr<const Packet>, const Address&> m_txDropTrace;
 };
 
 } // namespace ns3

@@ -159,12 +159,14 @@ UdpConnectionManager::Send(Ptr<Packet> packet)
     if (!m_socket)
     {
         NS_LOG_ERROR("Socket not created. Call Connect() or Bind() first.");
+        m_txDropTrace(packet, Address());
         return;
     }
 
     if (!m_hasDefaultDestination)
     {
         NS_LOG_ERROR("No default destination. Use Send(packet, address) or call Connect() first.");
+        m_txDropTrace(packet, Address());
         return;
     }
 
@@ -172,10 +174,12 @@ UdpConnectionManager::Send(Ptr<Packet> packet)
     if (sent > 0)
     {
         NS_LOG_DEBUG("Sent " << sent << " bytes to default destination");
+        m_txTrace(packet, m_defaultDestination);
     }
     else
     {
         NS_LOG_ERROR("Failed to send packet");
+        m_txDropTrace(packet, m_defaultDestination);
     }
 }
 
@@ -187,6 +191,7 @@ UdpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
     if (!m_socket)
     {
         NS_LOG_ERROR("Socket not created. Call Connect() or Bind() first.");
+        m_txDropTrace(packet, to);
         return;
     }
 
@@ -194,10 +199,12 @@ UdpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
     if (sent > 0)
     {
         NS_LOG_DEBUG("Sent " << sent << " bytes to " << to);
+        m_txTrace(packet, to);
     }
     else
     {
         NS_LOG_ERROR("Failed to send packet to " << to);
+        m_txDropTrace(packet, to);
     }
 }
 
@@ -217,6 +224,8 @@ UdpConnectionManager::HandleRead(Ptr<Socket> socket)
         }
 
         NS_LOG_DEBUG("Received " << packet->GetSize() << " bytes from " << from);
+
+        m_rxTrace(packet, from);
 
         if (!m_receiveCallback.IsNull())
         {

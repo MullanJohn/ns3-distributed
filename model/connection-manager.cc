@@ -20,9 +20,22 @@ NS_OBJECT_ENSURE_REGISTERED(ConnectionManager);
 TypeId
 ConnectionManager::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::distributed::ConnectionManager")
-                            .SetParent<Object>()
-                            .SetGroupName("Distributed");
+    static TypeId tid =
+        TypeId("ns3::distributed::ConnectionManager")
+            .SetParent<Object>()
+            .SetGroupName("Distributed")
+            .AddTraceSource("Tx",
+                            "A packet has been sent successfully",
+                            MakeTraceSourceAccessor(&ConnectionManager::m_txTrace),
+                            "ns3::ConnectionManager::PacketAddressTracedCallback")
+            .AddTraceSource("Rx",
+                            "A packet has been received",
+                            MakeTraceSourceAccessor(&ConnectionManager::m_rxTrace),
+                            "ns3::ConnectionManager::PacketAddressTracedCallback")
+            .AddTraceSource("TxDrop",
+                            "A packet send has failed",
+                            MakeTraceSourceAccessor(&ConnectionManager::m_txDropTrace),
+                            "ns3::ConnectionManager::PacketAddressTracedCallback");
     return tid;
 }
 
