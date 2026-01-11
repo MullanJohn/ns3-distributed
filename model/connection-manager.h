@@ -172,10 +172,12 @@ class ConnectionManager : public Object
     virtual void Close() = 0;
 
     /**
-     * @brief Close the connection to a specific peer.
+     * @brief Close the connection(s) to a specific peer.
      *
-     * For TCP, closes the socket for that peer.
-     * For UDP, this is typically a no-op.
+     * For TCP in server mode, closes the socket for that specific client.
+     * For TCP in client mode with connection pooling, closes ALL pooled
+     * connections to the server (since all pool connections share the same peer).
+     * For UDP, this is a no-op (connectionless).
      *
      * @param peer The peer address to disconnect.
      */

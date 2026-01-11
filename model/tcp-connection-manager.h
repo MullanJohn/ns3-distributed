@@ -201,9 +201,8 @@ class TcpConnectionManager : public ConnectionManager
     Ptr<Node> m_node;
     Address m_serverAddress;
     uint32_t m_poolSize;
-    bool m_isServer;
 
-    // Listening socket (server mode)
+    // Listening socket (server mode) - non-null indicates server mode
     Ptr<Socket> m_listenSocket;
 
     // Connection pool (client mode) or accepted connections (server mode)

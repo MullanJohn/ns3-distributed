@@ -43,7 +43,6 @@ TcpConnectionManager::GetTypeId()
 TcpConnectionManager::TcpConnectionManager()
     : m_node(nullptr),
       m_poolSize(1),
-      m_isServer(false),
       m_listenSocket(nullptr),
       m_nextConnectionId(1)
 {
@@ -134,8 +133,6 @@ TcpConnectionManager::Bind(const Address& local)
         return;
     }
 
-    m_isServer = true;
-
     // Create listening socket
     m_listenSocket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
 
@@ -165,7 +162,7 @@ TcpConnectionManager::Connect(const Address& remote)
         return;
     }
 
-    if (m_isServer)
+    if (m_listenSocket)
     {
         NS_LOG_ERROR("Cannot Connect() after Bind(). Already in server mode.");
         return;
@@ -424,7 +421,7 @@ TcpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
 
     Ptr<Socket> socket = nullptr;
 
-    if (m_isServer)
+    if (m_listenSocket)
     {
         // Server mode: find the socket for this peer
         auto it = m_peerToSocket.find(to);
@@ -543,13 +540,24 @@ TcpConnectionManager::Close(const Address& peer)
     NS_LOG_FUNCTION(this << peer);
 
     auto it = m_peerToSocket.find(peer);
-    if (it != m_peerToSocket.end())
+    if (it == m_peerToSocket.end())
     {
+        NS_LOG_WARN("No connection to peer " << peer);
+        return;
+    }
+
+    if (m_listenSocket)
+    {
+        // Server mode: close the specific client connection
         CleanupSocket(it->second);
     }
     else
     {
-        NS_LOG_WARN("No connection to peer " << peer);
+        // Client mode: all pooled connections go to the same server.
+        // Close all connections when closing the server peer.
+        NS_LOG_DEBUG("Client mode: closing all " << m_sockets.size()
+                                                  << " pooled connections to " << peer);
+        Close();
     }
 }
 
