@@ -27,17 +27,16 @@ NS_OBJECT_ENSURE_REGISTERED(TcpConnectionManager);
 TypeId
 TcpConnectionManager::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::TcpConnectionManager")
-            .SetParent<ConnectionManager>()
-            .SetGroupName("Distributed")
-            .AddConstructor<TcpConnectionManager>()
-            .AddAttribute("PoolSize",
-                          "Number of TCP connections in the pool (client mode). "
-                          "Default 1 = single connection.",
-                          UintegerValue(1),
-                          MakeUintegerAccessor(&TcpConnectionManager::m_poolSize),
-                          MakeUintegerChecker<uint32_t>(1));
+    static TypeId tid = TypeId("ns3::TcpConnectionManager")
+                            .SetParent<ConnectionManager>()
+                            .SetGroupName("Distributed")
+                            .AddConstructor<TcpConnectionManager>()
+                            .AddAttribute("PoolSize",
+                                          "Number of TCP connections in the pool (client mode). "
+                                          "Default 1 = single connection.",
+                                          UintegerValue(1),
+                                          MakeUintegerAccessor(&TcpConnectionManager::m_poolSize),
+                                          MakeUintegerChecker<uint32_t>(1));
     return tid;
 }
 
@@ -210,6 +209,11 @@ TcpConnectionManager::CreatePooledConnections()
         m_sockets.push_back(socket);
         m_socketBusy[socket] = false;
         m_socketToPeer[socket] = m_serverAddress;
+        // Note: m_peerToSocket maps to the first socket for this peer (for Close(peer) support)
+        if (m_peerToSocket.find(m_serverAddress) == m_peerToSocket.end())
+        {
+            m_peerToSocket[m_serverAddress] = socket;
+        }
 
         NS_LOG_DEBUG("Created connection " << (i + 1) << "/" << m_poolSize << " to "
                                            << m_serverAddress);
@@ -241,7 +245,15 @@ void
 TcpConnectionManager::HandleAccept(Ptr<Socket> socket, const Address& from)
 {
     NS_LOG_FUNCTION(this << socket << from);
-    NS_LOG_INFO("Accepted connection from " << from);
+
+    Address peerAddr;
+    if (socket->GetPeerName(peerAddr) != 0)
+    {
+        // Fallback to the address from the callback if GetPeerName fails
+        peerAddr = from;
+    }
+
+    NS_LOG_INFO("Accepted connection from " << peerAddr);
 
     // Set up callbacks for the accepted socket
     socket->SetRecvCallback(MakeCallback(&TcpConnectionManager::HandleRead, this));
@@ -251,12 +263,12 @@ TcpConnectionManager::HandleAccept(Ptr<Socket> socket, const Address& from)
     // Track the connection
     m_sockets.push_back(socket);
     m_socketBusy[socket] = false;
-    m_socketToPeer[socket] = from;
-    m_peerToSocket[from] = socket;
+    m_socketToPeer[socket] = peerAddr;
+    m_peerToSocket[peerAddr] = socket;
 
     if (!m_connectionCallback.IsNull())
     {
-        m_connectionCallback(from);
+        m_connectionCallback(peerAddr);
     }
 }
 
@@ -279,8 +291,13 @@ TcpConnectionManager::HandleRead(Ptr<Socket> socket)
 
         if (!m_receiveCallback.IsNull())
         {
-            // For client mode, use the server address (from may be empty for connected sockets)
-            Address peerAddr = m_socketToPeer.count(socket) ? m_socketToPeer[socket] : from;
+            // Use the stored peer address for consistency with our address maps
+            // This ensures the address in the callback matches what's in m_peerToSocket
+            Address peerAddr = GetPeerAddress(socket);
+            if (peerAddr.IsInvalid())
+            {
+                peerAddr = from;
+            }
             m_receiveCallback(packet, peerAddr);
         }
     }
