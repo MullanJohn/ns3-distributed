@@ -43,6 +43,7 @@ TestCase* CreateTcpConnectionManagerBasicTestCase();
 TestCase* CreateTcpConnectionManagerPoolingTestCase();
 TestCase* CreateUdpConnectionManagerBasicTestCase();
 TestCase* CreateConnectionManagerPropertiesTestCase();
+TestCase* CreateTcpConnectionManagerIpv6TestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -84,6 +85,7 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateTcpConnectionManagerPoolingTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateUdpConnectionManagerBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConnectionManagerPropertiesTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateTcpConnectionManagerIpv6TestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
