@@ -8,5 +8,10 @@
 
 #include "distributed.h"
 
-// This file exists for CMake build system compatibility.
-// All model functionality is provided by the individual model classes.
+/**
+ * @file distributed.cc
+ * @ingroup distributed
+ *
+ * This file exists for CMake build system compatibility.
+ * All model functionality is provided by the individual model classes:
+ */
