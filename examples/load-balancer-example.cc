@@ -6,7 +6,6 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/applications-module.h"
 #include "ns3/cluster.h"
 #include "ns3/core-module.h"
 #include "ns3/fifo-queue-scheduler.h"
@@ -22,8 +21,6 @@
 #include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-module.h"
-#include "ns3/round-robin-scheduler.h"
-#include "ns3/task.h"
 
 // ===========================================================================
 //
@@ -48,8 +45,6 @@
 //     +-----------+                               | + GPU    |
 //                                                 +----------+
 //
-//
-//
 //  Message Flow:
 //
 //     Client          LoadBalancer              Server
@@ -68,8 +63,8 @@
 //        |<----------------|                       |
 //        |                 |                       |
 //
-//  The LoadBalancer maintains a mapping of taskId -> clientSocket to route
-//  responses back to the correct originating client.
+//  The LoadBalancer uses ConnectionManagers for transport and maintains a
+//  mapping of taskId -> clientAddress to route responses back correctly.
 //
 // ===========================================================================
 
@@ -77,12 +72,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LoadBalancerExample");
 
-/**
- * Callback for when a task is sent by a client.
- *
- * @param clientId The client identifier.
- * @param header The offload header that was sent.
- */
 static void
 TaskSent(uint32_t clientId, const OffloadHeader& header)
 {
@@ -91,13 +80,6 @@ TaskSent(uint32_t clientId, const OffloadHeader& header)
                   << " (input=" << header.GetInputSize() / 1024.0 << " KB)");
 }
 
-/**
- * Callback for when a response is received by a client.
- *
- * @param clientId The client identifier.
- * @param header The offload header from the response.
- * @param rtt Round-trip time from task sent to response received.
- */
 static void
 ResponseReceived(uint32_t clientId, const OffloadHeader& header, Time rtt)
 {
@@ -106,26 +88,13 @@ ResponseReceived(uint32_t clientId, const OffloadHeader& header, Time rtt)
                   << " response (RTT=" << rtt.As(Time::MS) << ")");
 }
 
-/**
- * Callback for when a task is forwarded by the load balancer.
- *
- * @param header The task header.
- * @param backendIndex The backend server index.
- */
 static void
 TaskForwarded(const TaskHeader& header, uint32_t backendIndex)
 {
-    NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [LoadBalancer] Task " << header.GetTaskId()
-                  << " -> Backend " << backendIndex);
+    NS_LOG_UNCOND(Simulator::Now().As(Time::S) << " [LoadBalancer] Task " << header.GetTaskId()
+                                               << " -> Backend " << backendIndex);
 }
 
-/**
- * Callback for when a response is routed by the load balancer.
- *
- * @param header The task header.
- * @param latency Time from task receipt to response forwarded.
- */
 static void
 ResponseRouted(const TaskHeader& header, Time latency)
 {
@@ -134,12 +103,6 @@ ResponseRouted(const TaskHeader& header, Time latency)
                   << " response routed (latency=" << latency.As(Time::MS) << ")");
 }
 
-/**
- * Callback for when a task is received by a server.
- *
- * @param serverId The server identifier.
- * @param header The offload header.
- */
 static void
 TaskReceived(uint32_t serverId, const OffloadHeader& header)
 {
@@ -147,13 +110,6 @@ TaskReceived(uint32_t serverId, const OffloadHeader& header)
                   << " [Server " << serverId << "] Task " << header.GetTaskId() << " received");
 }
 
-/**
- * Callback for when a task is completed by a server.
- *
- * @param serverId The server identifier.
- * @param header The offload header.
- * @param duration The processing time.
- */
 static void
 ServerTaskCompleted(uint32_t serverId, const OffloadHeader& header, Time duration)
 {
@@ -209,22 +165,19 @@ main(int argc, char* argv[])
     NodeContainer serverNodes;
     serverNodes.Create(numServers);
 
-    // Create point-to-point helper
+    // Create point-to-point links
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute("DataRate", StringValue(dataRate));
     pointToPoint.SetChannelAttribute("Delay", StringValue(delay));
 
-    // Install internet stack on all nodes
+    // Install internet stack
     InternetStackHelper stack;
     stack.Install(clientNodes);
     stack.Install(lbNode);
     stack.Install(serverNodes);
 
-    // Connect clients to load balancer
-    // Client subnet: 10.1.x.0/24 where x = client index + 1
-    std::vector<Ipv4Address> clientAddrs(numClients);
-    Ipv4Address lbClientSideAddr;
-
+    // Connect clients to load balancer (10.1.x.0/24 subnets)
+    Ipv4Address lbFrontendAddr;
     for (uint32_t i = 0; i < numClients; ++i)
     {
         NetDeviceContainer devices = pointToPoint.Install(clientNodes.Get(i), lbNode.Get(0));
@@ -236,18 +189,14 @@ main(int argc, char* argv[])
         address.SetBase(subnet.str().c_str(), "255.255.255.0");
         Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
-        clientAddrs[i] = interfaces.GetAddress(0);
         if (i == 0)
         {
-            lbClientSideAddr = interfaces.GetAddress(1);
+            lbFrontendAddr = interfaces.GetAddress(1);
         }
     }
 
-    // Connect load balancer to servers
-    // Server subnet: 10.2.x.0/24 where x = server index + 1
+    // Connect load balancer to servers (10.2.x.0/24 subnets)
     std::vector<Ipv4Address> serverAddrs(numServers);
-    Ipv4Address lbServerSideAddr;
-
     for (uint32_t i = 0; i < numServers; ++i)
     {
         NetDeviceContainer devices = pointToPoint.Install(lbNode.Get(0), serverNodes.Get(i));
@@ -259,71 +208,57 @@ main(int argc, char* argv[])
         address.SetBase(subnet.str().c_str(), "255.255.255.0");
         Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
-        if (i == 0)
-        {
-            lbServerSideAddr = interfaces.GetAddress(0);
-        }
         serverAddrs[i] = interfaces.GetAddress(1);
     }
 
-    // Enable routing
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    // Create processing model (shared across all GPUs)
+    // Create shared processing model for GPU compute time calculation
     Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
 
-    // Create GPU accelerators and aggregate to server nodes
-    std::vector<Ptr<GpuAccelerator>> gpus(numServers);
-    for (uint32_t i = 0; i < numServers; ++i)
-    {
-        // Each GPU needs its own queue scheduler
-        Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
-
-        gpus[i] = CreateObject<GpuAccelerator>();
-        gpus[i]->SetAttribute("ComputeRate", DoubleValue(computeRate));
-        gpus[i]->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
-        gpus[i]->SetAttribute("ProcessingModel", PointerValue(model));
-        gpus[i]->SetAttribute("QueueScheduler", PointerValue(scheduler));
-        serverNodes.Get(i)->AggregateObject(gpus[i]);
-    }
-
-    // Install OffloadServers on server nodes
+    // Setup servers with GPU accelerators
     uint16_t serverPort = 9000;
-    uint16_t lbPort = 8000;
-
     std::vector<Ptr<OffloadServer>> servers(numServers);
+
     for (uint32_t i = 0; i < numServers; ++i)
     {
+        // Create and attach GPU accelerator
+        Ptr<FifoQueueScheduler> queueSched = CreateObject<FifoQueueScheduler>();
+        Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+        gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
+        gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+        gpu->SetAttribute("ProcessingModel", PointerValue(model));
+        gpu->SetAttribute("QueueScheduler", PointerValue(queueSched));
+        serverNodes.Get(i)->AggregateObject(gpu);
+
+        // Install server application
         OffloadServerHelper serverHelper(serverPort);
         ApplicationContainer serverApps = serverHelper.Install(serverNodes.Get(i));
 
         servers[i] = DynamicCast<OffloadServer>(serverApps.Get(0));
-        servers[i]->TraceConnectWithoutContext(
-            "TaskReceived",
-            MakeBoundCallback(&TaskReceived, i));
-        servers[i]->TraceConnectWithoutContext(
-            "TaskCompleted",
-            MakeBoundCallback(&ServerTaskCompleted, i));
+        servers[i]->TraceConnectWithoutContext("TaskReceived",
+                                               MakeBoundCallback(&TaskReceived, i));
+        servers[i]->TraceConnectWithoutContext("TaskCompleted",
+                                               MakeBoundCallback(&ServerTaskCompleted, i));
 
         serverApps.Start(Seconds(0.0));
         serverApps.Stop(Seconds(simTime + 2.0));
     }
 
-    // Create cluster of backend servers
+    // Create cluster of backend servers for load balancer
     Cluster cluster;
     for (uint32_t i = 0; i < numServers; ++i)
     {
-        cluster.AddBackend(serverNodes.Get(i),
-                           InetSocketAddress(serverAddrs[i], serverPort));
+        cluster.AddBackend(serverNodes.Get(i), InetSocketAddress(serverAddrs[i], serverPort));
     }
 
-    // Install LoadBalancer
+    // Install LoadBalancer with round-robin scheduling
+    uint16_t lbPort = 8000;
     LoadBalancerHelper lbHelper(lbPort);
     lbHelper.SetCluster(cluster);
     lbHelper.SetScheduler("ns3::RoundRobinScheduler");
 
     ApplicationContainer lbApps = lbHelper.Install(lbNode.Get(0));
-
     Ptr<LoadBalancer> lb = DynamicCast<LoadBalancer>(lbApps.Get(0));
     lb->TraceConnectWithoutContext("TaskForwarded", MakeCallback(&TaskForwarded));
     lb->TraceConnectWithoutContext("ResponseRouted", MakeCallback(&ResponseRouted));
@@ -331,11 +266,11 @@ main(int argc, char* argv[])
     lbApps.Start(Seconds(0.0));
     lbApps.Stop(Seconds(simTime + 2.0));
 
-    // Install OffloadClients
+    // Install clients
     std::vector<Ptr<OffloadClient>> clients(numClients);
     for (uint32_t i = 0; i < numClients; ++i)
     {
-        OffloadClientHelper clientHelper(InetSocketAddress(lbServerSideAddr, lbPort));
+        OffloadClientHelper clientHelper(InetSocketAddress(lbFrontendAddr, lbPort));
         clientHelper.SetMeanInterArrival(meanInterArrival);
         clientHelper.SetMeanComputeDemand(meanComputeDemand);
         clientHelper.SetMeanInputSize(meanInputSize);
@@ -349,7 +284,7 @@ main(int argc, char* argv[])
         clients[i]->TraceConnectWithoutContext("ResponseReceived",
                                                MakeBoundCallback(&ResponseReceived, i));
 
-        // Stagger client starts slightly
+        // Stagger client starts
         clientApps.Start(Seconds(0.1 + i * 0.05));
         clientApps.Stop(Seconds(simTime));
     }
@@ -362,10 +297,8 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("=== Summary ===");
 
-    uint64_t totalClientTx = 0;
-    uint64_t totalClientRx = 0;
-    uint64_t totalTasksSent = 0;
-    uint64_t totalResponsesReceived = 0;
+    uint64_t totalTasks = 0;
+    uint64_t totalResponses = 0;
 
     for (uint32_t i = 0; i < numClients; ++i)
     {
@@ -373,10 +306,8 @@ main(int argc, char* argv[])
                                 << ", responses=" << clients[i]->GetResponsesReceived()
                                 << ", TX=" << clients[i]->GetTotalTx()
                                 << ", RX=" << clients[i]->GetTotalRx());
-        totalClientTx += clients[i]->GetTotalTx();
-        totalClientRx += clients[i]->GetTotalRx();
-        totalTasksSent += clients[i]->GetTasksSent();
-        totalResponsesReceived += clients[i]->GetResponsesReceived();
+        totalTasks += clients[i]->GetTasksSent();
+        totalResponses += clients[i]->GetResponsesReceived();
     }
 
     NS_LOG_UNCOND("");
@@ -393,8 +324,7 @@ main(int argc, char* argv[])
     }
 
     NS_LOG_UNCOND("");
-    NS_LOG_UNCOND("Total: tasks=" << totalTasksSent
-                                  << ", responses=" << totalResponsesReceived);
+    NS_LOG_UNCOND("Total: tasks=" << totalTasks << ", responses=" << totalResponses);
 
     Simulator::Destroy();
 
