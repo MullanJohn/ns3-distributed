@@ -16,6 +16,7 @@
 #include "ns3/uinteger.h"
 
 #include <algorithm>
+#include <set>
 
 namespace ns3
 {
@@ -168,25 +169,79 @@ TcpConnectionManager::Connect(const Address& remote)
         return;
     }
 
-    m_serverAddress = remote;
-    CreatePooledConnections();
+    // Check if already connected to this remote
+    if (m_peerToSocket.find(remote) != m_peerToSocket.end())
+    {
+        NS_LOG_WARN("Already connected to " << remote);
+        return;
+    }
+
+    // If connecting to multiple remotes, only create single connection per remote
+    // Connection pooling only applies when connecting to a single server
+    if (GetUniqueRemoteCount() == 0 && m_poolSize > 1)
+    {
+        // First connection with pooling enabled - create pool to this server
+        CreatePooledConnections(remote);
+    }
+    else
+    {
+        // Either already have connections (multi-remote) or poolSize is 1
+        CreateConnectionTo(remote);
+    }
 }
 
 void
-TcpConnectionManager::CreatePooledConnections()
+TcpConnectionManager::CreateConnectionTo(const Address& remote)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(this << remote);
+
+    Ptr<Socket> socket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
+
+    // Bind to ephemeral port
+    if (InetSocketAddress::IsMatchingType(remote))
+    {
+        socket->Bind();
+    }
+    else if (Inet6SocketAddress::IsMatchingType(remote))
+    {
+        socket->Bind6();
+    }
+
+    // Set up callbacks
+    socket->SetConnectCallback(
+        MakeCallback(&TcpConnectionManager::HandleConnectionSucceeded, this),
+        MakeCallback(&TcpConnectionManager::HandleConnectionFailed, this));
+    socket->SetRecvCallback(MakeCallback(&TcpConnectionManager::HandleRead, this));
+    socket->SetCloseCallbacks(MakeCallback(&TcpConnectionManager::HandlePeerClose, this),
+                              MakeCallback(&TcpConnectionManager::HandlePeerError, this));
+
+    // Connect to server
+    socket->Connect(remote);
+
+    // Track the connection
+    m_sockets.push_back(socket);
+    m_socketBusy[socket] = false;
+    m_socketToPeer[socket] = remote;
+    m_peerToSocket[remote] = socket;
+
+    NS_LOG_DEBUG("Created connection to " << remote);
+}
+
+void
+TcpConnectionManager::CreatePooledConnections(const Address& remote)
+{
+    NS_LOG_FUNCTION(this << remote);
 
     for (uint32_t i = 0; i < m_poolSize; ++i)
     {
         Ptr<Socket> socket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
 
         // Bind to ephemeral port
-        if (InetSocketAddress::IsMatchingType(m_serverAddress))
+        if (InetSocketAddress::IsMatchingType(remote))
         {
             socket->Bind();
         }
-        else if (Inet6SocketAddress::IsMatchingType(m_serverAddress))
+        else if (Inet6SocketAddress::IsMatchingType(remote))
         {
             socket->Bind6();
         }
@@ -200,20 +255,20 @@ TcpConnectionManager::CreatePooledConnections()
                                   MakeCallback(&TcpConnectionManager::HandlePeerError, this));
 
         // Connect to server
-        socket->Connect(m_serverAddress);
+        socket->Connect(remote);
 
         // Add to pool
         m_sockets.push_back(socket);
         m_socketBusy[socket] = false;
-        m_socketToPeer[socket] = m_serverAddress;
+        m_socketToPeer[socket] = remote;
         // Note: m_peerToSocket maps to the first socket for this peer (for Close(peer) support)
-        if (m_peerToSocket.find(m_serverAddress) == m_peerToSocket.end())
+        if (m_peerToSocket.find(remote) == m_peerToSocket.end())
         {
-            m_peerToSocket[m_serverAddress] = socket;
+            m_peerToSocket[remote] = socket;
         }
 
-        NS_LOG_DEBUG("Created connection " << (i + 1) << "/" << m_poolSize << " to "
-                                           << m_serverAddress);
+        NS_LOG_DEBUG("Created pooled connection " << (i + 1) << "/" << m_poolSize << " to "
+                                                  << remote);
     }
 }
 
@@ -221,11 +276,13 @@ void
 TcpConnectionManager::HandleConnectionSucceeded(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("Connection established to " << m_serverAddress);
+
+    Address peerAddr = GetPeerAddress(socket);
+    NS_LOG_INFO("Connection established to " << peerAddr);
 
     if (!m_connectionCallback.IsNull())
     {
-        m_connectionCallback(m_serverAddress);
+        m_connectionCallback(peerAddr);
     }
 }
 
@@ -233,7 +290,9 @@ void
 TcpConnectionManager::HandleConnectionFailed(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_ERROR("Connection failed to " << m_serverAddress);
+
+    Address peerAddr = GetPeerAddress(socket);
+    NS_LOG_ERROR("Connection failed to " << peerAddr);
 
     CleanupSocket(socket);
 }
@@ -392,11 +451,26 @@ TcpConnectionManager::Send(Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this << packet);
 
+    // Send() without address only works when connected to a single peer
+    uint32_t uniqueRemotes = GetUniqueRemoteCount();
+    if (uniqueRemotes == 0)
+    {
+        NS_LOG_ERROR("Not connected to any server. Call Connect() first.");
+        m_txDropTrace(packet, Address());
+        return;
+    }
+    if (uniqueRemotes > 1)
+    {
+        NS_LOG_ERROR("Connected to multiple servers. Use Send(packet, address) to specify destination.");
+        m_txDropTrace(packet, Address());
+        return;
+    }
+
     Ptr<Socket> socket = GetIdleSocket();
     if (!socket)
     {
         NS_LOG_ERROR("No idle connection available for Send()");
-        m_txDropTrace(packet, m_serverAddress);
+        m_txDropTrace(packet, Address());
         return;
     }
 
@@ -421,31 +495,13 @@ TcpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
 
     Ptr<Socket> socket = nullptr;
 
-    if (m_listenSocket)
+    // Find the socket for this peer (works for both server and client mode)
+    socket = GetIdleSocketTo(to);
+    if (!socket)
     {
-        // Server mode: find the socket for this peer
-        auto it = m_peerToSocket.find(to);
-        if (it != m_peerToSocket.end())
-        {
-            socket = it->second;
-        }
-        else
-        {
-            NS_LOG_ERROR("No connection to peer " << to);
-            m_txDropTrace(packet, to);
-            return;
-        }
-    }
-    else
-    {
-        // Client mode: use any idle connection to the server
-        socket = GetIdleSocket();
-        if (!socket)
-        {
-            NS_LOG_ERROR("No idle connection available");
-            m_txDropTrace(packet, to);
-            return;
-        }
+        NS_LOG_ERROR("No connection to peer " << to);
+        m_txDropTrace(packet, to);
+        return;
     }
 
     int sent = socket->Send(packet);
@@ -473,6 +529,45 @@ TcpConnectionManager::GetIdleSocket()
         }
     }
     return nullptr;
+}
+
+Ptr<Socket>
+TcpConnectionManager::GetIdleSocketTo(const Address& peer)
+{
+    // Find an idle socket connected to the specified peer
+    for (auto& socket : m_sockets)
+    {
+        auto peerIt = m_socketToPeer.find(socket);
+        if (peerIt == m_socketToPeer.end() || peerIt->second != peer)
+        {
+            continue;
+        }
+
+        auto busyIt = m_socketBusy.find(socket);
+        if (busyIt != m_socketBusy.end() && !busyIt->second)
+        {
+            return socket;
+        }
+    }
+    return nullptr;
+}
+
+uint32_t
+TcpConnectionManager::GetUniqueRemoteCount() const
+{
+    // In server mode (listening), we don't count as having remote connections for this purpose
+    if (m_listenSocket)
+    {
+        return 0;
+    }
+
+    // Count unique peer addresses
+    std::set<Address> uniquePeers;
+    for (const auto& pair : m_socketToPeer)
+    {
+        uniquePeers.insert(pair.second);
+    }
+    return static_cast<uint32_t>(uniquePeers.size());
 }
 
 void
@@ -553,11 +648,24 @@ TcpConnectionManager::Close(const Address& peer)
     }
     else
     {
-        // Client mode: all pooled connections go to the same server.
-        // Close all connections when closing the server peer.
-        NS_LOG_DEBUG("Client mode: closing all " << m_sockets.size()
-                                                  << " pooled connections to " << peer);
-        Close();
+        // Client mode: close all connections to this specific peer
+        // (handles both pooled connections to same server and multi-remote mode)
+        std::list<Ptr<Socket>> socketsToClose;
+        for (auto& socket : m_sockets)
+        {
+            auto peerIt = m_socketToPeer.find(socket);
+            if (peerIt != m_socketToPeer.end() && peerIt->second == peer)
+            {
+                socketsToClose.push_back(socket);
+            }
+        }
+
+        NS_LOG_DEBUG("Client mode: closing " << socketsToClose.size()
+                                             << " connections to " << peer);
+        for (auto& socket : socketsToClose)
+        {
+            CleanupSocket(socket);
+        }
     }
 }
 
