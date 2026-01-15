@@ -11,6 +11,7 @@
 
 #include "ns3/application-helper.h"
 #include "ns3/cluster.h"
+#include "ns3/connection-manager.h"
 #include "ns3/node-scheduler.h"
 
 namespace ns3
@@ -84,6 +85,24 @@ class LoadBalancerHelper : public ApplicationHelper
      * @param scheduler The scheduler object to use.
      */
     void SetScheduler(Ptr<NodeScheduler> scheduler);
+
+    /**
+     * @brief Set the frontend ConnectionManager for client connections.
+     *
+     * If not set, a TcpConnectionManager will be created automatically.
+     *
+     * @param connMgr The ConnectionManager to use for client connections.
+     */
+    void SetFrontendConnectionManager(Ptr<ConnectionManager> connMgr);
+
+    /**
+     * @brief Set the backend ConnectionManager for backend connections.
+     *
+     * If not set, a TcpConnectionManager will be created automatically.
+     *
+     * @param connMgr The ConnectionManager to use for backend connections.
+     */
+    void SetBackendConnectionManager(Ptr<ConnectionManager> connMgr);
 
   private:
     /**

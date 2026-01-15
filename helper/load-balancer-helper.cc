@@ -53,6 +53,18 @@ LoadBalancerHelper::SetScheduler(Ptr<NodeScheduler> scheduler)
     m_factory.Set("Scheduler", PointerValue(scheduler));
 }
 
+void
+LoadBalancerHelper::SetFrontendConnectionManager(Ptr<ConnectionManager> connMgr)
+{
+    m_factory.Set("FrontendConnectionManager", PointerValue(connMgr));
+}
+
+void
+LoadBalancerHelper::SetBackendConnectionManager(Ptr<ConnectionManager> connMgr)
+{
+    m_factory.Set("BackendConnectionManager", PointerValue(connMgr));
+}
+
 Ptr<Application>
 LoadBalancerHelper::DoInstall(Ptr<Node> node)
 {

@@ -27,20 +27,27 @@ namespace ns3
  * TcpConnectionManager provides reliable, ordered delivery using TCP sockets.
  * It supports both client and server modes with full bidirectional communication.
  *
- * ## Connection Pooling (Client Mode)
+ * ## Client Mode Features
  *
- * For client mode, connection pooling can be enabled by setting PoolSize > 1.
- * This creates multiple TCP connections to the server, which can improve
- * throughput by avoiding head-of-line blocking.
- *
- * There are two ways to use pooled connections:
- *
- * **Automatic selection** (simple):
+ * **Multiple Servers**: Connect() can be called multiple times with different
+ * addresses to establish connections to multiple servers. Use Send(packet, addr)
+ * to route to a specific server:
  * @code
+ * conn->Connect(server1Address);
+ * conn->Connect(server2Address);
+ * conn->Send(packet, server1Address);  // Routes to server1
+ * @endcode
+ *
+ * **Connection Pooling**: When connecting to a single server with PoolSize > 1,
+ * multiple TCP connections are created to improve throughput by avoiding
+ * head-of-line blocking:
+ * @code
+ * conn->SetAttribute("PoolSize", UintegerValue(4));
+ * conn->Connect(serverAddress);
  * conn->Send(packet);  // Manager picks an idle connection
  * @endcode
  *
- * **Explicit control** (for streaming or metrics):
+ * **Explicit Connection Control** (for streaming or metrics):
  * @code
  * auto connId = conn->AcquireConnection();
  * conn->Send(connId, packet);  // All packets on same connection
@@ -186,7 +193,8 @@ class TcpConnectionManager : public ConnectionManager
     void DoDispose() override;
 
   private:
-    void CreatePooledConnections();
+    void CreateConnectionTo(const Address& remote);
+    void CreatePooledConnections(const Address& remote);
     void HandleConnectionSucceeded(Ptr<Socket> socket);
     void HandleConnectionFailed(Ptr<Socket> socket);
     void HandleAccept(Ptr<Socket> socket, const Address& from);
@@ -197,9 +205,10 @@ class TcpConnectionManager : public ConnectionManager
     Address GetPeerAddress(Ptr<Socket> socket) const;
     ConnectionId GenerateConnectionId();
     Ptr<Socket> GetIdleSocket();
+    Ptr<Socket> GetIdleSocketTo(const Address& peer);
+    uint32_t GetUniqueRemoteCount() const;
 
     Ptr<Node> m_node;
-    Address m_serverAddress;
     uint32_t m_poolSize;
 
     // Listening socket (server mode) - non-null indicates server mode

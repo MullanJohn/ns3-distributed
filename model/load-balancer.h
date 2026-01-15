@@ -10,6 +10,7 @@
 #define LOAD_BALANCER_H
 
 #include "cluster.h"
+#include "connection-manager.h"
 #include "node-scheduler.h"
 #include "offload-header.h"
 
@@ -17,12 +18,10 @@
 #include "ns3/inet-socket-address.h"
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
-#include "ns3/socket.h"
 #include "ns3/traced-callback.h"
 
-#include <list>
 #include <map>
-#include <vector>
+#include <unordered_map>
 
 namespace ns3
 {
@@ -46,10 +45,10 @@ namespace ns3
  *                      <--- routes response <----
  * @endcode
  *
- * The LoadBalancer maintains:
- * - A listening socket for incoming client connections
- * - Persistent TCP connections to all backend servers
- * - A mapping from task IDs to client sockets for response routing
+ * The LoadBalancer uses ConnectionManagers for transport abstraction:
+ * - Frontend ConnectionManager: accepts client connections, routes responses
+ * - Backend ConnectionManager: maintains connections to all backend servers
+ * - A mapping from task IDs to client addresses for response routing
  */
 class LoadBalancer : public Application
 {
@@ -124,112 +123,61 @@ class LoadBalancer : public Application
     void StartApplication() override;
     void StopApplication() override;
 
-    // ========== Client-facing (incoming) ==========
+    // ========== ConnectionManager callbacks ==========
 
     /**
-     * @brief Handle a new client connection.
+     * @brief Handle data received from a client via frontend ConnectionManager.
+     * @param packet The received packet.
+     * @param from The client address.
      */
-    void HandleClientAccept(Ptr<Socket> socket, const Address& from);
+    void HandleFrontendReceive(Ptr<Packet> packet, const Address& from);
 
     /**
-     * @brief Handle data received from a client.
+     * @brief Handle data received from a backend via backend ConnectionManager.
+     * @param packet The received packet.
+     * @param from The backend address.
      */
-    void HandleClientRead(Ptr<Socket> socket);
-
-    /**
-     * @brief Process buffered data from a client.
-     */
-    void ProcessClientBuffer(Ptr<Socket> socket, const Address& from);
-
-    /**
-     * @brief Handle client socket close.
-     */
-    void HandleClientClose(Ptr<Socket> socket);
-
-    /**
-     * @brief Handle client socket error.
-     */
-    void HandleClientError(Ptr<Socket> socket);
-
-    /**
-     * @brief Clean up state for a closed client socket.
-     */
-    void CleanupClientSocket(Ptr<Socket> socket);
-
-    // ========== Backend-facing (outgoing) ==========
-
-    /**
-     * @brief Connect to all backend servers.
-     */
-    void ConnectToBackends();
-
-    /**
-     * @brief Handle successful backend connection.
-     */
-    void HandleBackendConnected(Ptr<Socket> socket);
-
-    /**
-     * @brief Handle failed backend connection.
-     */
-    void HandleBackendFailed(Ptr<Socket> socket);
-
-    /**
-     * @brief Handle data received from a backend.
-     */
-    void HandleBackendRead(Ptr<Socket> socket);
-
-    /**
-     * @brief Process buffered data from a backend.
-     */
-    void ProcessBackendBuffer(uint32_t backendIndex);
+    void HandleBackendReceive(Ptr<Packet> packet, const Address& from);
 
     // ========== Task forwarding and response routing ==========
 
     /**
      * @brief Forward a task to a backend.
+     * @param header The task header.
+     * @param payload The task payload.
+     * @param clientAddr The originating client address for response routing.
      */
-    void ForwardTask(const TaskHeader& header,
-                     Ptr<Packet> payload,
-                     Ptr<Socket> clientSocket,
-                     const Address& clientAddr);
+    void ForwardTask(const OffloadHeader& header, Ptr<Packet> payload, const Address& clientAddr);
 
     /**
      * @brief Route a response back to the client.
+     * @param header The response header.
+     * @param payload The response payload.
+     * @param backendAddr The backend that sent the response.
      */
-    void RouteResponse(const TaskHeader& header, Ptr<Packet> payload, uint32_t backendIndex);
+    void RouteResponse(const OffloadHeader& header, Ptr<Packet> payload, const Address& backendAddr);
 
     // ========== Configuration ==========
-    uint16_t m_port;                //!< Port to listen on
-    Ptr<NodeScheduler> m_scheduler; //!< The scheduling policy
+    uint16_t m_port;                          //!< Port to listen on
+    Ptr<NodeScheduler> m_scheduler;           //!< The scheduling policy
+    Ptr<ConnectionManager> m_frontendConnMgr; //!< ConnectionManager for client connections
+    Ptr<ConnectionManager> m_backendConnMgr;  //!< ConnectionManager for backend connections
 
     // ========== Runtime state ==========
-    Cluster m_cluster;          //!< Backend servers
-    Ptr<Socket> m_listenSocket; //!< Listening socket for clients
+    Cluster m_cluster; //!< Backend servers
 
-    // Client connections
-    std::list<Ptr<Socket>> m_clientSockets;        //!< Connected client sockets
-    std::map<Ptr<Socket>, Ptr<Packet>> m_clientRxBuffers; //!< Per-client receive buffers
+    // Per-client receive buffers (keyed by client address)
+    std::map<Address, Ptr<Packet>> m_clientBuffers;
 
-    /**
-     * @brief State for a single backend connection.
-     */
-    struct BackendConnection
-    {
-        Ptr<Socket> socket;   //!< TCP socket to backend
-        bool connected;       //!< Connection established
-        Ptr<Packet> rxBuffer; //!< Receive buffer for responses
-    };
-
-    std::vector<BackendConnection> m_backends;         //!< Backend connection state
-    std::map<Ptr<Socket>, uint32_t> m_socketToBackend; //!< Map socket to backend index
+    // Per-backend receive buffers (keyed by backend address)
+    std::map<Address, Ptr<Packet>> m_backendBuffers;
 
     // Response routing: taskId -> pending info
     struct PendingResponse
     {
-        Ptr<Socket> clientSocket; //!< The client socket to send response to
-        Address clientAddr;       //!< The client address
-        Time arrivalTime;         //!< When task was received from client
-        uint32_t backendIndex;    //!< Which backend is processing this task
+        Address clientAddr;    //!< The client address to send response to
+        Time arrivalTime;      //!< When task was received from client
+        uint32_t backendIndex; //!< Which backend is processing this task
     };
 
     std::unordered_map<uint64_t, PendingResponse> m_pendingResponses;
