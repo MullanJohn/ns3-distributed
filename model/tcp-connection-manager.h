@@ -114,6 +114,7 @@ class TcpConnectionManager : public ConnectionManager
     void Close(const Address& peer) override;
     std::string GetName() const override;
     bool IsReliable() const override;
+    bool IsConnected() const override;
 
     /**
      * @brief Set the callback for new connection events (TCP-specific).

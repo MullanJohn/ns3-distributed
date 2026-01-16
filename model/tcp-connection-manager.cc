@@ -681,6 +681,16 @@ TcpConnectionManager::IsReliable() const
     return true;
 }
 
+bool
+TcpConnectionManager::IsConnected() const
+{
+    // Returns true if we have any active connections we can send on.
+    // - Client mode: connections to servers
+    // - Server mode: accepted client connections
+    // Note: m_listenSocket alone doesn't count - we need actual connections to send data.
+    return !m_sockets.empty();
+}
+
 TcpConnectionManager::ConnectionId
 TcpConnectionManager::GenerateConnectionId()
 {
