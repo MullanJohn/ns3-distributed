@@ -140,7 +140,6 @@ class OffloadClient : public Application
     // Transport
     Ptr<ConnectionManager> m_connMgr; //!< Connection manager for transport
     Address m_peer;                   //!< Remote server address
-    bool m_connected;                 //!< Connection state
 
     // Random variable streams
     Ptr<RandomVariableStream> m_interArrivalTime; //!< Inter-arrival time RNG

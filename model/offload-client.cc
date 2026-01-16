@@ -82,7 +82,6 @@ OffloadClient::GetTypeId()
 
 OffloadClient::OffloadClient()
     : m_connMgr(nullptr),
-      m_connected(false),
       m_maxTasks(0),
       m_clientId(s_nextClientId++),
       m_taskCount(0),
@@ -183,15 +182,15 @@ OffloadClient::StartApplication()
     {
         tcpConnMgr->SetConnectionCallback(MakeCallback(&OffloadClient::HandleConnected, this));
     }
-    else
-    {
-        // For UDP, we're "connected" immediately (connectionless)
-        m_connected = true;
-        ScheduleNextTask();
-    }
 
     // Connect to server
     m_connMgr->Connect(m_peer);
+
+    // For connectionless transports (UDP), start sending immediately
+    if (!tcpConnMgr)
+    {
+        ScheduleNextTask();
+    }
 }
 
 void
@@ -200,7 +199,6 @@ OffloadClient::StopApplication()
     NS_LOG_FUNCTION(this);
 
     Simulator::Cancel(m_sendEvent);
-    m_connected = false;
 
     // Close ConnectionManager
     if (m_connMgr)
@@ -214,8 +212,6 @@ OffloadClient::HandleConnected(const Address& serverAddr)
 {
     NS_LOG_FUNCTION(this << serverAddr);
     NS_LOG_INFO("Client " << m_clientId << " connected to " << serverAddr);
-
-    m_connected = true;
 
     // Start sending tasks
     ScheduleNextTask();
@@ -245,7 +241,7 @@ OffloadClient::SendTask()
 {
     NS_LOG_FUNCTION(this);
 
-    if (!m_connected)
+    if (!m_connMgr || !m_connMgr->IsConnected())
     {
         NS_LOG_DEBUG("Not connected, cannot send task");
         return;
