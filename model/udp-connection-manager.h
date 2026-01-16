@@ -67,6 +67,7 @@ class UdpConnectionManager : public ConnectionManager
     void Close(const Address& peer) override;
     std::string GetName() const override;
     bool IsReliable() const override;
+    bool IsConnected() const override;
 
   protected:
     void DoDispose() override;

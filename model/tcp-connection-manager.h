@@ -114,6 +114,7 @@ class TcpConnectionManager : public ConnectionManager
     void Close(const Address& peer) override;
     std::string GetName() const override;
     bool IsReliable() const override;
+    bool IsConnected() const override;
 
     /**
      * @brief Set the callback for new connection events (TCP-specific).
@@ -134,6 +135,15 @@ class TcpConnectionManager : public ConnectionManager
      * @param callback The close callback.
      */
     void SetCloseCallback(ConnectionCallback callback);
+
+    /**
+     * @brief Set the callback for connection failure events (TCP-specific).
+     *
+     * Invoked when a connection attempt fails (client mode only).
+     *
+     * @param callback The failure callback.
+     */
+    void SetConnectionFailedCallback(ConnectionCallback callback);
 
     /**
      * @brief Acquire an idle connection from the pool (client mode).
@@ -229,6 +239,7 @@ class TcpConnectionManager : public ConnectionManager
     ReceiveCallback m_receiveCallback;
     ConnectionCallback m_connectionCallback;
     ConnectionCallback m_closeCallback;
+    ConnectionCallback m_connectionFailedCallback;
 };
 
 } // namespace ns3

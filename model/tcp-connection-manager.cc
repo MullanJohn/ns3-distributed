@@ -97,6 +97,7 @@ TcpConnectionManager::DoDispose()
     m_receiveCallback = ReceiveCallback();
     m_connectionCallback = ConnectionCallback();
     m_closeCallback = ConnectionCallback();
+    m_connectionFailedCallback = ConnectionCallback();
 
     m_node = nullptr;
 
@@ -295,6 +296,11 @@ TcpConnectionManager::HandleConnectionFailed(Ptr<Socket> socket)
     NS_LOG_ERROR("Connection failed to " << peerAddr);
 
     CleanupSocket(socket);
+
+    if (!m_connectionFailedCallback.IsNull() && !peerAddr.IsInvalid())
+    {
+        m_connectionFailedCallback(peerAddr);
+    }
 }
 
 void
@@ -592,6 +598,13 @@ TcpConnectionManager::SetCloseCallback(ConnectionCallback callback)
 }
 
 void
+TcpConnectionManager::SetConnectionFailedCallback(ConnectionCallback callback)
+{
+    NS_LOG_FUNCTION(this);
+    m_connectionFailedCallback = callback;
+}
+
+void
 TcpConnectionManager::Close()
 {
     NS_LOG_FUNCTION(this);
@@ -679,6 +692,16 @@ bool
 TcpConnectionManager::IsReliable() const
 {
     return true;
+}
+
+bool
+TcpConnectionManager::IsConnected() const
+{
+    // Returns true if we have any active connections we can send on.
+    // - Client mode: connections to servers
+    // - Server mode: accepted client connections
+    // Note: m_listenSocket alone doesn't count - we need actual connections to send data.
+    return !m_sockets.empty();
 }
 
 TcpConnectionManager::ConnectionId

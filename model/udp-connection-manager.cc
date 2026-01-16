@@ -276,4 +276,11 @@ UdpConnectionManager::IsReliable() const
     return false;
 }
 
+bool
+UdpConnectionManager::IsConnected() const
+{
+    // Either way, having a socket means we can send/receive
+    return m_socket != nullptr && m_hasDefaultDestination;
+}
+
 } // namespace ns3

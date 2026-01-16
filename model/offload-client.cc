@@ -8,15 +8,12 @@
 
 #include "offload-client.h"
 
-#include "ns3/inet-socket-address.h"
-#include "ns3/inet6-socket-address.h"
+#include "tcp-connection-manager.h"
+
 #include "ns3/log.h"
 #include "ns3/packet.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
-#include "ns3/socket-factory.h"
-#include "ns3/socket.h"
-#include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
 
 namespace ns3
@@ -42,11 +39,11 @@ OffloadClient::GetTypeId()
                           AddressValue(),
                           MakeAddressAccessor(&OffloadClient::m_peer),
                           MakeAddressChecker())
-            .AddAttribute("Local",
-                          "The local address to bind to",
-                          AddressValue(),
-                          MakeAddressAccessor(&OffloadClient::m_local),
-                          MakeAddressChecker())
+            .AddAttribute("ConnectionManager",
+                          "Connection manager for transport (defaults to TCP)",
+                          PointerValue(),
+                          MakePointerAccessor(&OffloadClient::m_connMgr),
+                          MakePointerChecker<ConnectionManager>())
             .AddAttribute("MaxTasks",
                           "Maximum number of tasks to send (0 = unlimited)",
                           UintegerValue(0),
@@ -84,8 +81,7 @@ OffloadClient::GetTypeId()
 }
 
 OffloadClient::OffloadClient()
-    : m_socket(nullptr),
-      m_connected(false),
+    : m_connMgr(nullptr),
       m_maxTasks(0),
       m_clientId(s_nextClientId++),
       m_taskCount(0),
@@ -106,14 +102,23 @@ void
 OffloadClient::DoDispose()
 {
     NS_LOG_FUNCTION(this);
+
     Simulator::Cancel(m_sendEvent);
-    m_socket = nullptr;
+
+    // Clean up ConnectionManager
+    if (m_connMgr)
+    {
+        m_connMgr->Close();
+        m_connMgr = nullptr;
+    }
+
     m_rxBuffer = nullptr;
     m_sendTimes.clear();
     m_interArrivalTime = nullptr;
     m_computeDemand = nullptr;
     m_inputSize = nullptr;
     m_outputSize = nullptr;
+
     Application::DoDispose();
 }
 
@@ -159,46 +164,34 @@ OffloadClient::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
-    if (!m_socket)
+    NS_ABORT_MSG_IF(m_peer.IsInvalid(), "Remote address not set");
+
+    // Create default ConnectionManager if not set
+    if (!m_connMgr)
     {
-        m_socket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
+        m_connMgr = CreateObject<TcpConnectionManager>();
+    }
 
-        NS_ABORT_MSG_IF(m_peer.IsInvalid(), "Remote address not set");
+    // Configure ConnectionManager
+    m_connMgr->SetNode(GetNode());
+    m_connMgr->SetReceiveCallback(MakeCallback(&OffloadClient::HandleReceive, this));
 
-        if (!m_local.IsInvalid())
-        {
-            NS_ABORT_MSG_IF((Inet6SocketAddress::IsMatchingType(m_peer) &&
-                             InetSocketAddress::IsMatchingType(m_local)) ||
-                                (InetSocketAddress::IsMatchingType(m_peer) &&
-                                 Inet6SocketAddress::IsMatchingType(m_local)),
-                            "Incompatible peer and local address IP version");
+    // Set TCP-specific callbacks
+    Ptr<TcpConnectionManager> tcpConnMgr = DynamicCast<TcpConnectionManager>(m_connMgr);
+    if (tcpConnMgr)
+    {
+        tcpConnMgr->SetConnectionCallback(MakeCallback(&OffloadClient::HandleConnected, this));
+        tcpConnMgr->SetConnectionFailedCallback(
+            MakeCallback(&OffloadClient::HandleConnectionFailed, this));
+    }
 
-            if (m_socket->Bind(m_local) == -1)
-            {
-                NS_FATAL_ERROR("Failed to bind socket");
-            }
-        }
-        else
-        {
-            if (InetSocketAddress::IsMatchingType(m_peer))
-            {
-                if (m_socket->Bind() == -1)
-                {
-                    NS_FATAL_ERROR("Failed to bind socket");
-                }
-            }
-            else if (Inet6SocketAddress::IsMatchingType(m_peer))
-            {
-                if (m_socket->Bind6() == -1)
-                {
-                    NS_FATAL_ERROR("Failed to bind socket");
-                }
-            }
-        }
+    // Connect to server
+    m_connMgr->Connect(m_peer);
 
-        m_socket->SetConnectCallback(MakeCallback(&OffloadClient::ConnectionSucceeded, this),
-                                     MakeCallback(&OffloadClient::ConnectionFailed, this));
-        m_socket->Connect(m_peer);
+    // For connectionless transports (UDP), start sending immediately
+    if (!tcpConnMgr)
+    {
+        ScheduleNextTask();
     }
 }
 
@@ -209,37 +202,47 @@ OffloadClient::StopApplication()
 
     Simulator::Cancel(m_sendEvent);
 
-    if (m_socket)
+    // Close ConnectionManager
+    if (m_connMgr)
     {
-        // Clear all socket callbacks to prevent invocation after shutdown
-        m_socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
-        m_socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
-                                     MakeNullCallback<void, Ptr<Socket>>());
-        m_socket->Close();
-        m_socket = nullptr;
-        m_connected = false;
+        m_connMgr->Close();
     }
 }
 
 void
-OffloadClient::ConnectionSucceeded(Ptr<Socket> socket)
+OffloadClient::HandleConnected(const Address& serverAddr)
 {
-    NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("Client " << m_clientId << " connected to " << m_peer);
-    m_connected = true;
-
-    // Set up receive callback for responses
-    m_socket->SetRecvCallback(MakeCallback(&OffloadClient::HandleRead, this));
+    NS_LOG_FUNCTION(this << serverAddr);
+    NS_LOG_INFO("Client " << m_clientId << " connected to " << serverAddr);
 
     // Start sending tasks
     ScheduleNextTask();
 }
 
 void
-OffloadClient::ConnectionFailed(Ptr<Socket> socket)
+OffloadClient::HandleConnectionFailed(const Address& serverAddr)
 {
-    NS_LOG_FUNCTION(this << socket);
-    NS_LOG_ERROR("Connection failed");
+    NS_LOG_FUNCTION(this << serverAddr);
+    NS_LOG_ERROR("Client " << m_clientId << " failed to connect to " << serverAddr);
+}
+
+void
+OffloadClient::HandleReceive(Ptr<Packet> packet, const Address& from)
+{
+    NS_LOG_FUNCTION(this << packet << from);
+
+    if (packet->GetSize() == 0)
+    {
+        return;
+    }
+
+    m_totalRx += packet->GetSize();
+
+    // Append to receive buffer
+    m_rxBuffer->AddAtEnd(packet);
+
+    // Process complete messages
+    ProcessBuffer();
 }
 
 void
@@ -247,7 +250,7 @@ OffloadClient::SendTask()
 {
     NS_LOG_FUNCTION(this);
 
-    if (!m_connected)
+    if (!m_connMgr || !m_connMgr->IsConnected())
     {
         NS_LOG_DEBUG("Not connected, cannot send task");
         return;
@@ -289,27 +292,22 @@ OffloadClient::SendTask()
     Ptr<Packet> packet = Create<Packet>(payloadSize);
     packet->AddHeader(header);
 
-    // Send packet
-    int sent = m_socket->Send(packet);
-    if (sent > 0)
-    {
-        // Track send time for RTT calculation
-        m_sendTimes[header.GetTaskId()] = Simulator::Now();
+    // Track send time for RTT calculation
+    m_sendTimes[header.GetTaskId()] = Simulator::Now();
 
-        m_taskCount++;
-        m_totalTx += sent;
+    // Send packet via ConnectionManager
+    m_connMgr->Send(packet);
 
-        NS_LOG_INFO("Sent task " << header.GetTaskId() << " with " << sent << " bytes"
-                                 << " (compute=" << computeDemand << " FLOPS"
-                                 << ", input=" << inputSize << " bytes"
-                                 << ", output=" << outputSize << " bytes)");
+    uint32_t sent = packet->GetSize();
+    m_taskCount++;
+    m_totalTx += sent;
 
-        m_taskSentTrace(header);
-    }
-    else
-    {
-        NS_LOG_ERROR("Failed to send task");
-    }
+    NS_LOG_INFO("Sent task " << header.GetTaskId() << " with " << sent << " bytes"
+                             << " (compute=" << computeDemand << " FLOPS"
+                             << ", input=" << inputSize << " bytes"
+                             << ", output=" << outputSize << " bytes)");
+
+    m_taskSentTrace(header);
 
     // Schedule next task if not at limit
     if (m_maxTasks == 0 || m_taskCount < m_maxTasks)
@@ -332,32 +330,6 @@ OffloadClient::ScheduleNextTask()
     m_sendEvent = Simulator::Schedule(nextTime, &OffloadClient::SendTask, this);
 
     NS_LOG_DEBUG("Next task scheduled in " << nextTime.GetSeconds() << " seconds");
-}
-
-void
-OffloadClient::HandleRead(Ptr<Socket> socket)
-{
-    NS_LOG_FUNCTION(this << socket);
-
-    Ptr<Packet> packet;
-    Address from;
-
-    while ((packet = socket->RecvFrom(from)))
-    {
-        if (packet->GetSize() == 0)
-        {
-            // EOF received
-            break;
-        }
-
-        m_totalRx += packet->GetSize();
-
-        // Append to receive buffer
-        m_rxBuffer->AddAtEnd(packet);
-
-        // Process complete messages
-        ProcessBuffer();
-    }
 }
 
 void

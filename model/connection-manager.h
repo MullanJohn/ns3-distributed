@@ -197,6 +197,17 @@ class ConnectionManager : public Object
      */
     virtual bool IsReliable() const = 0;
 
+    /**
+     * @brief Check if the connection manager has an active connection.
+     *
+     * For TCP clients: returns true if at least one connection is established.
+     * For TCP servers: returns true if listening socket is active.
+     * For UDP: returns true if socket exists with a default destination set.
+     *
+     * @return True if connected/ready to send, false otherwise.
+     */
+    virtual bool IsConnected() const = 0;
+
   protected:
     void DoDispose() override;
 

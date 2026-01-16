@@ -9,7 +9,9 @@
 #ifndef OFFLOAD_CLIENT_H
 #define OFFLOAD_CLIENT_H
 
+#include "connection-manager.h"
 #include "offload-header.h"
+
 #include "ns3/application.h"
 #include "ns3/event-id.h"
 #include "ns3/ptr.h"
@@ -21,20 +23,23 @@
 namespace ns3
 {
 
-class Socket;
 class Packet;
 
 /**
  * @ingroup distributed
- * @brief TCP client application for offloading computational tasks.
+ * @brief Client application for offloading computational tasks.
  *
  * OffloadClient generates computational tasks and sends them to a remote
- * server over TCP. Tasks are generated with configurable random distributions
+ * server. Tasks are generated with configurable random distributions
  * for inter-arrival time, compute demand, and input/output sizes.
  *
  * Each task is sent as a packet with an OffloadHeader followed by payload
  * data sized to match the task's input size, simulating realistic data
  * transfer for computation offloading scenarios.
+ *
+ * Transport is abstracted via ConnectionManager, defaulting to TCP.
+ * Users can inject a custom ConnectionManager (e.g., UDP) via the
+ * "ConnectionManager" attribute.
  */
 class OffloadClient : public Application
 {
@@ -79,6 +84,12 @@ class OffloadClient : public Application
     uint64_t GetTotalRx() const;
 
     /**
+     * @brief Get the number of responses received.
+     * @return Number of responses received.
+     */
+    uint64_t GetResponsesReceived() const;
+
+    /**
      * @brief TracedCallback signature for task sent events.
      * @param header The offload header that was sent.
      */
@@ -91,12 +102,6 @@ class OffloadClient : public Application
      */
     typedef void (*ResponseReceivedTracedCallback)(const OffloadHeader& header, Time rtt);
 
-    /**
-     * @brief Get the number of responses received.
-     * @return Number of responses received.
-     */
-    uint64_t GetResponsesReceived() const;
-
   protected:
     void DoDispose() override;
 
@@ -105,16 +110,23 @@ class OffloadClient : public Application
     void StopApplication() override;
 
     /**
-     * @brief Callback for successful connection.
-     * @param socket The connected socket.
+     * @brief Handle connection established (TCP-specific).
+     * @param serverAddr The server address.
      */
-    void ConnectionSucceeded(Ptr<Socket> socket);
+    void HandleConnected(const Address& serverAddr);
 
     /**
-     * @brief Callback for failed connection.
-     * @param socket The socket.
+     * @brief Handle connection failure (TCP-specific).
+     * @param serverAddr The server address.
      */
-    void ConnectionFailed(Ptr<Socket> socket);
+    void HandleConnectionFailed(const Address& serverAddr);
+
+    /**
+     * @brief Handle data received from the server.
+     * @param packet The received packet.
+     * @param from The server address.
+     */
+    void HandleReceive(Ptr<Packet> packet, const Address& from);
 
     /**
      * @brief Generate and send a task.
@@ -127,21 +139,13 @@ class OffloadClient : public Application
     void ScheduleNextTask();
 
     /**
-     * @brief Handle data received from the server.
-     * @param socket The socket with incoming data.
-     */
-    void HandleRead(Ptr<Socket> socket);
-
-    /**
      * @brief Process the receive buffer for complete messages.
      */
     void ProcessBuffer();
 
-    // Socket
-    Ptr<Socket> m_socket; //!< TCP socket
-    Address m_peer;       //!< Remote server address
-    Address m_local;      //!< Local bind address
-    bool m_connected;     //!< Connection state
+    // Transport
+    Ptr<ConnectionManager> m_connMgr; //!< Connection manager for transport
+    Address m_peer;                   //!< Remote server address
 
     // Random variable streams
     Ptr<RandomVariableStream> m_interArrivalTime; //!< Inter-arrival time RNG
@@ -161,7 +165,7 @@ class OffloadClient : public Application
     uint64_t m_totalRx;             //!< Total bytes received
 
     // Response handling
-    Ptr<Packet> m_rxBuffer;               //!< Receive buffer for TCP stream
+    Ptr<Packet> m_rxBuffer;               //!< Receive buffer for stream reassembly
     uint64_t m_responsesReceived;         //!< Number of responses received
     std::map<uint64_t, Time> m_sendTimes; //!< Map of task ID to send time
 
