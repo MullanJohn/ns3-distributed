@@ -11,16 +11,15 @@
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/inet-socket-address.h"
-#include "ns3/pointer.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
-#include "ns3/offload-client-helper.h"
 #include "ns3/offload-client.h"
-#include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-helper.h"
+#include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/string.h"
+#include "ns3/tcp-connection-manager.h"
 #include "ns3/test.h"
 
 namespace ns3
@@ -83,42 +82,77 @@ class OffloadClientMultiClientTestCase : public TestCase
         gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
         serverNode->AggregateObject(gpu);
 
-        // Install OffloadServer on server node
+        // Create ConnectionManager for server (TCP transport)
+        Ptr<TcpConnectionManager> serverConnMgr = CreateObject<TcpConnectionManager>();
+
+        // Install OffloadServer on server node with explicit ConnectionManager
         uint16_t port = 9000;
-        OffloadServerHelper serverHelper(port);
-        ApplicationContainer serverApps = serverHelper.Install(serverNode);
-        serverApps.Start(Seconds(0.0));
-        serverApps.Stop(Seconds(10.0));
+        Ptr<OffloadServer> server = CreateObject<OffloadServer>();
+        server->SetAttribute("Port", UintegerValue(port));
+        server->SetAttribute("ConnectionManager", PointerValue(serverConnMgr));
+        serverNode->AddApplication(server);
+        server->SetStartTime(Seconds(0.0));
+        server->SetStopTime(Seconds(10.0));
 
-        Ptr<OffloadServer> server = DynamicCast<OffloadServer>(serverApps.Get(0));
+        // Create ConnectionManager for client1 (TCP transport)
+        Ptr<TcpConnectionManager> client1ConnMgr = CreateObject<TcpConnectionManager>();
 
-        // Install OffloadClient on client1 (uses server address from if1)
-        OffloadClientHelper clientHelper1(InetSocketAddress(if1.GetAddress(0), port));
-        clientHelper1.SetMeanInterArrival(0.1);     // 100ms between tasks
-        clientHelper1.SetMeanComputeDemand(1e9);    // 1 GFLOP
-        clientHelper1.SetMeanInputSize(1000);       // 1 KB
-        clientHelper1.SetMeanOutputSize(100);       // 100 bytes
-        clientHelper1.SetMaxTasks(3);
+        // Install OffloadClient on client1 with explicit ConnectionManager
+        Ptr<OffloadClient> client1 = CreateObject<OffloadClient>();
+        client1->SetAttribute("Remote", AddressValue(InetSocketAddress(if1.GetAddress(0), port)));
+        client1->SetAttribute("ConnectionManager", PointerValue(client1ConnMgr));
+        client1->SetAttribute("MaxTasks", UintegerValue(3));
 
-        ApplicationContainer client1Apps = clientHelper1.Install(client1Node);
-        client1Apps.Start(Seconds(0.1));
-        client1Apps.Stop(Seconds(5.0));
+        // Configure task generation distributions for client1
+        Ptr<ExponentialRandomVariable> interArrival1 = CreateObject<ExponentialRandomVariable>();
+        interArrival1->SetAttribute("Mean", DoubleValue(0.1)); // 100ms
+        client1->SetAttribute("InterArrivalTime", PointerValue(interArrival1));
 
-        Ptr<OffloadClient> client1 = DynamicCast<OffloadClient>(client1Apps.Get(0));
+        Ptr<ExponentialRandomVariable> compute1 = CreateObject<ExponentialRandomVariable>();
+        compute1->SetAttribute("Mean", DoubleValue(1e9)); // 1 GFLOP
+        client1->SetAttribute("ComputeDemand", PointerValue(compute1));
 
-        // Install OffloadClient on client2 (uses server address from if2)
-        OffloadClientHelper clientHelper2(InetSocketAddress(if2.GetAddress(0), port));
-        clientHelper2.SetMeanInterArrival(0.1);     // 100ms between tasks
-        clientHelper2.SetMeanComputeDemand(1e9);    // 1 GFLOP
-        clientHelper2.SetMeanInputSize(1000);       // 1 KB
-        clientHelper2.SetMeanOutputSize(100);       // 100 bytes
-        clientHelper2.SetMaxTasks(3);
+        Ptr<ExponentialRandomVariable> input1 = CreateObject<ExponentialRandomVariable>();
+        input1->SetAttribute("Mean", DoubleValue(1000)); // 1 KB
+        client1->SetAttribute("InputSize", PointerValue(input1));
 
-        ApplicationContainer client2Apps = clientHelper2.Install(client2Node);
-        client2Apps.Start(Seconds(0.1));
-        client2Apps.Stop(Seconds(5.0));
+        Ptr<ExponentialRandomVariable> output1 = CreateObject<ExponentialRandomVariable>();
+        output1->SetAttribute("Mean", DoubleValue(100)); // 100 bytes
+        client1->SetAttribute("OutputSize", PointerValue(output1));
 
-        Ptr<OffloadClient> client2 = DynamicCast<OffloadClient>(client2Apps.Get(0));
+        client1Node->AddApplication(client1);
+        client1->SetStartTime(Seconds(0.1));
+        client1->SetStopTime(Seconds(5.0));
+
+        // Create ConnectionManager for client2 (TCP transport)
+        Ptr<TcpConnectionManager> client2ConnMgr = CreateObject<TcpConnectionManager>();
+
+        // Install OffloadClient on client2 with explicit ConnectionManager
+        Ptr<OffloadClient> client2 = CreateObject<OffloadClient>();
+        client2->SetAttribute("Remote", AddressValue(InetSocketAddress(if2.GetAddress(0), port)));
+        client2->SetAttribute("ConnectionManager", PointerValue(client2ConnMgr));
+        client2->SetAttribute("MaxTasks", UintegerValue(3));
+
+        // Configure task generation distributions for client2
+        Ptr<ExponentialRandomVariable> interArrival2 = CreateObject<ExponentialRandomVariable>();
+        interArrival2->SetAttribute("Mean", DoubleValue(0.1)); // 100ms
+        client2->SetAttribute("InterArrivalTime", PointerValue(interArrival2));
+
+        Ptr<ExponentialRandomVariable> compute2 = CreateObject<ExponentialRandomVariable>();
+        compute2->SetAttribute("Mean", DoubleValue(1e9)); // 1 GFLOP
+        client2->SetAttribute("ComputeDemand", PointerValue(compute2));
+
+        Ptr<ExponentialRandomVariable> input2 = CreateObject<ExponentialRandomVariable>();
+        input2->SetAttribute("Mean", DoubleValue(1000)); // 1 KB
+        client2->SetAttribute("InputSize", PointerValue(input2));
+
+        Ptr<ExponentialRandomVariable> output2 = CreateObject<ExponentialRandomVariable>();
+        output2->SetAttribute("Mean", DoubleValue(100)); // 100 bytes
+        client2->SetAttribute("OutputSize", PointerValue(output2));
+
+        client2Node->AddApplication(client2);
+        client2->SetStartTime(Seconds(0.1));
+        client2->SetStopTime(Seconds(5.0));
 
         // Run simulation
         Simulator::Stop(Seconds(10.0));

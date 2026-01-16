@@ -6,21 +6,22 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/double.h"
 #include "ns3/accelerator.h"
+#include "ns3/double.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/inet-socket-address.h"
-#include "ns3/pointer.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
 #include "ns3/offload-header.h"
 #include "ns3/offload-server.h"
 #include "ns3/packet.h"
+#include "ns3/pointer.h"
 #include "ns3/simple-channel.h"
 #include "ns3/simple-net-device.h"
 #include "ns3/simulator.h"
+#include "ns3/tcp-connection-manager.h"
 #include "ns3/test.h"
 
 namespace ns3
@@ -64,9 +65,13 @@ class OffloadServerBasicTestCase : public TestCase
         gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
         serverNode->AggregateObject(gpu);
 
-        // Create and install OffloadServer
+        // Create ConnectionManager for server (TCP transport)
+        Ptr<TcpConnectionManager> connMgr = CreateObject<TcpConnectionManager>();
+
+        // Create and install OffloadServer with explicit ConnectionManager
         Ptr<OffloadServer> server = CreateObject<OffloadServer>();
         server->SetAttribute("Port", UintegerValue(9000));
+        server->SetAttribute("ConnectionManager", PointerValue(connMgr));
         serverNode->AddApplication(server);
 
         // Connect to trace sources
@@ -133,9 +138,13 @@ class OffloadServerNoAcceleratorTestCase : public TestCase
         InternetStackHelper internet;
         internet.Install(serverNode);
 
-        // Create and install OffloadServer
+        // Create ConnectionManager for server (TCP transport)
+        Ptr<TcpConnectionManager> connMgr = CreateObject<TcpConnectionManager>();
+
+        // Create and install OffloadServer with explicit ConnectionManager
         Ptr<OffloadServer> server = CreateObject<OffloadServer>();
         server->SetAttribute("Port", UintegerValue(9001));
+        server->SetAttribute("ConnectionManager", PointerValue(connMgr));
         serverNode->AddApplication(server);
 
         // Start the server - should not crash even without GPU
