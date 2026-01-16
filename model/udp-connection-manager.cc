@@ -279,10 +279,8 @@ UdpConnectionManager::IsReliable() const
 bool
 UdpConnectionManager::IsConnected() const
 {
-    // For UDP client mode: connected if we have a socket and a default destination
-    // For UDP server mode: connected if we have a bound socket
     // Either way, having a socket means we can send/receive
-    return m_socket != nullptr;
+    return m_socket != nullptr && m_hasDefaultDestination;
 }
 
 } // namespace ns3
