@@ -176,11 +176,13 @@ OffloadClient::StartApplication()
     m_connMgr->SetNode(GetNode());
     m_connMgr->SetReceiveCallback(MakeCallback(&OffloadClient::HandleReceive, this));
 
-    // Set connection callback for TCP to know when connected
+    // Set TCP-specific callbacks
     Ptr<TcpConnectionManager> tcpConnMgr = DynamicCast<TcpConnectionManager>(m_connMgr);
     if (tcpConnMgr)
     {
         tcpConnMgr->SetConnectionCallback(MakeCallback(&OffloadClient::HandleConnected, this));
+        tcpConnMgr->SetConnectionFailedCallback(
+            MakeCallback(&OffloadClient::HandleConnectionFailed, this));
     }
 
     // Connect to server
@@ -215,6 +217,13 @@ OffloadClient::HandleConnected(const Address& serverAddr)
 
     // Start sending tasks
     ScheduleNextTask();
+}
+
+void
+OffloadClient::HandleConnectionFailed(const Address& serverAddr)
+{
+    NS_LOG_FUNCTION(this << serverAddr);
+    NS_LOG_ERROR("Client " << m_clientId << " failed to connect to " << serverAddr);
 }
 
 void

@@ -116,6 +116,12 @@ class OffloadClient : public Application
     void HandleConnected(const Address& serverAddr);
 
     /**
+     * @brief Handle connection failure (TCP-specific).
+     * @param serverAddr The server address.
+     */
+    void HandleConnectionFailed(const Address& serverAddr);
+
+    /**
      * @brief Handle data received from the server.
      * @param packet The received packet.
      * @param from The server address.

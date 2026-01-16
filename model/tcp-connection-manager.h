@@ -137,6 +137,15 @@ class TcpConnectionManager : public ConnectionManager
     void SetCloseCallback(ConnectionCallback callback);
 
     /**
+     * @brief Set the callback for connection failure events (TCP-specific).
+     *
+     * Invoked when a connection attempt fails (client mode only).
+     *
+     * @param callback The failure callback.
+     */
+    void SetConnectionFailedCallback(ConnectionCallback callback);
+
+    /**
      * @brief Acquire an idle connection from the pool (client mode).
      *
      * Returns a connection identifier that can be used with Send(connId, packet).
@@ -230,6 +239,7 @@ class TcpConnectionManager : public ConnectionManager
     ReceiveCallback m_receiveCallback;
     ConnectionCallback m_connectionCallback;
     ConnectionCallback m_closeCallback;
+    ConnectionCallback m_connectionFailedCallback;
 };
 
 } // namespace ns3

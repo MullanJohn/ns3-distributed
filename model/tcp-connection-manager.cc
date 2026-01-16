@@ -97,6 +97,7 @@ TcpConnectionManager::DoDispose()
     m_receiveCallback = ReceiveCallback();
     m_connectionCallback = ConnectionCallback();
     m_closeCallback = ConnectionCallback();
+    m_connectionFailedCallback = ConnectionCallback();
 
     m_node = nullptr;
 
@@ -295,6 +296,11 @@ TcpConnectionManager::HandleConnectionFailed(Ptr<Socket> socket)
     NS_LOG_ERROR("Connection failed to " << peerAddr);
 
     CleanupSocket(socket);
+
+    if (!m_connectionFailedCallback.IsNull() && !peerAddr.IsInvalid())
+    {
+        m_connectionFailedCallback(peerAddr);
+    }
 }
 
 void
@@ -589,6 +595,13 @@ TcpConnectionManager::SetCloseCallback(ConnectionCallback callback)
 {
     NS_LOG_FUNCTION(this);
     m_closeCallback = callback;
+}
+
+void
+TcpConnectionManager::SetConnectionFailedCallback(ConnectionCallback callback)
+{
+    NS_LOG_FUNCTION(this);
+    m_connectionFailedCallback = callback;
 }
 
 void
