@@ -21,6 +21,7 @@ build_lib(
                  model/udp-connection-manager.cc
                  model/accelerator.cc
                  model/gpu-accelerator.cc
+                 model/energy-model.cc
                  model/processing-model.cc
                  model/fixed-ratio-processing-model.cc
                  model/queue-scheduler.cc
@@ -46,6 +47,7 @@ build_lib(
                  model/udp-connection-manager.h
                  model/accelerator.h
                  model/gpu-accelerator.h
+                 model/energy-model.h
                  model/processing-model.h
                  model/fixed-ratio-processing-model.h
                  model/queue-scheduler.h
