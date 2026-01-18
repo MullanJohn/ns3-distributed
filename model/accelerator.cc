@@ -108,10 +108,99 @@ Accelerator::GetNode() const
     return m_node;
 }
 
+double
+Accelerator::GetCurrentPower() const
+{
+    return m_currentPower;
+}
+
+double
+Accelerator::GetTotalEnergy() const
+{
+    return m_totalEnergy;
+}
+
+void
+Accelerator::UpdateEnergyState(bool active, double utilization)
+{
+    NS_LOG_FUNCTION(this << active << utilization);
+
+    if (!m_energyModel)
+    {
+        // No energy model configured - nothing to do
+        return;
+    }
+
+    Time now = Simulator::Now();
+
+    // Accumulate energy from previous state
+    if (m_lastEnergyUpdateTime < now)
+    {
+        double elapsed = (now - m_lastEnergyUpdateTime).GetSeconds();
+        if (elapsed > 0)
+        {
+            m_totalEnergy += m_currentPower * elapsed;
+        }
+    }
+
+    // Calculate new power state
+    PowerState powerState;
+    if (active)
+    {
+        powerState = m_energyModel->CalculateActivePower(this, utilization);
+    }
+    else
+    {
+        powerState = m_energyModel->CalculateIdlePower(this);
+    }
+
+    if (powerState.valid)
+    {
+        m_currentPower = powerState.GetTotalPower();
+        m_powerTrace(m_currentPower);
+        m_energyTrace(m_totalEnergy);
+
+        NS_LOG_DEBUG("Energy state updated: power=" << m_currentPower << "W, totalEnergy="
+                                                    << m_totalEnergy << "J");
+    }
+
+    m_lastEnergyUpdateTime = now;
+}
+
+void
+Accelerator::RecordTaskStartEnergy()
+{
+    NS_LOG_FUNCTION(this);
+    m_taskStartEnergy = m_totalEnergy;
+}
+
+double
+Accelerator::GetTaskEnergy() const
+{
+    return m_totalEnergy - m_taskStartEnergy;
+}
+
 void
 Accelerator::DoDispose()
 {
     NS_LOG_FUNCTION(this);
+
+    // Final energy update if we have an active energy model
+    if (m_energyModel)
+    {
+        // Accumulate any remaining energy before disposal
+        Time now = Simulator::Now();
+        if (m_lastEnergyUpdateTime < now)
+        {
+            double elapsed = (now - m_lastEnergyUpdateTime).GetSeconds();
+            if (elapsed > 0)
+            {
+                m_totalEnergy += m_currentPower * elapsed;
+            }
+        }
+        m_energyModel = nullptr;
+    }
+
     m_node = nullptr;
     Object::DoDispose();
 }
