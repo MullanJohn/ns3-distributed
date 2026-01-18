@@ -8,8 +8,12 @@
 
 #include "accelerator.h"
 
+#include "energy-model.h"
+
 #include "ns3/log.h"
 #include "ns3/node.h"
+#include "ns3/pointer.h"
+#include "ns3/simulator.h"
 #include "ns3/uinteger.h"
 
 namespace ns3
@@ -26,6 +30,11 @@ Accelerator::GetTypeId()
         TypeId("ns3::Accelerator")
             .SetParent<Object>()
             .SetGroupName("Distributed")
+            .AddAttribute("EnergyModel",
+                          "Energy model for power consumption calculation",
+                          PointerValue(),
+                          MakePointerAccessor(&Accelerator::m_energyModel),
+                          MakePointerChecker<EnergyModel>())
             .AddTraceSource("TaskStarted",
                             "Trace fired when a task starts execution.",
                             MakeTraceSourceAccessor(&Accelerator::m_taskStartedTrace),
@@ -37,12 +46,29 @@ Accelerator::GetTypeId()
             .AddTraceSource("TaskFailed",
                             "Trace fired when a task fails to process.",
                             MakeTraceSourceAccessor(&Accelerator::m_taskFailedTrace),
-                            "ns3::Accelerator::TaskFailedTracedCallback");
+                            "ns3::Accelerator::TaskFailedTracedCallback")
+            .AddTraceSource("CurrentPower",
+                            "Trace fired when power state changes.",
+                            MakeTraceSourceAccessor(&Accelerator::m_powerTrace),
+                            "ns3::Accelerator::PowerTracedCallback")
+            .AddTraceSource("TotalEnergy",
+                            "Trace fired when total energy is updated.",
+                            MakeTraceSourceAccessor(&Accelerator::m_energyTrace),
+                            "ns3::Accelerator::EnergyTracedCallback")
+            .AddTraceSource("TaskEnergy",
+                            "Trace fired when a task completes with its energy consumption.",
+                            MakeTraceSourceAccessor(&Accelerator::m_taskEnergyTrace),
+                            "ns3::Accelerator::TaskEnergyTracedCallback");
     return tid;
 }
 
 Accelerator::Accelerator()
-    : m_node(nullptr)
+    : m_node(nullptr),
+      m_energyModel(nullptr),
+      m_lastEnergyUpdateTime(Seconds(0)),
+      m_totalEnergy(0.0),
+      m_currentPower(0.0),
+      m_taskStartEnergy(0.0)
 {
     NS_LOG_FUNCTION(this);
 }

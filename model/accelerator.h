@@ -20,6 +20,7 @@ namespace ns3
 {
 
 class Node;
+class EnergyModel;
 
 /**
  * @ingroup distributed
@@ -132,6 +133,20 @@ class Accelerator : public Object
     Ptr<Node> GetNode() const;
 
     /**
+     * @brief Get the current power consumption.
+     *
+     * @return Current power in Watts, or 0 if no EnergyModel is configured.
+     */
+    double GetCurrentPower() const;
+
+    /**
+     * @brief Get the total energy consumed.
+     *
+     * @return Total energy consumed in Joules, or 0 if no EnergyModel is configured.
+     */
+    double GetTotalEnergy() const;
+
+    /**
      * @brief TracedCallback signature for task events.
      * @param task The task.
      */
@@ -151,9 +166,55 @@ class Accelerator : public Object
      */
     typedef void (*TaskFailedTracedCallback)(Ptr<const Task> task, std::string reason);
 
+    /**
+     * @brief TracedCallback signature for power state changes.
+     * @param power Current power consumption in Watts.
+     */
+    typedef void (*PowerTracedCallback)(double power);
+
+    /**
+     * @brief TracedCallback signature for energy accumulation.
+     * @param energy Total energy consumed in Joules.
+     */
+    typedef void (*EnergyTracedCallback)(double energy);
+
+    /**
+     * @brief TracedCallback signature for per-task energy.
+     * @param task The completed task.
+     * @param energy Energy consumed by this task in Joules.
+     */
+    typedef void (*TaskEnergyTracedCallback)(Ptr<const Task> task, double energy);
+
   protected:
     void DoDispose() override;
     void NotifyNewAggregate() override;
+
+    /**
+     * @brief Update the energy state based on current activity.
+     *
+     * This method should be called by subclasses when the accelerator's
+     * activity state changes (e.g., starting or completing a task).
+     * It accumulates energy from the previous state and calculates the
+     * new power consumption.
+     *
+     * @param active Whether the accelerator is currently active.
+     * @param utilization Current utilization level [0.0, 1.0].
+     */
+    void UpdateEnergyState(bool active, double utilization);
+
+    /**
+     * @brief Record the current energy as baseline for task energy tracking.
+     *
+     * Call this when starting a task to track per-task energy consumption.
+     */
+    void RecordTaskStartEnergy();
+
+    /**
+     * @brief Get energy consumed since RecordTaskStartEnergy was called.
+     *
+     * @return Energy consumed by the current task in Joules.
+     */
+    double GetTaskEnergy() const;
 
     Ptr<Node> m_node; //!< Node this accelerator is aggregated to
 
@@ -161,6 +222,16 @@ class Accelerator : public Object
     TracedCallback<Ptr<const Task>> m_taskStartedTrace;              //!< Task started
     TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace;      //!< Task completed
     TracedCallback<Ptr<const Task>, std::string> m_taskFailedTrace;  //!< Task failed
+    TracedCallback<double> m_powerTrace;                              //!< Power state changes
+    TracedCallback<double> m_energyTrace;                             //!< Total energy accumulation
+    TracedCallback<Ptr<const Task>, double> m_taskEnergyTrace;        //!< Per-task energy
+
+  private:
+    Ptr<EnergyModel> m_energyModel;   //!< Energy model for power calculation
+    Time m_lastEnergyUpdateTime;      //!< Time of last energy state update
+    double m_totalEnergy;             //!< Total energy consumed in Joules
+    double m_currentPower;            //!< Current power consumption in Watts
+    double m_taskStartEnergy;         //!< Energy at task start for per-task tracking
 };
 
 } // namespace ns3
