@@ -106,6 +106,26 @@ class Accelerator : public Object
     virtual bool IsBusy() const;
 
     /**
+     * @brief Get the current operating voltage.
+     *
+     * Default implementation returns 1.0V. Override in subclasses that
+     * support DVFS or have configurable voltage.
+     *
+     * @return Operating voltage in Volts.
+     */
+    virtual double GetVoltage() const;
+
+    /**
+     * @brief Get the current operating frequency.
+     *
+     * Default implementation returns 1.0Hz. Override in subclasses that
+     * support DVFS or have configurable frequency.
+     *
+     * @return Operating frequency in Hz.
+     */
+    virtual double GetFrequency() const;
+
+    /**
      * @brief Get the node this accelerator is aggregated to.
      * @return Pointer to the node, or nullptr if not aggregated.
      */

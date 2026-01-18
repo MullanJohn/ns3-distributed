@@ -64,6 +64,18 @@ Accelerator::IsBusy() const
     return false;
 }
 
+double
+Accelerator::GetVoltage() const
+{
+    return 1.0;
+}
+
+double
+Accelerator::GetFrequency() const
+{
+    return 1.0;
+}
+
 Ptr<Node>
 Accelerator::GetNode() const
 {
