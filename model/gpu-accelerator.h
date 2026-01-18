@@ -48,6 +48,8 @@ class GpuAccelerator : public Accelerator
     std::string GetName() const override;
     uint32_t GetQueueLength() const override;
     bool IsBusy() const override;
+    double GetVoltage() const override;
+    double GetFrequency() const override;
 
     /**
      * @brief Get compute rate in FLOPS.
@@ -78,6 +80,8 @@ class GpuAccelerator : public Accelerator
     // GPU-specific attributes
     double m_computeRate;               //!< Compute rate in FLOPS
     double m_memoryBandwidth;           //!< Memory bandwidth in bytes/sec
+    double m_frequency;                 //!< Operating frequency in Hz
+    double m_voltage;                   //!< Operating voltage in Volts
     Ptr<ProcessingModel> m_processingModel;  //!< Processing model for timing calculation
     Ptr<QueueScheduler> m_queueScheduler;    //!< Queue scheduler for task management
 
