@@ -137,6 +137,7 @@ GpuAccelerator::StartNextTask()
     if (m_queueScheduler->IsEmpty())
     {
         m_busy = false;
+        UpdateEnergyState(false, 0.0);  // Transition to idle
         return;
     }
 
@@ -153,6 +154,10 @@ GpuAccelerator::StartNextTask()
     }
     m_busy = true;
     m_taskStartTime = Simulator::Now();
+
+    // Update energy state: transition to active
+    UpdateEnergyState(true, 1.0);
+    RecordTaskStartEnergy();
 
     NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
 
@@ -189,7 +194,15 @@ GpuAccelerator::ProcessingComplete()
     // Calculate total task duration
     Time duration = Simulator::Now() - m_taskStartTime;
 
-    NS_LOG_INFO("Task " << m_currentTask->GetTaskId() << " completed in " << duration);
+    // Update energy state: transition to idle (accumulates energy from active period)
+    UpdateEnergyState(false, 0.0);
+
+    // Fire per-task energy trace
+    double taskEnergy = GetTaskEnergy();
+    m_taskEnergyTrace(m_currentTask, taskEnergy);
+
+    NS_LOG_INFO("Task " << m_currentTask->GetTaskId() << " completed in " << duration
+                        << ", energy: " << taskEnergy << "J");
 
     // Fire completion trace
     m_taskCompletedTrace(m_currentTask, duration);
