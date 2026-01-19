@@ -72,6 +72,7 @@ build_lib(
                       ${libpoint-to-point}
     TEST_SOURCES test/distributed-test-suite.cc
                  test/gpu-accelerator-test.cc
+                 test/energy-model-test.cc
                  test/gpu-accelerator-queue-test.cc
                  test/task-header-test.cc
                  test/offload-header-test.cc

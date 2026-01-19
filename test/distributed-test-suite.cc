@@ -15,6 +15,10 @@ namespace ns3
 TestCase* CreateGpuAcceleratorTestCase();
 TestCase* CreateGpuAcceleratorNoSchedulerTestCase();
 TestCase* CreateGpuAcceleratorQueueTestCase();
+TestCase* CreateDvfsEnergyModelTestCase();
+TestCase* CreateAcceleratorEnergyTrackingTestCase();
+TestCase* CreateAcceleratorEnergyTracesTestCase();
+TestCase* CreateEnergyModelNotConfiguredTestCase();
 TestCase* CreateTaskHeaderInterfaceTestCase();
 TestCase* CreateTaskHeaderPolymorphismTestCase();
 TestCase* CreateTaskHeaderPayloadSizeTestCase();
@@ -58,6 +62,10 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateGpuAcceleratorTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateGpuAcceleratorNoSchedulerTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateGpuAcceleratorQueueTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDvfsEnergyModelTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateAcceleratorEnergyTrackingTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateAcceleratorEnergyTracesTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateEnergyModelNotConfiguredTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTaskHeaderInterfaceTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTaskHeaderPolymorphismTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTaskHeaderPayloadSizeTestCase(), TestCase::Duration::QUICK);
