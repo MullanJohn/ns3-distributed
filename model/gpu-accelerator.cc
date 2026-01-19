@@ -152,33 +152,33 @@ GpuAccelerator::StartNextTask()
         StartNextTask();
         return;
     }
-    m_busy = true;
-    m_taskStartTime = Simulator::Now();
-
-    // Update energy state: transition to active
-    UpdateEnergyState(true, 1.0);
-    RecordTaskStartEnergy();
-
-    NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
-
-    // Fire task started trace
-    m_taskStartedTrace(m_currentTask);
-
-    // Update queue length after trace (includes current task being processed)
-    m_queueLength = m_queueScheduler->GetLength() + 1;
-
-    // Use ProcessingModel for timing calculation, passing this accelerator
+    // Calculate processing characteristics using ProcessingModel
     ProcessingModel::Result result = m_processingModel->Process(m_currentTask, this);
     if (!result.success)
     {
         NS_LOG_ERROR("ProcessingModel failed for task " << m_currentTask->GetTaskId());
         m_taskFailedTrace(m_currentTask, "ProcessingModel returned failure");
         m_currentTask = nullptr;
-        m_busy = false;
         m_queueLength = m_queueScheduler->GetLength();
         StartNextTask();
         return;
     }
+
+    // Processing model validated task - begin execution
+    m_busy = true;
+    m_taskStartTime = Simulator::Now();
+
+    NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
+
+    // Update energy state: transition to active with modeled utilization
+    UpdateEnergyState(true, result.utilization);
+    RecordTaskStartEnergy();
+
+    // Fire task started trace
+    m_taskStartedTrace(m_currentTask);
+
+    // Update queue length after trace (includes current task being processed)
+    m_queueLength = m_queueScheduler->GetLength() + 1;
 
     NS_LOG_DEBUG("Processing time: " << result.processingTime);
     m_currentEvent = Simulator::Schedule(result.processingTime,
