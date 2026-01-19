@@ -191,20 +191,27 @@ GpuAccelerator::ProcessingComplete()
 {
     NS_LOG_FUNCTION(this);
 
-    // Calculate total task duration
     Time duration = Simulator::Now() - m_taskStartTime;
 
-    // Update energy state: transition to idle (accumulates energy from active period)
+    // Trace firing order:
+    // 1. UpdateEnergyState fires CurrentPower and TotalEnergy traces
+    //    (must happen first to accumulate energy from the active period)
+    // 2. TaskEnergy trace fires with per-task energy consumption
+    //    (requires final energy accumulation from step 1)
+    // 3. TaskCompleted trace fires last with task and duration
+
+    // Energy state transition: active -> idle
+    // This fires CurrentPower and TotalEnergy traces
     UpdateEnergyState(false, 0.0);
 
-    // Fire per-task energy trace
+    // Per-task energy calculation and trace
     double taskEnergy = GetTaskEnergy();
     m_taskEnergyTrace(m_currentTask, taskEnergy);
 
     NS_LOG_INFO("Task " << m_currentTask->GetTaskId() << " completed in " << duration
                         << ", energy: " << taskEnergy << "J");
 
-    // Fire completion trace
+    // Task completion trace fires last
     m_taskCompletedTrace(m_currentTask, duration);
 
     m_tasksCompleted++;
