@@ -8,6 +8,7 @@
 
 #include "ns3/cluster.h"
 #include "ns3/core-module.h"
+#include "ns3/dvfs-energy-model.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
@@ -219,17 +220,27 @@ main(int argc, char* argv[])
     // Setup servers with GPU accelerators
     uint16_t serverPort = 9000;
     std::vector<Ptr<OffloadServer>> servers(numServers);
+    std::vector<Ptr<GpuAccelerator>> gpus(numServers);
 
     for (uint32_t i = 0; i < numServers; ++i)
     {
+        // Create energy model for this GPU
+        Ptr<DvfsEnergyModel> energyModel = CreateObject<DvfsEnergyModel>();
+        energyModel->SetAttribute("StaticPower", DoubleValue(30.0));
+        energyModel->SetAttribute("EffectiveCapacitance", DoubleValue(2e-9));
+
         // Create and attach GPU accelerator
         Ptr<FifoQueueScheduler> queueSched = CreateObject<FifoQueueScheduler>();
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+        gpu->SetAttribute("Voltage", DoubleValue(1.0));
+        gpu->SetAttribute("Frequency", DoubleValue(1.5e9));
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
         gpu->SetAttribute("QueueScheduler", PointerValue(queueSched));
+        gpu->SetAttribute("EnergyModel", PointerValue(energyModel));
         serverNodes.Get(i)->AggregateObject(gpu);
+        gpus[i] = gpu;
 
         // Install server application
         OffloadServerHelper serverHelper(serverPort);
@@ -317,14 +328,19 @@ main(int argc, char* argv[])
                                              << ", backendRx=" << lb->GetBackendRx());
 
     NS_LOG_UNCOND("");
+    double totalEnergy = 0;
     for (uint32_t i = 0; i < numServers; ++i)
     {
+        double energy = gpus[i]->GetTotalEnergy();
+        totalEnergy += energy;
         NS_LOG_UNCOND("Server " << i << ": completed=" << servers[i]->GetTasksCompleted()
-                                << ", RX=" << servers[i]->GetTotalRx());
+                                << ", RX=" << servers[i]->GetTotalRx()
+                                << ", energy=" << energy << "J");
     }
 
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("Total: tasks=" << totalTasks << ", responses=" << totalResponses);
+    NS_LOG_UNCOND("Total energy: " << totalEnergy << " J");
 
     Simulator::Destroy();
 

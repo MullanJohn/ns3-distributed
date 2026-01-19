@@ -8,6 +8,7 @@
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
+#include "ns3/dvfs-energy-model.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
@@ -150,6 +151,10 @@ main(int argc, char* argv[])
     double meanOutputSize = 1e4;
     double computeRate = 1e12;
     double memoryBandwidth = 900e9;
+    double gpuVoltage = 1.0;
+    double gpuFrequency = 1.5e9;
+    double staticPower = 30.0;
+    double effectiveCapacitance = 2e-9;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("dataRate", "Link data rate", dataRate);
@@ -162,6 +167,10 @@ main(int argc, char* argv[])
     cmd.AddValue("meanOutputSize", "Mean output data size in bytes", meanOutputSize);
     cmd.AddValue("computeRate", "GPU compute rate in FLOPS", computeRate);
     cmd.AddValue("memoryBandwidth", "GPU memory bandwidth in bytes/sec", memoryBandwidth);
+    cmd.AddValue("gpuVoltage", "GPU operating voltage in Volts", gpuVoltage);
+    cmd.AddValue("gpuFrequency", "GPU operating frequency in Hz", gpuFrequency);
+    cmd.AddValue("staticPower", "GPU static power in Watts", staticPower);
+    cmd.AddValue("effectiveCapacitance", "GPU effective capacitance in Farads", effectiveCapacitance);
     cmd.Parse(argc, argv);
 
     NS_LOG_UNCOND("Single-Client Distributed Computing Example");
@@ -193,12 +202,20 @@ main(int argc, char* argv[])
     Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
     Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
+    // Create energy model for GPU
+    Ptr<DvfsEnergyModel> energyModel = CreateObject<DvfsEnergyModel>();
+    energyModel->SetAttribute("StaticPower", DoubleValue(staticPower));
+    energyModel->SetAttribute("EffectiveCapacitance", DoubleValue(effectiveCapacitance));
+
     // Create GPU accelerator and aggregate to server node
     Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
     gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
     gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+    gpu->SetAttribute("Voltage", DoubleValue(gpuVoltage));
+    gpu->SetAttribute("Frequency", DoubleValue(gpuFrequency));
     gpu->SetAttribute("ProcessingModel", PointerValue(model));
     gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
+    gpu->SetAttribute("EnergyModel", PointerValue(energyModel));
     nodes.Get(1)->AggregateObject(gpu);
 
     // Connect GPU trace sources
@@ -247,6 +264,10 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND("Client TX bytes:    " << client->GetTotalTx());
     NS_LOG_UNCOND("Client RX bytes:    " << client->GetTotalRx());
     NS_LOG_UNCOND("Server RX bytes:    " << server->GetTotalRx());
+    NS_LOG_UNCOND("");
+    NS_LOG_UNCOND("=== Energy ===");
+    NS_LOG_UNCOND("Total energy:       " << gpu->GetTotalEnergy() << " J");
+    NS_LOG_UNCOND("Final power:        " << gpu->GetCurrentPower() << " W");
 
     Simulator::Destroy();
 
