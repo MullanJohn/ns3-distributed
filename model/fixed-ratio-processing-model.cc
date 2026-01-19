@@ -87,19 +87,23 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
     uint64_t outputSize = computeTask->GetOutputSize();
 
     // Calculate three-phase timing
-    Time inputTransferTime = Seconds(static_cast<double>(inputSize) / memoryBandwidth);
-    Time computeTime = Seconds(computeDemand / computeRate);
-    Time outputTransferTime = Seconds(static_cast<double>(outputSize) / memoryBandwidth);
+    double inputTransferSeconds = static_cast<double>(inputSize) / memoryBandwidth;
+    double computeSeconds = computeDemand / computeRate;
+    double outputTransferSeconds = static_cast<double>(outputSize) / memoryBandwidth;
+    double totalSeconds = inputTransferSeconds + computeSeconds + outputTransferSeconds;
 
-    Time totalTime = inputTransferTime + computeTime + outputTransferTime;
+    // Utilization = fraction of time spent computing (vs memory transfer)
+    // Higher ratio means more compute-bound (higher GPU core utilization)
+    double utilization = (totalSeconds > 0) ? (computeSeconds / totalSeconds) : 1.0;
 
     NS_LOG_DEBUG("Task " << task->GetTaskId() << " processing:"
-                         << " input=" << inputTransferTime
-                         << " compute=" << computeTime
-                         << " output=" << outputTransferTime
-                         << " total=" << totalTime);
+                         << " input=" << Seconds(inputTransferSeconds)
+                         << " compute=" << Seconds(computeSeconds)
+                         << " output=" << Seconds(outputTransferSeconds)
+                         << " total=" << Seconds(totalSeconds)
+                         << " utilization=" << utilization);
 
-    return Result(totalTime, outputSize);
+    return Result(Seconds(totalSeconds), outputSize, utilization);
 }
 
 } // namespace ns3

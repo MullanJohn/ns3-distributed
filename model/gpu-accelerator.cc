@@ -47,6 +47,16 @@ GpuAccelerator::GetTypeId()
                                           PointerValue(),
                                           MakePointerAccessor(&GpuAccelerator::m_queueScheduler),
                                           MakePointerChecker<QueueScheduler>())
+                            .AddAttribute("Frequency",
+                                          "Operating frequency in Hz",
+                                          DoubleValue(1.5e9),
+                                          MakeDoubleAccessor(&GpuAccelerator::m_frequency),
+                                          MakeDoubleChecker<double>(0.0))
+                            .AddAttribute("Voltage",
+                                          "Operating voltage in Volts",
+                                          DoubleValue(1.0),
+                                          MakeDoubleAccessor(&GpuAccelerator::m_voltage),
+                                          MakeDoubleChecker<double>(0.0))
                             .AddTraceSource("QueueLength",
                                             "Current number of tasks in queue",
                                             MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
@@ -57,6 +67,8 @@ GpuAccelerator::GetTypeId()
 GpuAccelerator::GpuAccelerator()
     : m_computeRate(1e12),
       m_memoryBandwidth(900e9),
+      m_frequency(1.5e9),
+      m_voltage(1.0),
       m_processingModel(nullptr),
       m_queueScheduler(nullptr),
       m_currentTask(nullptr),
@@ -125,6 +137,7 @@ GpuAccelerator::StartNextTask()
     if (m_queueScheduler->IsEmpty())
     {
         m_busy = false;
+        UpdateEnergyState(false, 0.0);  // Transition to idle
         return;
     }
 
@@ -139,29 +152,33 @@ GpuAccelerator::StartNextTask()
         StartNextTask();
         return;
     }
-    m_busy = true;
-    m_taskStartTime = Simulator::Now();
-
-    NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
-
-    // Fire task started trace
-    m_taskStartedTrace(m_currentTask);
-
-    // Update queue length after trace (includes current task being processed)
-    m_queueLength = m_queueScheduler->GetLength() + 1;
-
-    // Use ProcessingModel for timing calculation, passing this accelerator
+    // Calculate processing characteristics using ProcessingModel
     ProcessingModel::Result result = m_processingModel->Process(m_currentTask, this);
     if (!result.success)
     {
         NS_LOG_ERROR("ProcessingModel failed for task " << m_currentTask->GetTaskId());
         m_taskFailedTrace(m_currentTask, "ProcessingModel returned failure");
         m_currentTask = nullptr;
-        m_busy = false;
         m_queueLength = m_queueScheduler->GetLength();
         StartNextTask();
         return;
     }
+
+    // Processing model validated task - begin execution
+    m_busy = true;
+    m_taskStartTime = Simulator::Now();
+
+    NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
+
+    // Update energy state: transition to active with modeled utilization
+    UpdateEnergyState(true, result.utilization);
+    RecordTaskStartEnergy();
+
+    // Fire task started trace
+    m_taskStartedTrace(m_currentTask);
+
+    // Update queue length after trace (includes current task being processed)
+    m_queueLength = m_queueScheduler->GetLength() + 1;
 
     NS_LOG_DEBUG("Processing time: " << result.processingTime);
     m_currentEvent = Simulator::Schedule(result.processingTime,
@@ -174,12 +191,27 @@ GpuAccelerator::ProcessingComplete()
 {
     NS_LOG_FUNCTION(this);
 
-    // Calculate total task duration
     Time duration = Simulator::Now() - m_taskStartTime;
 
-    NS_LOG_INFO("Task " << m_currentTask->GetTaskId() << " completed in " << duration);
+    // Trace firing order:
+    // 1. UpdateEnergyState fires CurrentPower and TotalEnergy traces
+    //    (must happen first to accumulate energy from the active period)
+    // 2. TaskEnergy trace fires with per-task energy consumption
+    //    (requires final energy accumulation from step 1)
+    // 3. TaskCompleted trace fires last with task and duration
 
-    // Fire completion trace
+    // Energy state transition: active -> idle
+    // This fires CurrentPower and TotalEnergy traces
+    UpdateEnergyState(false, 0.0);
+
+    // Per-task energy calculation and trace
+    double taskEnergy = GetTaskEnergy();
+    m_taskEnergyTrace(m_currentTask, taskEnergy);
+
+    NS_LOG_INFO("Task " << m_currentTask->GetTaskId() << " completed in " << duration
+                        << ", energy: " << taskEnergy << "J");
+
+    // Task completion trace fires last
     m_taskCompletedTrace(m_currentTask, duration);
 
     m_tasksCompleted++;
@@ -212,6 +244,18 @@ double
 GpuAccelerator::GetMemoryBandwidth() const
 {
     return m_memoryBandwidth;
+}
+
+double
+GpuAccelerator::GetVoltage() const
+{
+    return m_voltage;
+}
+
+double
+GpuAccelerator::GetFrequency() const
+{
+    return m_frequency;
 }
 
 } // namespace ns3

@@ -21,6 +21,8 @@ build_lib(
                  model/udp-connection-manager.cc
                  model/accelerator.cc
                  model/gpu-accelerator.cc
+                 model/energy-model.cc
+                 model/dvfs-energy-model.cc
                  model/processing-model.cc
                  model/fixed-ratio-processing-model.cc
                  model/queue-scheduler.cc
@@ -46,6 +48,8 @@ build_lib(
                  model/udp-connection-manager.h
                  model/accelerator.h
                  model/gpu-accelerator.h
+                 model/energy-model.h
+                 model/dvfs-energy-model.h
                  model/processing-model.h
                  model/fixed-ratio-processing-model.h
                  model/queue-scheduler.h
@@ -68,6 +72,7 @@ build_lib(
                       ${libpoint-to-point}
     TEST_SOURCES test/distributed-test-suite.cc
                  test/gpu-accelerator-test.cc
+                 test/energy-model-test.cc
                  test/gpu-accelerator-queue-test.cc
                  test/task-header-test.cc
                  test/offload-header-test.cc

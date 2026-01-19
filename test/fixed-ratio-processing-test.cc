@@ -60,6 +60,13 @@ class FixedRatioProcessingModelTestCase : public TestCase
                                   "Processing time should be 0.3 seconds");
         NS_TEST_ASSERT_MSG_EQ(result.outputSize, 1e10, "Output size should match task");
 
+        // Utilization = computeTime / totalTime = 0.1 / 0.3 = 0.333...
+        // This task has balanced compute and memory transfer
+        NS_TEST_ASSERT_MSG_EQ_TOL(result.utilization,
+                                  1.0 / 3.0,
+                                  1e-9,
+                                  "Utilization should be ~0.33 for balanced task");
+
         Simulator::Destroy();
     }
 };
@@ -127,14 +134,30 @@ class ProcessingModelResultTestCase : public TestCase
                               true,
                               "Default time should be zero");
         NS_TEST_ASSERT_MSG_EQ(failedResult.outputSize, 0, "Default output size should be zero");
+        NS_TEST_ASSERT_MSG_EQ_TOL(failedResult.utilization,
+                                  0.0,
+                                  1e-9,
+                                  "Default utilization should be zero");
 
-        // Test success constructor
+        // Test success constructor with default utilization (1.0)
         ProcessingModel::Result successResult(Seconds(1.5), 1000);
         NS_TEST_ASSERT_MSG_EQ(successResult.success, true, "Success result should be successful");
         NS_TEST_ASSERT_MSG_EQ(successResult.processingTime.GetSeconds(),
                               1.5,
                               "Time should be 1.5s");
         NS_TEST_ASSERT_MSG_EQ(successResult.outputSize, 1000, "Output size should be 1000");
+        NS_TEST_ASSERT_MSG_EQ_TOL(successResult.utilization,
+                                  1.0,
+                                  1e-9,
+                                  "Default utilization should be 1.0");
+
+        // Test success constructor with custom utilization
+        ProcessingModel::Result customUtilResult(Seconds(2.0), 500, 0.75);
+        NS_TEST_ASSERT_MSG_EQ(customUtilResult.success, true, "Custom result should be successful");
+        NS_TEST_ASSERT_MSG_EQ_TOL(customUtilResult.utilization,
+                                  0.75,
+                                  1e-9,
+                                  "Custom utilization should be 0.75");
 
         Simulator::Destroy();
     }

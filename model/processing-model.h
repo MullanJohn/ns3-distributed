@@ -57,12 +57,14 @@ class ProcessingModel : public Object
     /**
      * @brief Result of processing a task.
      *
-     * Contains the calculated processing time, output size, and success status.
+     * Contains the calculated processing time, output size, utilization,
+     * and success status.
      */
     struct Result
     {
         Time processingTime;  //!< Total time to process the task
         uint64_t outputSize;  //!< Output data size in bytes
+        double utilization;   //!< Device utilization during processing [0.0, 1.0]
         bool success;         //!< True if processing calculation succeeded
 
         /**
@@ -71,6 +73,7 @@ class ProcessingModel : public Object
         Result()
             : processingTime(Seconds(0)),
               outputSize(0),
+              utilization(0.0),
               success(false)
         {
         }
@@ -79,10 +82,12 @@ class ProcessingModel : public Object
          * @brief Constructor for successful result.
          * @param time Processing time
          * @param output Output size in bytes
+         * @param util Device utilization [0.0, 1.0], defaults to 1.0
          */
-        Result(Time time, uint64_t output)
+        Result(Time time, uint64_t output, double util = 1.0)
             : processingTime(time),
               outputSize(output),
+              utilization(util),
               success(true)
         {
         }

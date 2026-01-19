@@ -8,6 +8,7 @@
 
 #include "ns3/compute-task.h"
 #include "ns3/double.h"
+#include "ns3/dvfs-energy-model.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
@@ -41,12 +42,16 @@ class GpuAcceleratorQueueTestCase : public TestCase
         Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
         Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
+        // Create energy model
+        Ptr<DvfsEnergyModel> energyModel = CreateObject<DvfsEnergyModel>();
+
         // Create GPU accelerator with processing model and queue scheduler
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12));
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
         gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
+        gpu->SetAttribute("EnergyModel", PointerValue(energyModel));
 
         gpu->TraceConnectWithoutContext(
             "TaskCompleted",

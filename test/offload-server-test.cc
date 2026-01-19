@@ -8,6 +8,7 @@
 
 #include "ns3/accelerator.h"
 #include "ns3/double.h"
+#include "ns3/dvfs-energy-model.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
@@ -57,12 +58,16 @@ class OffloadServerBasicTestCase : public TestCase
         Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
         Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
+        // Create energy model
+        Ptr<DvfsEnergyModel> energyModel = CreateObject<DvfsEnergyModel>();
+
         // Create and configure GPU
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));     // 1 TFLOPS
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11)); // 100 GB/s
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
         gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
+        gpu->SetAttribute("EnergyModel", PointerValue(energyModel));
         serverNode->AggregateObject(gpu);
 
         // Create ConnectionManager for server (TCP transport)

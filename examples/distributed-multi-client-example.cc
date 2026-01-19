@@ -8,6 +8,7 @@
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
+#include "ns3/dvfs-energy-model.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
@@ -197,12 +198,20 @@ main(int argc, char* argv[])
     Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
     Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
+    // Create energy model for GPU
+    Ptr<DvfsEnergyModel> energyModel = CreateObject<DvfsEnergyModel>();
+    energyModel->SetAttribute("StaticPower", DoubleValue(30.0));
+    energyModel->SetAttribute("EffectiveCapacitance", DoubleValue(2e-9));
+
     // Create GPU accelerator and aggregate to server node
     Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
     gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
     gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+    gpu->SetAttribute("Voltage", DoubleValue(1.0));
+    gpu->SetAttribute("Frequency", DoubleValue(1.5e9));
     gpu->SetAttribute("ProcessingModel", PointerValue(model));
     gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
+    gpu->SetAttribute("EnergyModel", PointerValue(energyModel));
     serverNode.Get(0)->AggregateObject(gpu);
 
     // Connect GPU trace source
@@ -275,6 +284,9 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND("Server tasks received:" << server->GetTasksReceived());
     NS_LOG_UNCOND("Server tasks done:    " << server->GetTasksCompleted());
     NS_LOG_UNCOND("Server RX bytes:      " << server->GetTotalRx());
+    NS_LOG_UNCOND("");
+    NS_LOG_UNCOND("=== Energy ===");
+    NS_LOG_UNCOND("Total energy:         " << gpu->GetTotalEnergy() << " J");
 
     Simulator::Destroy();
 
