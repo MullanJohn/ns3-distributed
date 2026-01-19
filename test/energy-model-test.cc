@@ -52,7 +52,7 @@ class DvfsEnergyModelTestCase : public TestCase
         // Calculate active power with utilization = 1.0
         // P_dynamic = C * V^2 * f * util = 1e-9 * 1.0 * 1.0e9 * 1.0 = 1.0W
         // P_total = P_static + P_dynamic = 10.0 + 1.0 = 11.0W
-        PowerState active = energy->CalculateActivePower(gpu, 1.0);
+        EnergyModel::PowerState active = energy->CalculateActivePower(gpu, 1.0);
 
         NS_TEST_ASSERT_MSG_EQ(active.valid, true, "PowerState should be valid");
         NS_TEST_ASSERT_MSG_EQ_TOL(active.staticPower, 10.0, 1e-9, "Static power should be 10W");
@@ -60,7 +60,7 @@ class DvfsEnergyModelTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ_TOL(active.GetTotalPower(), 11.0, 1e-9, "Total power should be 11W");
 
         // Calculate idle power (P_static only)
-        PowerState idle = energy->CalculateIdlePower(gpu);
+        EnergyModel::PowerState idle = energy->CalculateIdlePower(gpu);
 
         NS_TEST_ASSERT_MSG_EQ(idle.valid, true, "Idle PowerState should be valid");
         NS_TEST_ASSERT_MSG_EQ_TOL(idle.dynamicPower, 0.0, 1e-9, "Idle dynamic power should be 0W");
