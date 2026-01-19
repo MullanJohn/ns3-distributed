@@ -68,16 +68,16 @@ DvfsEnergyModel::GetName() const
     return "DVFS";
 }
 
-PowerState
+EnergyModel::PowerState
 DvfsEnergyModel::CalculateIdlePower(Ptr<Accelerator> accelerator)
 {
     NS_LOG_FUNCTION(this << accelerator);
 
     // Idle state: only static power, no dynamic power
-    return PowerState(m_staticPower, 0.0);
+    return EnergyModel::PowerState(m_staticPower, 0.0);
 }
 
-PowerState
+EnergyModel::PowerState
 DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utilization)
 {
     NS_LOG_FUNCTION(this << accelerator << utilization);
@@ -85,7 +85,7 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
     if (!accelerator)
     {
         NS_LOG_WARN("CalculateActivePower called with null accelerator");
-        return PowerState();
+        return EnergyModel::PowerState();
     }
 
     // Clamp utilization to [0.0, 1.0]
@@ -102,7 +102,7 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
                                               << " f=" << frequency << " util=" << utilization
                                               << " -> P_dyn=" << dynamicPower);
 
-    return PowerState(m_staticPower, dynamicPower);
+    return EnergyModel::PowerState(m_staticPower, dynamicPower);
 }
 
 double

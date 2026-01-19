@@ -19,51 +19,6 @@ class Accelerator;
 
 /**
  * @ingroup distributed
- * @brief Represents the current power state of an accelerator.
- *
- * PowerState encapsulates the static and dynamic power components
- * of an accelerator's power consumption.
- */
-struct PowerState
-{
-    double staticPower;  //!< Static/leakage power in Watts
-    double dynamicPower; //!< Dynamic/switching power in Watts
-    bool valid;          //!< Whether this power state is valid
-
-    /**
-     * @brief Default constructor - creates invalid power state.
-     */
-    PowerState()
-        : staticPower(0.0),
-          dynamicPower(0.0),
-          valid(false)
-    {
-    }
-
-    /**
-     * @brief Constructor with power values.
-     * @param staticP Static power in Watts.
-     * @param dynamicP Dynamic power in Watts.
-     */
-    PowerState(double staticP, double dynamicP)
-        : staticPower(staticP),
-          dynamicPower(dynamicP),
-          valid(true)
-    {
-    }
-
-    /**
-     * @brief Get total power consumption.
-     * @return Sum of static and dynamic power in Watts.
-     */
-    double GetTotalPower() const
-    {
-        return staticPower + dynamicPower;
-    }
-};
-
-/**
- * @ingroup distributed
  * @brief Abstract base class for accelerator energy models.
  *
  * EnergyModel defines the interface for calculating power consumption
@@ -87,6 +42,50 @@ struct PowerState
 class EnergyModel : public Object
 {
   public:
+    /**
+     * @brief Represents the current power state of an accelerator.
+     *
+     * PowerState encapsulates the static and dynamic power components
+     * of an accelerator's power consumption.
+     */
+    struct PowerState
+    {
+        double staticPower;  //!< Static/leakage power in Watts
+        double dynamicPower; //!< Dynamic/switching power in Watts
+        bool valid;          //!< Whether this power state is valid
+
+        /**
+         * @brief Default constructor - creates invalid power state.
+         */
+        PowerState()
+            : staticPower(0.0),
+              dynamicPower(0.0),
+              valid(false)
+        {
+        }
+
+        /**
+         * @brief Constructor with power values.
+         * @param staticP Static power in Watts.
+         * @param dynamicP Dynamic power in Watts.
+         */
+        PowerState(double staticP, double dynamicP)
+            : staticPower(staticP),
+              dynamicPower(dynamicP),
+              valid(true)
+        {
+        }
+
+        /**
+         * @brief Get total power consumption.
+         * @return Sum of static and dynamic power in Watts.
+         */
+        double GetTotalPower() const
+        {
+            return staticPower + dynamicPower;
+        }
+    };
+
     /**
      * @brief Get the type ID.
      * @return The object TypeId.

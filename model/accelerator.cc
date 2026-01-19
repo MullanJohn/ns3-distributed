@@ -144,7 +144,7 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
     }
 
     // Calculate new power state
-    PowerState powerState;
+    EnergyModel::PowerState powerState;
     if (active)
     {
         powerState = m_energyModel->CalculateActivePower(this, utilization);
