@@ -65,7 +65,7 @@ Accelerator::GetTypeId()
 Accelerator::Accelerator()
     : m_node(nullptr),
       m_energyModel(nullptr),
-      m_lastEnergyUpdateTime(Seconds(0)),
+      m_lastEnergyUpdateTime(Seconds(-1)),  // Sentinel value: not yet initialized
       m_totalEnergy(0.0),
       m_currentPower(0.0),
       m_taskStartEnergy(0.0)
@@ -133,6 +133,22 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
 
     Time now = Simulator::Now();
 
+    // First-time initialization: calculate idle power for period from time 0
+    if (m_lastEnergyUpdateTime.IsStrictlyNegative())
+    {
+        EnergyModel::PowerState idleState = m_energyModel->CalculateIdlePower(this);
+        if (idleState.valid)
+        {
+            m_currentPower = idleState.GetTotalPower();
+            // Accumulate idle energy from simulation start to now
+            if (now > Seconds(0))
+            {
+                m_totalEnergy = m_currentPower * now.GetSeconds();
+            }
+        }
+        m_lastEnergyUpdateTime = now;
+    }
+
     // Accumulate energy from previous state
     if (m_lastEnergyUpdateTime < now)
     {
@@ -190,7 +206,8 @@ Accelerator::DoDispose()
     {
         // Accumulate any remaining energy before disposal
         Time now = Simulator::Now();
-        if (m_lastEnergyUpdateTime < now)
+        // Only accumulate if we've been initialized (sentinel value is negative)
+        if (!m_lastEnergyUpdateTime.IsStrictlyNegative() && m_lastEnergyUpdateTime < now)
         {
             double elapsed = (now - m_lastEnergyUpdateTime).GetSeconds();
             if (elapsed > 0)
