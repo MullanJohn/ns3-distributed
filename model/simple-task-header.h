@@ -40,8 +40,9 @@ class SimpleTaskHeader : public TaskHeader
      * - computeDemand: 8 bytes
      * - inputSize: 8 bytes
      * - outputSize: 8 bytes
+     * - deadline: 8 bytes (int64_t nanoseconds, -1 = no deadline)
      */
-    static constexpr uint32_t SERIALIZED_SIZE = 33;
+    static constexpr uint32_t SERIALIZED_SIZE = 41;
 
     /**
      * @brief Get the type ID.
@@ -97,6 +98,24 @@ class SimpleTaskHeader : public TaskHeader
     uint64_t GetOutputSize() const;
 
     /**
+     * @brief Check if the header has a deadline set.
+     * @return true if deadline >= 0, false otherwise.
+     */
+    bool HasDeadline() const;
+
+    /**
+     * @brief Get the task deadline.
+     * @return The deadline as nanoseconds. Returns -1 if no deadline.
+     */
+    int64_t GetDeadlineNs() const;
+
+    /**
+     * @brief Set the task deadline.
+     * @param deadlineNs The deadline in nanoseconds. Use -1 for no deadline.
+     */
+    void SetDeadlineNs(int64_t deadlineNs);
+
+    /**
      * @brief Get a string representation of the header.
      * @return String representation.
      */
@@ -115,6 +134,7 @@ class SimpleTaskHeader : public TaskHeader
     double m_computeDemand;    //!< Compute demand in FLOPS
     uint64_t m_inputSize;      //!< Input data size in bytes
     uint64_t m_outputSize;     //!< Output data size in bytes
+    int64_t m_deadlineNs;      //!< Task deadline in nanoseconds (-1 = no deadline)
 };
 
 } // namespace ns3

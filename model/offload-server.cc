@@ -304,6 +304,7 @@ OffloadServer::ProcessTask(const SimpleTaskHeader& header, const Address& client
     task->SetInputSize(header.GetInputSize());
     task->SetOutputSize(header.GetOutputSize());
     task->SetArrivalTime(Simulator::Now());
+    task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
 
     // Track the pending task for response routing
     PendingTask pending;

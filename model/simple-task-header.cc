@@ -25,7 +25,8 @@ SimpleTaskHeader::SimpleTaskHeader()
       m_taskId(0),
       m_computeDemand(0.0),
       m_inputSize(0),
-      m_outputSize(0)
+      m_outputSize(0),
+      m_deadlineNs(-1)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -56,7 +57,8 @@ SimpleTaskHeader::GetSerializedSize() const
            sizeof(uint64_t) + // m_taskId
            sizeof(uint64_t) + // m_computeDemand (as uint64_t)
            sizeof(uint64_t) + // m_inputSize
-           sizeof(uint64_t);  // m_outputSize
+           sizeof(uint64_t) + // m_outputSize
+           sizeof(int64_t);   // m_deadlineNs
 }
 
 void
@@ -74,6 +76,9 @@ SimpleTaskHeader::Serialize(Buffer::Iterator start) const
 
     start.WriteU64(m_inputSize);
     start.WriteU64(m_outputSize);
+
+    // Serialize deadline as int64_t (cast to uint64_t for WriteU64)
+    start.WriteU64(static_cast<uint64_t>(m_deadlineNs));
 }
 
 uint32_t
@@ -100,6 +105,9 @@ SimpleTaskHeader::Deserialize(Buffer::Iterator start)
     m_inputSize = start.ReadU64();
     m_outputSize = start.ReadU64();
 
+    // Deserialize deadline (stored as uint64_t, interpret as int64_t)
+    m_deadlineNs = static_cast<int64_t>(start.ReadU64());
+
     return start.GetDistanceFrom(original);
 }
 
@@ -122,7 +130,9 @@ SimpleTaskHeader::Print(std::ostream& os) const
         break;
     }
     os << ", TaskId: " << m_taskId << ", ComputeDemand: " << m_computeDemand
-       << ", InputSize: " << m_inputSize << ", OutputSize: " << m_outputSize << ")";
+       << ", InputSize: " << m_inputSize << ", OutputSize: " << m_outputSize
+       << ", Deadline: " << (m_deadlineNs >= 0 ? std::to_string(m_deadlineNs) + "ns" : "none")
+       << ")";
 }
 
 std::string
@@ -209,6 +219,25 @@ uint64_t
 SimpleTaskHeader::GetResponsePayloadSize() const
 {
     return m_outputSize;
+}
+
+bool
+SimpleTaskHeader::HasDeadline() const
+{
+    return m_deadlineNs >= 0;
+}
+
+int64_t
+SimpleTaskHeader::GetDeadlineNs() const
+{
+    return m_deadlineNs;
+}
+
+void
+SimpleTaskHeader::SetDeadlineNs(int64_t deadlineNs)
+{
+    NS_LOG_FUNCTION(this << deadlineNs);
+    m_deadlineNs = deadlineNs;
 }
 
 } // namespace ns3
