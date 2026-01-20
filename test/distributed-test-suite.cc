@@ -49,6 +49,8 @@ TestCase* CreateTcpConnectionManagerClosePeerTestCase();
 TestCase* CreateUdpConnectionManagerBasicTestCase();
 TestCase* CreateConnectionManagerPropertiesTestCase();
 TestCase* CreateTcpConnectionManagerIpv6TestCase();
+TestCase* CreateDagTaskDependencyTestCase();
+TestCase* CreateDagTaskCycleDetectionTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -96,6 +98,8 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateUdpConnectionManagerBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConnectionManagerPropertiesTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTcpConnectionManagerIpv6TestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskDependencyTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskCycleDetectionTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
