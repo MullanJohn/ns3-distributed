@@ -10,9 +10,8 @@
 #define OFFLOAD_SERVER_H
 
 #include "accelerator.h"
-#include "compute-task.h"
 #include "connection-manager.h"
-#include "offload-header.h"
+#include "simple-task-header.h"
 #include "task.h"
 
 #include "ns3/address.h"
@@ -78,14 +77,14 @@ class OffloadServer : public Application
      * @brief TracedCallback signature for task received events.
      * @param header The offload header that was received.
      */
-    typedef void (*TaskReceivedTracedCallback)(const OffloadHeader& header);
+    typedef void (*TaskReceivedTracedCallback)(const SimpleTaskHeader& header);
 
     /**
      * @brief TracedCallback signature for task completed events.
      * @param header The offload header for the response.
      * @param duration The processing duration.
      */
-    typedef void (*TaskCompletedTracedCallback)(const OffloadHeader& header, Time duration);
+    typedef void (*TaskCompletedTracedCallback)(const SimpleTaskHeader& header, Time duration);
 
   protected:
     void DoDispose() override;
@@ -118,7 +117,7 @@ class OffloadServer : public Application
      * @param header The offload header.
      * @param clientAddr The client address for response routing.
      */
-    void ProcessTask(const OffloadHeader& header, const Address& clientAddr);
+    void ProcessTask(const SimpleTaskHeader& header, const Address& clientAddr);
 
     /**
      * @brief Called when a task completes on the accelerator.
@@ -133,7 +132,7 @@ class OffloadServer : public Application
      * @param task The completed compute task.
      * @param duration The processing duration.
      */
-    void SendResponse(const Address& clientAddr, Ptr<const ComputeTask> task, Time duration);
+    void SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration);
 
     /**
      * @brief Clean up state for a disconnected client.
@@ -157,7 +156,7 @@ class OffloadServer : public Application
     struct PendingTask
     {
         Address clientAddr; //!< Client address for response routing
-        Ptr<ComputeTask> task; //!< The task being processed
+        Ptr<Task> task; //!< The task being processed
     };
 
     std::unordered_map<uint64_t, PendingTask> m_pendingTasks;
@@ -168,8 +167,8 @@ class OffloadServer : public Application
     uint64_t m_totalRx;        //!< Total bytes received
 
     // Trace sources
-    TracedCallback<const OffloadHeader&> m_taskReceivedTrace;        //!< Task received
-    TracedCallback<const OffloadHeader&, Time> m_taskCompletedTrace; //!< Task completed
+    TracedCallback<const SimpleTaskHeader&> m_taskReceivedTrace;        //!< Task received
+    TracedCallback<const SimpleTaskHeader&, Time> m_taskCompletedTrace; //!< Task completed
 };
 
 } // namespace ns3

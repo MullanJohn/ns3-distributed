@@ -8,7 +8,6 @@
 
 #include "fixed-ratio-processing-model.h"
 
-#include "compute-task.h"
 #include "gpu-accelerator.h"
 
 #include "ns3/log.h"
@@ -59,15 +58,6 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
 {
     NS_LOG_FUNCTION(this << task << accelerator);
 
-    // Try to cast to ComputeTask for explicit parameters
-    Ptr<const ComputeTask> computeTask = DynamicCast<const ComputeTask>(task);
-    if (!computeTask)
-    {
-        NS_LOG_WARN("FixedRatioProcessingModel requires ComputeTask, received: "
-                    << task->GetName());
-        return Result();  // Returns success=false
-    }
-
     // Cast accelerator to GpuAccelerator to get hardware properties
     Ptr<const GpuAccelerator> gpu = DynamicCast<const GpuAccelerator>(accelerator);
     if (!gpu)
@@ -81,10 +71,10 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
     double computeRate = gpu->GetComputeRate();
     double memoryBandwidth = gpu->GetMemoryBandwidth();
 
-    // Get task parameters
-    uint64_t inputSize = computeTask->GetInputSize();
-    double computeDemand = computeTask->GetComputeDemand();
-    uint64_t outputSize = computeTask->GetOutputSize();
+    // Get task parameters from base Task class
+    uint64_t inputSize = task->GetInputSize();
+    double computeDemand = task->GetComputeDemand();
+    uint64_t outputSize = task->GetOutputSize();
 
     // Calculate three-phase timing
     double inputTransferSeconds = static_cast<double>(inputSize) / memoryBandwidth;

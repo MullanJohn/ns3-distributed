@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef OFFLOAD_HEADER_H
-#define OFFLOAD_HEADER_H
+#ifndef SIMPLE_TASK_HEADER_H
+#define SIMPLE_TASK_HEADER_H
 
 #include "task-header.h"
 
@@ -25,10 +25,10 @@ namespace ns3
  * offload clients and servers. It includes the task identifier,
  * compute demand, and input/output data sizes.
  *
- * OffloadHeader is a concrete implementation of TaskHeader
+ * SimpleTaskHeader is a concrete implementation of TaskHeader
  * designed for compute offloading scenarios.
  */
-class OffloadHeader : public TaskHeader
+class SimpleTaskHeader : public TaskHeader
 {
   public:
     /**
@@ -40,8 +40,9 @@ class OffloadHeader : public TaskHeader
      * - computeDemand: 8 bytes
      * - inputSize: 8 bytes
      * - outputSize: 8 bytes
+     * - deadline: 8 bytes (int64_t nanoseconds, -1 = no deadline)
      */
-    static constexpr uint32_t SERIALIZED_SIZE = 33;
+    static constexpr uint32_t SERIALIZED_SIZE = 41;
 
     /**
      * @brief Get the type ID.
@@ -49,8 +50,8 @@ class OffloadHeader : public TaskHeader
      */
     static TypeId GetTypeId();
 
-    OffloadHeader();
-    ~OffloadHeader() override;
+    SimpleTaskHeader();
+    ~SimpleTaskHeader() override;
 
     // DistributedHeader interface implementation
     MessageType GetMessageType() const override;
@@ -97,6 +98,24 @@ class OffloadHeader : public TaskHeader
     uint64_t GetOutputSize() const;
 
     /**
+     * @brief Check if the header has a deadline set.
+     * @return true if deadline >= 0, false otherwise.
+     */
+    bool HasDeadline() const;
+
+    /**
+     * @brief Get the task deadline.
+     * @return The deadline as nanoseconds. Returns -1 if no deadline.
+     */
+    int64_t GetDeadlineNs() const;
+
+    /**
+     * @brief Set the task deadline.
+     * @param deadlineNs The deadline in nanoseconds. Use -1 for no deadline.
+     */
+    void SetDeadlineNs(int64_t deadlineNs);
+
+    /**
      * @brief Get a string representation of the header.
      * @return String representation.
      */
@@ -115,8 +134,9 @@ class OffloadHeader : public TaskHeader
     double m_computeDemand;    //!< Compute demand in FLOPS
     uint64_t m_inputSize;      //!< Input data size in bytes
     uint64_t m_outputSize;     //!< Output data size in bytes
+    int64_t m_deadlineNs;      //!< Task deadline in nanoseconds (-1 = no deadline)
 };
 
 } // namespace ns3
 
-#endif // OFFLOAD_HEADER_H
+#endif // SIMPLE_TASK_HEADER_H

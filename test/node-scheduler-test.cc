@@ -10,7 +10,7 @@
 #include "ns3/inet-socket-address.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/node.h"
-#include "ns3/offload-header.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/round-robin-scheduler.h"
 #include "ns3/test.h"
 
@@ -51,8 +51,8 @@ RoundRobinSchedulerTestCase::DoRun()
     scheduler->Initialize(cluster);
 
     // Create a dummy header for testing
-    OffloadHeader header;
-    header.SetMessageType(OffloadHeader::TASK_REQUEST);
+    SimpleTaskHeader header;
+    header.SetMessageType(SimpleTaskHeader::TASK_REQUEST);
     header.SetTaskId(1);
     header.SetComputeDemand(1e9);
     header.SetInputSize(1024);
@@ -104,8 +104,8 @@ RoundRobinEmptyClusterTestCase::DoRun()
     Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
     scheduler->Initialize(emptyCluster);
 
-    OffloadHeader header;
-    header.SetMessageType(OffloadHeader::TASK_REQUEST);
+    SimpleTaskHeader header;
+    header.SetMessageType(SimpleTaskHeader::TASK_REQUEST);
     header.SetTaskId(1);
 
     int32_t selected = scheduler->SelectBackend(header, emptyCluster);
@@ -138,8 +138,8 @@ RoundRobinSingleBackendTestCase::DoRun()
     Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
     scheduler->Initialize(cluster);
 
-    OffloadHeader header;
-    header.SetMessageType(OffloadHeader::TASK_REQUEST);
+    SimpleTaskHeader header;
+    header.SetMessageType(SimpleTaskHeader::TASK_REQUEST);
 
     // With single backend, should always return 0
     for (uint32_t i = 0; i < 5; i++)
@@ -179,8 +179,8 @@ RoundRobinForkTestCase::DoRun()
     Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
     scheduler->Initialize(cluster);
 
-    OffloadHeader header;
-    header.SetMessageType(OffloadHeader::TASK_REQUEST);
+    SimpleTaskHeader header;
+    header.SetMessageType(SimpleTaskHeader::TASK_REQUEST);
     header.SetTaskId(1);
 
     // Advance the original scheduler

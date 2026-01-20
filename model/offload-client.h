@@ -10,7 +10,7 @@
 #define OFFLOAD_CLIENT_H
 
 #include "connection-manager.h"
-#include "offload-header.h"
+#include "simple-task-header.h"
 
 #include "ns3/application.h"
 #include "ns3/event-id.h"
@@ -33,7 +33,7 @@ class Packet;
  * server. Tasks are generated with configurable random distributions
  * for inter-arrival time, compute demand, and input/output sizes.
  *
- * Each task is sent as a packet with an OffloadHeader followed by payload
+ * Each task is sent as a packet with an SimpleTaskHeader followed by payload
  * data sized to match the task's input size, simulating realistic data
  * transfer for computation offloading scenarios.
  *
@@ -93,14 +93,14 @@ class OffloadClient : public Application
      * @brief TracedCallback signature for task sent events.
      * @param header The offload header that was sent.
      */
-    typedef void (*TaskSentTracedCallback)(const OffloadHeader& header);
+    typedef void (*TaskSentTracedCallback)(const SimpleTaskHeader& header);
 
     /**
      * @brief TracedCallback signature for response received events.
      * @param header The offload header from the response.
      * @param rtt Round-trip time from task sent to response received.
      */
-    typedef void (*ResponseReceivedTracedCallback)(const OffloadHeader& header, Time rtt);
+    typedef void (*ResponseReceivedTracedCallback)(const SimpleTaskHeader& header, Time rtt);
 
   protected:
     void DoDispose() override;
@@ -170,8 +170,8 @@ class OffloadClient : public Application
     std::map<uint64_t, Time> m_sendTimes; //!< Map of task ID to send time
 
     // Trace sources
-    TracedCallback<const OffloadHeader&> m_taskSentTrace;               //!< Task sent trace
-    TracedCallback<const OffloadHeader&, Time> m_responseReceivedTrace; //!< Response received trace
+    TracedCallback<const SimpleTaskHeader&> m_taskSentTrace;               //!< Task sent trace
+    TracedCallback<const SimpleTaskHeader&, Time> m_responseReceivedTrace; //!< Response received trace
 };
 
 } // namespace ns3

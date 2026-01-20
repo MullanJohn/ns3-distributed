@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/compute-task.h"
+#include "ns3/simple-task.h"
 #include "ns3/double.h"
 #include "ns3/dvfs-energy-model.h"
 #include "ns3/fifo-queue-scheduler.h"
@@ -59,7 +59,7 @@ class GpuAcceleratorQueueTestCase : public TestCase
 
         for (uint32_t i = 0; i < 5; i++)
         {
-            Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+            Ptr<Task> task = CreateObject<SimpleTask>();
             task->SetTaskId(i);
             task->SetComputeDemand(1e9);
             task->SetInputSize(1e6);

@@ -15,7 +15,7 @@
 #include "ns3/inet-socket-address.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
-#include "ns3/offload-header.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/offload-server.h"
 #include "ns3/packet.h"
 #include "ns3/pointer.h"
@@ -107,12 +107,12 @@ class OffloadServerBasicTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(), 0, "No tasks should be received yet");
     }
 
-    void OnTaskReceived(const OffloadHeader& header)
+    void OnTaskReceived(const SimpleTaskHeader& header)
     {
         m_taskReceived = true;
     }
 
-    void OnTaskCompleted(const OffloadHeader& header, Time duration)
+    void OnTaskCompleted(const SimpleTaskHeader& header, Time duration)
     {
         m_taskCompleted = true;
     }

@@ -8,6 +8,7 @@
 
 #include "offload-server.h"
 
+#include "simple-task.h"
 #include "tcp-connection-manager.h"
 
 #include "ns3/log.h"
@@ -223,7 +224,7 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
     }
 
     Ptr<Packet> buffer = it->second;
-    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
+    static const uint32_t headerSize = SimpleTaskHeader::SERIALIZED_SIZE;
 
     // Process all complete messages in the buffer
     while (buffer->GetSize() > 0)
@@ -237,7 +238,7 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
         }
 
         // Peek at the header to get input size
-        OffloadHeader header;
+        SimpleTaskHeader header;
         buffer->PeekHeader(header);
 
         // Calculate total message size (header + payload)
@@ -273,11 +274,11 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
 }
 
 void
-OffloadServer::ProcessTask(const OffloadHeader& header, const Address& clientAddr)
+OffloadServer::ProcessTask(const SimpleTaskHeader& header, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << header.GetTaskId() << clientAddr);
 
-    if (header.GetMessageType() != OffloadHeader::TASK_REQUEST)
+    if (header.GetMessageType() != SimpleTaskHeader::TASK_REQUEST)
     {
         NS_LOG_WARN("Received non-request message type, ignoring");
         return;
@@ -296,13 +297,14 @@ OffloadServer::ProcessTask(const OffloadHeader& header, const Address& clientAdd
         return;
     }
 
-    // Create a ComputeTask object from the header
-    Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+    // Create a Task from the header
+    Ptr<Task> task = CreateObject<SimpleTask>();
     task->SetTaskId(header.GetTaskId());
     task->SetComputeDemand(header.GetComputeDemand());
     task->SetInputSize(header.GetInputSize());
     task->SetOutputSize(header.GetOutputSize());
     task->SetArrivalTime(Simulator::Now());
+    task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
 
     // Track the pending task for response routing
     PendingTask pending;
@@ -331,22 +333,22 @@ OffloadServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
     }
 
     Address clientAddr = it->second.clientAddr;
-    Ptr<ComputeTask> computeTask = it->second.task;
+    Ptr<Task> pendingTask = it->second.task;
     m_pendingTasks.erase(it);
 
-    SendResponse(clientAddr, computeTask, duration);
+    SendResponse(clientAddr, pendingTask, duration);
 }
 
 void
 OffloadServer::SendResponse(const Address& clientAddr,
-                            Ptr<const ComputeTask> task,
+                            Ptr<const Task> task,
                             Time duration)
 {
     NS_LOG_FUNCTION(this << clientAddr << task->GetTaskId() << duration);
 
     // Create response header
-    OffloadHeader response;
-    response.SetMessageType(OffloadHeader::TASK_RESPONSE);
+    SimpleTaskHeader response;
+    response.SetMessageType(SimpleTaskHeader::TASK_RESPONSE);
     response.SetTaskId(task->GetTaskId());
     response.SetComputeDemand(task->GetComputeDemand());
     response.SetInputSize(task->GetInputSize());

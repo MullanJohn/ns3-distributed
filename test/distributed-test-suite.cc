@@ -22,8 +22,8 @@ TestCase* CreateEnergyModelNotConfiguredTestCase();
 TestCase* CreateTaskHeaderInterfaceTestCase();
 TestCase* CreateTaskHeaderPolymorphismTestCase();
 TestCase* CreateTaskHeaderPayloadSizeTestCase();
-TestCase* CreateOffloadHeaderTestCase();
-TestCase* CreateOffloadHeaderResponseTestCase();
+TestCase* CreateSimpleTaskHeaderTestCase();
+TestCase* CreateSimpleTaskHeaderResponseTestCase();
 TestCase* CreateOffloadServerBasicTestCase();
 TestCase* CreateOffloadServerNoAcceleratorTestCase();
 TestCase* CreateOffloadClientMultiClientTestCase();
@@ -49,6 +49,10 @@ TestCase* CreateTcpConnectionManagerClosePeerTestCase();
 TestCase* CreateUdpConnectionManagerBasicTestCase();
 TestCase* CreateConnectionManagerPropertiesTestCase();
 TestCase* CreateTcpConnectionManagerIpv6TestCase();
+TestCase* CreateDagTaskDependencyTestCase();
+TestCase* CreateDagTaskCycleDetectionTestCase();
+TestCase* CreateDagTaskDataDependencyTestCase();
+TestCase* CreateDagTaskDataAccumulationTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -69,8 +73,8 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateTaskHeaderInterfaceTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTaskHeaderPolymorphismTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTaskHeaderPayloadSizeTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateOffloadHeaderTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateOffloadHeaderResponseTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateSimpleTaskHeaderTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateSimpleTaskHeaderResponseTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadServerBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadServerNoAcceleratorTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadClientMultiClientTestCase(), TestCase::Duration::QUICK);
@@ -96,6 +100,10 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateUdpConnectionManagerBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConnectionManagerPropertiesTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateTcpConnectionManagerIpv6TestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskDependencyTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskCycleDetectionTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskDataDependencyTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskDataAccumulationTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;

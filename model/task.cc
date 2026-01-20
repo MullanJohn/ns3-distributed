@@ -8,7 +8,9 @@
 
 #include "task.h"
 
+#include "ns3/double.h"
 #include "ns3/log.h"
+#include "ns3/uinteger.h"
 
 namespace ns3
 {
@@ -21,7 +23,22 @@ Task::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::Task")
                             .SetParent<Object>()
-                            .SetGroupName("Distributed");
+                            .SetGroupName("Distributed")
+                            .AddAttribute("InputSize",
+                                          "Input data size in bytes",
+                                          UintegerValue(0),
+                                          MakeUintegerAccessor(&Task::m_inputSize),
+                                          MakeUintegerChecker<uint64_t>())
+                            .AddAttribute("OutputSize",
+                                          "Output data size in bytes",
+                                          UintegerValue(0),
+                                          MakeUintegerAccessor(&Task::m_outputSize),
+                                          MakeUintegerChecker<uint64_t>())
+                            .AddAttribute("ComputeDemand",
+                                          "Compute demand in FLOPS",
+                                          DoubleValue(0.0),
+                                          MakeDoubleAccessor(&Task::m_computeDemand),
+                                          MakeDoubleChecker<double>(0));
     // Note: No AddConstructor because this is an abstract class
     return tid;
 }
@@ -40,8 +57,65 @@ void
 Task::DoDispose()
 {
     NS_LOG_FUNCTION(this);
+    m_taskId = 0;
+    m_inputSize = 0;
+    m_outputSize = 0;
+    m_computeDemand = 0.0;
     m_arrivalTime = Seconds(0);
+    m_deadline = Time(-1);
     Object::DoDispose();
+}
+
+uint64_t
+Task::GetTaskId() const
+{
+    return m_taskId;
+}
+
+void
+Task::SetTaskId(uint64_t id)
+{
+    NS_LOG_FUNCTION(this << id);
+    m_taskId = id;
+}
+
+uint64_t
+Task::GetInputSize() const
+{
+    return m_inputSize;
+}
+
+void
+Task::SetInputSize(uint64_t bytes)
+{
+    NS_LOG_FUNCTION(this << bytes);
+    m_inputSize = bytes;
+}
+
+uint64_t
+Task::GetOutputSize() const
+{
+    return m_outputSize;
+}
+
+void
+Task::SetOutputSize(uint64_t bytes)
+{
+    NS_LOG_FUNCTION(this << bytes);
+    m_outputSize = bytes;
+}
+
+double
+Task::GetComputeDemand() const
+{
+    return m_computeDemand;
+}
+
+void
+Task::SetComputeDemand(double flops)
+{
+    NS_LOG_FUNCTION(this << flops);
+    m_computeDemand = flops;
 }
 
 Time
@@ -55,6 +129,32 @@ Task::SetArrivalTime(Time time)
 {
     NS_LOG_FUNCTION(this << time);
     m_arrivalTime = time;
+}
+
+bool
+Task::HasDeadline() const
+{
+    return m_deadline >= Seconds(0);
+}
+
+Time
+Task::GetDeadline() const
+{
+    return m_deadline;
+}
+
+void
+Task::SetDeadline(Time deadline)
+{
+    NS_LOG_FUNCTION(this << deadline);
+    m_deadline = deadline;
+}
+
+void
+Task::ClearDeadline()
+{
+    NS_LOG_FUNCTION(this);
+    m_deadline = Time(-1);
 }
 
 } // namespace ns3
