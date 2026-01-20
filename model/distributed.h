@@ -28,6 +28,7 @@
  */
 
 // Task
+#include "ns3/dag-task.h"
 #include "ns3/simple-task.h"
 #include "ns3/simple-task-header.h"
 #include "ns3/task-header.h"
