@@ -29,7 +29,7 @@
 
 // Task
 #include "ns3/simple-task.h"
-#include "ns3/offload-header.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/task-header.h"
 #include "ns3/task.h"
 

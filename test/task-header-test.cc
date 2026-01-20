@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/offload-header.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/packet.h"
 #include "ns3/task-header.h"
 #include "ns3/test.h"
@@ -18,21 +18,21 @@ namespace
 
 /**
  * @ingroup distributed-tests
- * @brief Test TaskHeader interface through OffloadHeader
+ * @brief Test TaskHeader interface through SimpleTaskHeader
  */
 class TaskHeaderInterfaceTestCase : public TestCase
 {
   public:
     TaskHeaderInterfaceTestCase()
-        : TestCase("Test TaskHeader interface through OffloadHeader")
+        : TestCase("Test TaskHeader interface through SimpleTaskHeader")
     {
     }
 
   private:
     void DoRun() override
     {
-        // Create OffloadHeader and use via TaskHeader interface
-        OffloadHeader concrete;
+        // Create SimpleTaskHeader and use via TaskHeader interface
+        SimpleTaskHeader concrete;
         concrete.SetMessageType(TaskHeader::TASK_REQUEST);
         concrete.SetTaskId(42);
         concrete.SetInputSize(1000);
@@ -71,7 +71,7 @@ class TaskHeaderPolymorphismTestCase : public TestCase
     void DoRun() override
     {
         // Create concrete header
-        OffloadHeader original;
+        SimpleTaskHeader original;
         original.SetMessageType(TaskHeader::TASK_REQUEST);
         original.SetTaskId(12345);
         original.SetComputeDemand(1e9);
@@ -85,11 +85,11 @@ class TaskHeaderPolymorphismTestCase : public TestCase
 
         // Verify serialization worked (packet has correct size)
         NS_TEST_ASSERT_MSG_EQ(packet->GetSize(),
-                              OffloadHeader::SERIALIZED_SIZE,
+                              SimpleTaskHeader::SERIALIZED_SIZE,
                               "Packet should have header size");
 
         // Deserialize
-        OffloadHeader deserialized;
+        SimpleTaskHeader deserialized;
         packet->RemoveHeader(deserialized);
 
         // Verify through interface methods
@@ -113,7 +113,7 @@ class TaskHeaderPayloadSizeTestCase : public TestCase
   private:
     void DoRun() override
     {
-        OffloadHeader header;
+        SimpleTaskHeader header;
         header.SetInputSize(1000);
         header.SetOutputSize(500);
 
@@ -121,7 +121,7 @@ class TaskHeaderPayloadSizeTestCase : public TestCase
         const TaskHeader& base = header;
 
         // Request payload = inputSize - headerSize (or 0 if inputSize <= headerSize)
-        uint64_t expectedRequestPayload = 1000 - OffloadHeader::SERIALIZED_SIZE;
+        uint64_t expectedRequestPayload = 1000 - SimpleTaskHeader::SERIALIZED_SIZE;
         NS_TEST_ASSERT_MSG_EQ(base.GetRequestPayloadSize(),
                               expectedRequestPayload,
                               "Request payload size");

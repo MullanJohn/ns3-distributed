@@ -15,7 +15,7 @@ build_lib(
     SOURCE_FILES model/distributed.cc
                  model/task-header.cc
                  model/task.cc
-                 model/compute-task.cc
+                 model/simple-task.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
                  model/udp-connection-manager.cc
@@ -28,7 +28,7 @@ build_lib(
                  model/queue-scheduler.cc
                  model/fifo-queue-scheduler.cc
                  model/batching-queue-scheduler.cc
-                 model/offload-header.cc
+                 model/simple-task-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
                  model/cluster.cc
@@ -42,7 +42,7 @@ build_lib(
     HEADER_FILES model/distributed.h
                  model/task-header.h
                  model/task.h
-                 model/compute-task.h
+                 model/simple-task.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
                  model/udp-connection-manager.h
@@ -55,7 +55,7 @@ build_lib(
                  model/queue-scheduler.h
                  model/fifo-queue-scheduler.h
                  model/batching-queue-scheduler.h
-                 model/offload-header.h
+                 model/simple-task-header.h
                  model/offload-client.h
                  model/offload-server.h
                  model/cluster.h
@@ -75,7 +75,7 @@ build_lib(
                  test/energy-model-test.cc
                  test/gpu-accelerator-queue-test.cc
                  test/task-header-test.cc
-                 test/offload-header-test.cc
+                 test/simple-task-header-test.cc
                  test/offload-server-test.cc
                  test/offload-client-test.cc
                  test/cluster-test.cc

@@ -16,7 +16,7 @@
 #include "ns3/network-module.h"
 #include "ns3/offload-client-helper.h"
 #include "ns3/offload-client.h"
-#include "ns3/offload-header.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-module.h"
@@ -75,7 +75,7 @@ GetClientIdFromTaskId(uint64_t taskId)
  * @param header The offload header that was sent.
  */
 static void
-TaskSent(const OffloadHeader& header)
+TaskSent(const SimpleTaskHeader& header)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Client " << GetClientIdFromTaskId(header.GetTaskId()) << "] "
@@ -90,7 +90,7 @@ TaskSent(const OffloadHeader& header)
  * @param rtt Round-trip time from task sent to response received.
  */
 static void
-ResponseReceived(const OffloadHeader& header, Time rtt)
+ResponseReceived(const SimpleTaskHeader& header, Time rtt)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Client " << GetClientIdFromTaskId(header.GetTaskId()) << "] "
@@ -104,7 +104,7 @@ ResponseReceived(const OffloadHeader& header, Time rtt)
  * @param header The offload header that was received.
  */
 static void
-TaskReceived(const OffloadHeader& header)
+TaskReceived(const SimpleTaskHeader& header)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Server] Task 0x" << std::hex << header.GetTaskId() << std::dec

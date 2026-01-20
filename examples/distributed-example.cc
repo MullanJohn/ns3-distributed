@@ -16,7 +16,7 @@
 #include "ns3/network-module.h"
 #include "ns3/offload-client-helper.h"
 #include "ns3/offload-client.h"
-#include "ns3/offload-header.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-module.h"
@@ -64,7 +64,7 @@ NS_LOG_COMPONENT_DEFINE("DistributedExample");
  * @param header The offload header that was sent.
  */
 static void
-TaskSent(const OffloadHeader& header)
+TaskSent(const SimpleTaskHeader& header)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Client] Task " << header.GetTaskId() << " sent"
@@ -79,7 +79,7 @@ TaskSent(const OffloadHeader& header)
  * @param rtt Round-trip time from task sent to response received.
  */
 static void
-ResponseReceived(const OffloadHeader& header, Time rtt)
+ResponseReceived(const SimpleTaskHeader& header, Time rtt)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Client] Task " << header.GetTaskId() << " response received"
@@ -92,7 +92,7 @@ ResponseReceived(const OffloadHeader& header, Time rtt)
  * @param header The offload header that was received.
  */
 static void
-TaskReceived(const OffloadHeader& header)
+TaskReceived(const SimpleTaskHeader& header)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Server] Task " << header.GetTaskId() << " received");
@@ -131,7 +131,7 @@ GpuTaskCompleted(Ptr<const Task> task, Time duration)
  * @param duration The processing duration.
  */
 static void
-ServerTaskCompleted(const OffloadHeader& header, Time duration)
+ServerTaskCompleted(const SimpleTaskHeader& header, Time duration)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Server] Task " << header.GetTaskId() << " response sent");

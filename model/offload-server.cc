@@ -224,7 +224,7 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
     }
 
     Ptr<Packet> buffer = it->second;
-    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
+    static const uint32_t headerSize = SimpleTaskHeader::SERIALIZED_SIZE;
 
     // Process all complete messages in the buffer
     while (buffer->GetSize() > 0)
@@ -238,7 +238,7 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
         }
 
         // Peek at the header to get input size
-        OffloadHeader header;
+        SimpleTaskHeader header;
         buffer->PeekHeader(header);
 
         // Calculate total message size (header + payload)
@@ -274,11 +274,11 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
 }
 
 void
-OffloadServer::ProcessTask(const OffloadHeader& header, const Address& clientAddr)
+OffloadServer::ProcessTask(const SimpleTaskHeader& header, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << header.GetTaskId() << clientAddr);
 
-    if (header.GetMessageType() != OffloadHeader::TASK_REQUEST)
+    if (header.GetMessageType() != SimpleTaskHeader::TASK_REQUEST)
     {
         NS_LOG_WARN("Received non-request message type, ignoring");
         return;
@@ -346,8 +346,8 @@ OffloadServer::SendResponse(const Address& clientAddr,
     NS_LOG_FUNCTION(this << clientAddr << task->GetTaskId() << duration);
 
     // Create response header
-    OffloadHeader response;
-    response.SetMessageType(OffloadHeader::TASK_RESPONSE);
+    SimpleTaskHeader response;
+    response.SetMessageType(SimpleTaskHeader::TASK_RESPONSE);
     response.SetTaskId(task->GetTaskId());
     response.SetComputeDemand(task->GetComputeDemand());
     response.SetInputSize(task->GetInputSize());

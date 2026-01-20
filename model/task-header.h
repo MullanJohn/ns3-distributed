@@ -26,7 +26,7 @@ namespace ns3
  * - Task identification for routing and correlation
  * - Payload size calculation for TCP stream reassembly
  *
- * Concrete implementations (e.g., OffloadHeader) add task-specific
+ * Concrete implementations (e.g., SimpleTaskHeader) add task-specific
  * fields like compute demand, I/O sizes, or inference parameters.
  *
  * LoadBalancer and NodeScheduler use this interface to route messages
@@ -35,7 +35,7 @@ namespace ns3
  * Example usage:
  * @code
  * // Create a concrete header
- * OffloadHeader concrete;
+ * SimpleTaskHeader concrete;
  * concrete.SetMessageType(TaskHeader::TASK_REQUEST);
  * concrete.SetTaskId(42);
  *

@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "offload-header.h"
+#include "simple-task-header.h"
 
 #include "ns3/log.h"
 
@@ -16,20 +16,10 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("OffloadHeader");
+NS_LOG_COMPONENT_DEFINE("SimpleTaskHeader");
+NS_OBJECT_ENSURE_REGISTERED(SimpleTaskHeader);
 
-// Compile-time validation that SERIALIZED_SIZE matches actual serialization
-static_assert(OffloadHeader::SERIALIZED_SIZE ==
-                  sizeof(uint8_t) +      // messageType
-                      sizeof(uint64_t) + // taskId
-                      sizeof(uint64_t) + // computeDemand (as uint64_t)
-                      sizeof(uint64_t) + // inputSize
-                      sizeof(uint64_t),  // outputSize
-              "OffloadHeader::SERIALIZED_SIZE does not match actual serialization");
-
-NS_OBJECT_ENSURE_REGISTERED(OffloadHeader);
-
-OffloadHeader::OffloadHeader()
+SimpleTaskHeader::SimpleTaskHeader()
     : TaskHeader(),
       m_messageType(TASK_REQUEST),
       m_taskId(0),
@@ -40,27 +30,27 @@ OffloadHeader::OffloadHeader()
     NS_LOG_FUNCTION(this);
 }
 
-OffloadHeader::~OffloadHeader()
+SimpleTaskHeader::~SimpleTaskHeader()
 {
     NS_LOG_FUNCTION(this);
 }
 
 TypeId
-OffloadHeader::GetTypeId()
+SimpleTaskHeader::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::OffloadHeader").SetParent<TaskHeader>().AddConstructor<OffloadHeader>();
+        TypeId("ns3::SimpleTaskHeader").SetParent<TaskHeader>().AddConstructor<SimpleTaskHeader>();
     return tid;
 }
 
 TypeId
-OffloadHeader::GetInstanceTypeId() const
+SimpleTaskHeader::GetInstanceTypeId() const
 {
     return GetTypeId();
 }
 
 uint32_t
-OffloadHeader::GetSerializedSize() const
+SimpleTaskHeader::GetSerializedSize() const
 {
     return sizeof(uint8_t) +  // m_messageType
            sizeof(uint64_t) + // m_taskId
@@ -70,7 +60,7 @@ OffloadHeader::GetSerializedSize() const
 }
 
 void
-OffloadHeader::Serialize(Buffer::Iterator start) const
+SimpleTaskHeader::Serialize(Buffer::Iterator start) const
 {
     NS_LOG_FUNCTION(this << &start);
 
@@ -87,7 +77,7 @@ OffloadHeader::Serialize(Buffer::Iterator start) const
 }
 
 uint32_t
-OffloadHeader::Deserialize(Buffer::Iterator start)
+SimpleTaskHeader::Deserialize(Buffer::Iterator start)
 {
     NS_LOG_FUNCTION(this << &start);
 
@@ -97,7 +87,7 @@ OffloadHeader::Deserialize(Buffer::Iterator start)
     if (messageTypeByte > TASK_RESPONSE)
     {
         NS_LOG_WARN("Invalid message type " << static_cast<int>(messageTypeByte)
-                                            << " received in OffloadHeader");
+                                            << " received in SimpleTaskHeader");
     }
     m_messageType = static_cast<MessageType>(messageTypeByte);
 
@@ -114,7 +104,7 @@ OffloadHeader::Deserialize(Buffer::Iterator start)
 }
 
 void
-OffloadHeader::Print(std::ostream& os) const
+SimpleTaskHeader::Print(std::ostream& os) const
 {
     NS_LOG_FUNCTION(this << &os);
 
@@ -136,7 +126,7 @@ OffloadHeader::Print(std::ostream& os) const
 }
 
 std::string
-OffloadHeader::ToString() const
+SimpleTaskHeader::ToString() const
 {
     NS_LOG_FUNCTION(this);
     std::ostringstream oss;
@@ -145,78 +135,78 @@ OffloadHeader::ToString() const
 }
 
 void
-OffloadHeader::SetMessageType(MessageType messageType)
+SimpleTaskHeader::SetMessageType(MessageType messageType)
 {
     NS_LOG_FUNCTION(this << messageType);
     m_messageType = messageType;
 }
 
 TaskHeader::MessageType
-OffloadHeader::GetMessageType() const
+SimpleTaskHeader::GetMessageType() const
 {
     return m_messageType;
 }
 
 void
-OffloadHeader::SetTaskId(uint64_t taskId)
+SimpleTaskHeader::SetTaskId(uint64_t taskId)
 {
     NS_LOG_FUNCTION(this << taskId);
     m_taskId = taskId;
 }
 
 uint64_t
-OffloadHeader::GetTaskId() const
+SimpleTaskHeader::GetTaskId() const
 {
     return m_taskId;
 }
 
 void
-OffloadHeader::SetComputeDemand(double computeDemand)
+SimpleTaskHeader::SetComputeDemand(double computeDemand)
 {
     NS_LOG_FUNCTION(this << computeDemand);
     m_computeDemand = computeDemand;
 }
 
 double
-OffloadHeader::GetComputeDemand() const
+SimpleTaskHeader::GetComputeDemand() const
 {
     return m_computeDemand;
 }
 
 void
-OffloadHeader::SetInputSize(uint64_t inputSize)
+SimpleTaskHeader::SetInputSize(uint64_t inputSize)
 {
     NS_LOG_FUNCTION(this << inputSize);
     m_inputSize = inputSize;
 }
 
 uint64_t
-OffloadHeader::GetInputSize() const
+SimpleTaskHeader::GetInputSize() const
 {
     return m_inputSize;
 }
 
 void
-OffloadHeader::SetOutputSize(uint64_t outputSize)
+SimpleTaskHeader::SetOutputSize(uint64_t outputSize)
 {
     NS_LOG_FUNCTION(this << outputSize);
     m_outputSize = outputSize;
 }
 
 uint64_t
-OffloadHeader::GetOutputSize() const
+SimpleTaskHeader::GetOutputSize() const
 {
     return m_outputSize;
 }
 
 uint64_t
-OffloadHeader::GetRequestPayloadSize() const
+SimpleTaskHeader::GetRequestPayloadSize() const
 {
     return (m_inputSize > SERIALIZED_SIZE) ? (m_inputSize - SERIALIZED_SIZE) : 0;
 }
 
 uint64_t
-OffloadHeader::GetResponsePayloadSize() const
+SimpleTaskHeader::GetResponsePayloadSize() const
 {
     return m_outputSize;
 }

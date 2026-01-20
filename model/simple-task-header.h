@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef OFFLOAD_HEADER_H
-#define OFFLOAD_HEADER_H
+#ifndef SIMPLE_TASK_HEADER_H
+#define SIMPLE_TASK_HEADER_H
 
 #include "task-header.h"
 
@@ -25,10 +25,10 @@ namespace ns3
  * offload clients and servers. It includes the task identifier,
  * compute demand, and input/output data sizes.
  *
- * OffloadHeader is a concrete implementation of TaskHeader
+ * SimpleTaskHeader is a concrete implementation of TaskHeader
  * designed for compute offloading scenarios.
  */
-class OffloadHeader : public TaskHeader
+class SimpleTaskHeader : public TaskHeader
 {
   public:
     /**
@@ -49,8 +49,8 @@ class OffloadHeader : public TaskHeader
      */
     static TypeId GetTypeId();
 
-    OffloadHeader();
-    ~OffloadHeader() override;
+    SimpleTaskHeader();
+    ~SimpleTaskHeader() override;
 
     // DistributedHeader interface implementation
     MessageType GetMessageType() const override;
@@ -119,4 +119,4 @@ class OffloadHeader : public TaskHeader
 
 } // namespace ns3
 
-#endif // OFFLOAD_HEADER_H
+#endif // SIMPLE_TASK_HEADER_H

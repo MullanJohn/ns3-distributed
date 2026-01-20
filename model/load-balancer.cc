@@ -235,12 +235,12 @@ LoadBalancer::HandleFrontendReceive(Ptr<Packet> packet, const Address& from)
     }
 
     Ptr<Packet> buffer = m_clientBuffers[from];
-    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
+    static const uint32_t headerSize = SimpleTaskHeader::SERIALIZED_SIZE;
 
     // Process complete messages
     while (buffer->GetSize() >= headerSize)
     {
-        OffloadHeader header;
+        SimpleTaskHeader header;
         buffer->PeekHeader(header);
 
         uint64_t payloadSize = header.GetRequestPayloadSize();
@@ -301,12 +301,12 @@ LoadBalancer::HandleBackendReceive(Ptr<Packet> packet, const Address& from)
     }
 
     Ptr<Packet> buffer = m_backendBuffers[from];
-    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
+    static const uint32_t headerSize = SimpleTaskHeader::SERIALIZED_SIZE;
 
     // Process complete messages
     while (buffer->GetSize() >= headerSize)
     {
-        OffloadHeader header;
+        SimpleTaskHeader header;
         buffer->PeekHeader(header);
 
         // For responses, server sends header + outputSize bytes
@@ -351,7 +351,7 @@ LoadBalancer::HandleBackendReceive(Ptr<Packet> packet, const Address& from)
 // ========== Task forwarding and response routing ==========
 
 void
-LoadBalancer::ForwardTask(const OffloadHeader& header,
+LoadBalancer::ForwardTask(const SimpleTaskHeader& header,
                           Ptr<Packet> payload,
                           const Address& clientAddr)
 {
@@ -389,7 +389,7 @@ LoadBalancer::ForwardTask(const OffloadHeader& header,
 }
 
 void
-LoadBalancer::RouteResponse(const OffloadHeader& header,
+LoadBalancer::RouteResponse(const SimpleTaskHeader& header,
                             Ptr<Packet> payload,
                             const Address& backendAddr)
 {

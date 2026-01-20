@@ -279,8 +279,8 @@ OffloadClient::SendTask()
     // Task ID format: upper 32 bits = client ID, lower 32 bits = sequence number
     uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_taskCount;
 
-    OffloadHeader header;
-    header.SetMessageType(OffloadHeader::TASK_REQUEST);
+    SimpleTaskHeader header;
+    header.SetMessageType(SimpleTaskHeader::TASK_REQUEST);
     header.SetTaskId(taskId);
     header.SetComputeDemand(computeDemand);
     header.SetInputSize(inputSize);
@@ -338,16 +338,16 @@ OffloadClient::ProcessBuffer()
     NS_LOG_FUNCTION(this);
 
     // Header size is constant (33 bytes)
-    static const uint32_t headerSize = OffloadHeader::SERIALIZED_SIZE;
+    static const uint32_t headerSize = SimpleTaskHeader::SERIALIZED_SIZE;
 
     while (m_rxBuffer->GetSize() >= headerSize)
     {
         // Peek header to determine message type
-        OffloadHeader header;
+        SimpleTaskHeader header;
         m_rxBuffer->PeekHeader(header);
 
         // For responses, we only need the header (no additional payload)
-        if (header.GetMessageType() != OffloadHeader::TASK_RESPONSE)
+        if (header.GetMessageType() != SimpleTaskHeader::TASK_RESPONSE)
         {
             NS_LOG_WARN("Received unexpected message type: " << header.GetMessageType());
             // Remove the header and continue

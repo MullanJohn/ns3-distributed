@@ -18,7 +18,7 @@
 #include "ns3/network-module.h"
 #include "ns3/offload-client-helper.h"
 #include "ns3/offload-client.h"
-#include "ns3/offload-header.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-module.h"
@@ -74,7 +74,7 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("LoadBalancerExample");
 
 static void
-TaskSent(uint32_t clientId, const OffloadHeader& header)
+TaskSent(uint32_t clientId, const SimpleTaskHeader& header)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Client " << clientId << "] Task " << header.GetTaskId() << " sent"
@@ -82,7 +82,7 @@ TaskSent(uint32_t clientId, const OffloadHeader& header)
 }
 
 static void
-ResponseReceived(uint32_t clientId, const OffloadHeader& header, Time rtt)
+ResponseReceived(uint32_t clientId, const SimpleTaskHeader& header, Time rtt)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Client " << clientId << "] Task " << header.GetTaskId()
@@ -105,14 +105,14 @@ ResponseRouted(const TaskHeader& header, Time latency)
 }
 
 static void
-TaskReceived(uint32_t serverId, const OffloadHeader& header)
+TaskReceived(uint32_t serverId, const SimpleTaskHeader& header)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Server " << serverId << "] Task " << header.GetTaskId() << " received");
 }
 
 static void
-ServerTaskCompleted(uint32_t serverId, const OffloadHeader& header, Time duration)
+ServerTaskCompleted(uint32_t serverId, const SimpleTaskHeader& header, Time duration)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
                   << " [Server " << serverId << "] Task " << header.GetTaskId()
