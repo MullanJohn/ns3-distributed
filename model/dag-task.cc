@@ -44,6 +44,7 @@ DagTask::DoDispose()
     {
         node.task = nullptr;
         node.successors.clear();
+        node.dataSuccessors.clear();
     }
     m_nodes.clear();
     Object::DoDispose();
@@ -78,6 +79,28 @@ DagTask::AddDependency(uint32_t fromIdx, uint32_t toIdx)
     }
     m_nodes[fromIdx].successors.push_back(toIdx);
     m_nodes[toIdx].inDegree++;
+}
+
+void
+DagTask::AddDataDependency(uint32_t fromIdx, uint32_t toIdx)
+{
+    NS_LOG_FUNCTION(this << fromIdx << toIdx);
+    if (fromIdx >= m_nodes.size() || toIdx >= m_nodes.size())
+    {
+        NS_LOG_ERROR("Invalid task index: fromIdx=" << fromIdx << " toIdx=" << toIdx
+                                                    << " size=" << m_nodes.size());
+        return;
+    }
+    if (fromIdx == toIdx)
+    {
+        NS_LOG_ERROR("Self-dependency not allowed: idx=" << fromIdx);
+        return;
+    }
+    // Create ordering dependency
+    m_nodes[fromIdx].successors.push_back(toIdx);
+    m_nodes[toIdx].inDegree++;
+    // Mark data flow
+    m_nodes[fromIdx].dataSuccessors.push_back(toIdx);
 }
 
 std::vector<uint32_t>
@@ -117,6 +140,13 @@ DagTask::MarkCompleted(uint32_t idx)
         {
             m_nodes[successorIdx].inDegree--;
         }
+    }
+    // Propagate data to data-dependent successors
+    uint64_t outputSize = m_nodes[idx].task->GetOutputSize();
+    for (uint32_t successorIdx : m_nodes[idx].dataSuccessors)
+    {
+        uint64_t currentInput = m_nodes[successorIdx].task->GetInputSize();
+        m_nodes[successorIdx].task->SetInputSize(currentInput + outputSize);
     }
 }
 

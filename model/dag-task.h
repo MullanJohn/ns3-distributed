@@ -76,6 +76,21 @@ class DagTask : public Object
     void AddDependency(uint32_t fromIdx, uint32_t toIdx);
 
     /**
+     * @brief Add a data dependency edge between tasks.
+     *
+     * Creates an ordering dependency (like AddDependency) and also marks
+     * that data flows from the predecessor to the successor. When the
+     * predecessor completes, its output size is added to the successor's
+     * input size.
+     *
+     * Multiple data predecessors accumulate (outputs are summed).
+     *
+     * @param fromIdx The index of the predecessor task.
+     * @param toIdx The index of the successor task.
+     */
+    void AddDataDependency(uint32_t fromIdx, uint32_t toIdx);
+
+    /**
      * @brief Get indices of tasks that are ready to execute.
      *
      * A task is ready if all its dependencies are completed and it
@@ -131,10 +146,11 @@ class DagTask : public Object
      */
     struct DagNode
     {
-        Ptr<Task> task;                   //!< The task
-        std::vector<uint32_t> successors; //!< Indices of successor tasks
-        uint32_t inDegree{0};             //!< Count of incomplete predecessors
-        bool completed{false};            //!< Whether this task is completed
+        Ptr<Task> task;                       //!< The task
+        std::vector<uint32_t> successors;     //!< Indices of successor tasks (ordering)
+        std::vector<uint32_t> dataSuccessors; //!< Indices of data-dependent successors
+        uint32_t inDegree{0};                 //!< Count of incomplete predecessors
+        bool completed{false};                //!< Whether this task is completed
     };
 
     std::vector<DagNode> m_nodes; //!< All nodes in the DAG
