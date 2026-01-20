@@ -128,6 +128,97 @@ class DagTaskCycleDetectionTestCase : public TestCase
     }
 };
 
+/**
+ * @ingroup distributed-tests
+ * @brief Test DagTask data dependency propagation
+ *
+ * Tests that when a task completes, its output size is added to
+ * data-dependent successors' input sizes.
+ */
+class DagTaskDataDependencyTestCase : public TestCase
+{
+  public:
+    DagTaskDataDependencyTestCase()
+        : TestCase("Test DagTask data dependency propagation")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        Ptr<DagTask> dag = CreateObject<DagTask>();
+
+        // A -> B (data dependency)
+        Ptr<Task> taskA = CreateObject<SimpleTask>();
+        taskA->SetOutputSize(1000000); // 1MB output
+        Ptr<Task> taskB = CreateObject<SimpleTask>();
+        taskB->SetInputSize(100); // Initial input
+
+        uint32_t a = dag->AddTask(taskA);
+        uint32_t b = dag->AddTask(taskB);
+
+        dag->AddDataDependency(a, b);
+
+        // Initially B has its original input
+        NS_TEST_ASSERT_MSG_EQ(taskB->GetInputSize(), 100, "B should have initial input size");
+
+        // Complete A -> B's input should increase by A's output
+        dag->MarkCompleted(a);
+        NS_TEST_ASSERT_MSG_EQ(taskB->GetInputSize(),
+                              1000100,
+                              "B's input should include A's output");
+
+        Simulator::Destroy();
+    }
+};
+
+/**
+ * @ingroup distributed-tests
+ * @brief Test DagTask data accumulation from multiple predecessors
+ *
+ * Tests that when multiple tasks feed into one successor, their
+ * outputs accumulate in the successor's input size.
+ */
+class DagTaskDataAccumulationTestCase : public TestCase
+{
+  public:
+    DagTaskDataAccumulationTestCase()
+        : TestCase("Test DagTask data accumulation from multiple predecessors")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        Ptr<DagTask> dag = CreateObject<DagTask>();
+
+        // A -> C, B -> C (fan-in with data dependencies)
+        Ptr<Task> taskA = CreateObject<SimpleTask>();
+        taskA->SetOutputSize(500);
+        Ptr<Task> taskB = CreateObject<SimpleTask>();
+        taskB->SetOutputSize(300);
+        Ptr<Task> taskC = CreateObject<SimpleTask>();
+        taskC->SetInputSize(0);
+
+        uint32_t a = dag->AddTask(taskA);
+        uint32_t b = dag->AddTask(taskB);
+        uint32_t c = dag->AddTask(taskC);
+
+        dag->AddDataDependency(a, c);
+        dag->AddDataDependency(b, c);
+
+        // Complete A -> C gets A's output
+        dag->MarkCompleted(a);
+        NS_TEST_ASSERT_MSG_EQ(taskC->GetInputSize(), 500, "C should have A's output");
+
+        // Complete B -> C accumulates B's output
+        dag->MarkCompleted(b);
+        NS_TEST_ASSERT_MSG_EQ(taskC->GetInputSize(), 800, "C should have A+B outputs");
+
+        Simulator::Destroy();
+    }
+};
+
 } // namespace
 
 TestCase*
@@ -140,6 +231,18 @@ TestCase*
 CreateDagTaskCycleDetectionTestCase()
 {
     return new DagTaskCycleDetectionTestCase;
+}
+
+TestCase*
+CreateDagTaskDataDependencyTestCase()
+{
+    return new DagTaskDataDependencyTestCase;
+}
+
+TestCase*
+CreateDagTaskDataAccumulationTestCase()
+{
+    return new DagTaskDataAccumulationTestCase;
 }
 
 } // namespace ns3

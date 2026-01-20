@@ -86,5 +86,6 @@ build_lib(
                  test/fifo-queue-scheduler-test.cc
                  test/batching-queue-scheduler-test.cc
                  test/connection-manager-test.cc
+                 test/dag-task-test.cc
                  ${examples_as_tests_sources}
 )
