@@ -62,6 +62,7 @@ Task::DoDispose()
     m_outputSize = 0;
     m_computeDemand = 0.0;
     m_arrivalTime = Seconds(0);
+    m_deadline = Time(-1);
     Object::DoDispose();
 }
 
@@ -128,6 +129,32 @@ Task::SetArrivalTime(Time time)
 {
     NS_LOG_FUNCTION(this << time);
     m_arrivalTime = time;
+}
+
+bool
+Task::HasDeadline() const
+{
+    return m_deadline >= Seconds(0);
+}
+
+Time
+Task::GetDeadline() const
+{
+    return m_deadline;
+}
+
+void
+Task::SetDeadline(Time deadline)
+{
+    NS_LOG_FUNCTION(this << deadline);
+    m_deadline = deadline;
+}
+
+void
+Task::ClearDeadline()
+{
+    NS_LOG_FUNCTION(this);
+    m_deadline = Time(-1);
 }
 
 } // namespace ns3

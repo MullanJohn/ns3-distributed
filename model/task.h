@@ -107,6 +107,29 @@ class Task : public Object
      */
     virtual void SetArrivalTime(Time time);
 
+    /**
+     * @brief Check if the task has a deadline.
+     * @return true if deadline is set (>= 0), false otherwise.
+     */
+    bool HasDeadline() const;
+
+    /**
+     * @brief Get the task deadline.
+     * @return The deadline time. Returns Time(-1) if no deadline.
+     */
+    Time GetDeadline() const;
+
+    /**
+     * @brief Set the task deadline.
+     * @param deadline The deadline time. Use Time(-1) to clear.
+     */
+    void SetDeadline(Time deadline);
+
+    /**
+     * @brief Clear the task deadline.
+     */
+    void ClearDeadline();
+
   protected:
     void DoDispose() override;
 
@@ -115,6 +138,7 @@ class Task : public Object
     uint64_t m_outputSize{0};   //!< Output data size in bytes
     double m_computeDemand{0.0}; //!< Compute demand in FLOPS
     Time m_arrivalTime{Seconds(0)}; //!< Time when task arrived
+    Time m_deadline{Time(-1)};  //!< Task deadline (-1 = no deadline)
 };
 
 } // namespace ns3
