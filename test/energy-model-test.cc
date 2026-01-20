@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/compute-task.h"
+#include "ns3/simple-task.h"
 #include "ns3/double.h"
 #include "ns3/dvfs-energy-model.h"
 #include "ns3/energy-model.h"
@@ -109,7 +109,7 @@ class AcceleratorEnergyTrackingTestCase : public TestCase
         gpu->SetAttribute("EnergyModel", PointerValue(energy));
 
         // Create a task that takes 1 second to process (1e12 FLOP / 1e12 FLOPS)
-        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+        Ptr<Task> task = CreateObject<SimpleTask>();
         task->SetComputeDemand(1e12);
         task->SetInputSize(0);
         task->SetOutputSize(0);
@@ -171,7 +171,7 @@ class AcceleratorEnergyTracesTestCase : public TestCase
             "TaskEnergy",
             MakeCallback(&AcceleratorEnergyTracesTestCase::TaskEnergyCallback, this));
 
-        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+        Ptr<Task> task = CreateObject<SimpleTask>();
         task->SetComputeDemand(1e12);
         task->SetInputSize(0);
         task->SetOutputSize(0);
@@ -241,7 +241,7 @@ class EnergyModelNotConfiguredTestCase : public TestCase
             "TaskCompleted",
             MakeCallback(&EnergyModelNotConfiguredTestCase::TaskCompleted, this));
 
-        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+        Ptr<Task> task = CreateObject<SimpleTask>();
         task->SetComputeDemand(1e9);
         task->SetInputSize(0);
         task->SetOutputSize(0);

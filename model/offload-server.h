@@ -10,7 +10,6 @@
 #define OFFLOAD_SERVER_H
 
 #include "accelerator.h"
-#include "compute-task.h"
 #include "connection-manager.h"
 #include "offload-header.h"
 #include "task.h"
@@ -133,7 +132,7 @@ class OffloadServer : public Application
      * @param task The completed compute task.
      * @param duration The processing duration.
      */
-    void SendResponse(const Address& clientAddr, Ptr<const ComputeTask> task, Time duration);
+    void SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration);
 
     /**
      * @brief Clean up state for a disconnected client.
@@ -157,7 +156,7 @@ class OffloadServer : public Application
     struct PendingTask
     {
         Address clientAddr; //!< Client address for response routing
-        Ptr<ComputeTask> task; //!< The task being processed
+        Ptr<Task> task; //!< The task being processed
     };
 
     std::unordered_map<uint64_t, PendingTask> m_pendingTasks;

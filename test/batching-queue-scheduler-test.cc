@@ -7,7 +7,7 @@
  */
 
 #include "ns3/batching-queue-scheduler.h"
-#include "ns3/compute-task.h"
+#include "ns3/simple-task.h"
 #include "ns3/simulator.h"
 #include "ns3/test.h"
 #include "ns3/uinteger.h"
@@ -38,9 +38,9 @@ class BatchingQueueSchedulerSingleTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(scheduler->GetMaxBatchSize(), 1, "Default batch size should be 1");
 
         // Create and enqueue tasks
-        Ptr<ComputeTask> task1 = CreateObject<ComputeTask>();
+        Ptr<Task> task1 = CreateObject<SimpleTask>();
         task1->SetTaskId(1);
-        Ptr<ComputeTask> task2 = CreateObject<ComputeTask>();
+        Ptr<Task> task2 = CreateObject<SimpleTask>();
         task2->SetTaskId(2);
 
         scheduler->Enqueue(task1);
@@ -82,7 +82,7 @@ class BatchingQueueSchedulerBatchTestCase : public TestCase
         // Enqueue 6 tasks
         for (uint32_t i = 1; i <= 6; i++)
         {
-            Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+            Ptr<Task> task = CreateObject<SimpleTask>();
             task->SetTaskId(i);
             scheduler->Enqueue(task);
         }
@@ -129,7 +129,7 @@ class BatchingQueueSchedulerPartialBatchTestCase : public TestCase
         // Enqueue only 3 tasks
         for (uint32_t i = 1; i <= 3; i++)
         {
-            Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+            Ptr<Task> task = CreateObject<SimpleTask>();
             task->SetTaskId(i);
             scheduler->Enqueue(task);
         }
@@ -143,7 +143,7 @@ class BatchingQueueSchedulerPartialBatchTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(batch.size(), 0, "Batch from empty queue should be empty");
 
         // DequeueBatch with maxBatch=0 should return empty
-        scheduler->Enqueue(CreateObject<ComputeTask>());
+        scheduler->Enqueue(CreateObject<SimpleTask>());
         batch = scheduler->DequeueBatch(0);
         NS_TEST_ASSERT_MSG_EQ(batch.size(), 0, "DequeueBatch(0) should return empty");
         NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 1, "Task should still be in queue");

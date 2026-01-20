@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/compute-task.h"
+#include "ns3/simple-task.h"
 #include "ns3/double.h"
 #include "ns3/dvfs-energy-model.h"
 #include "ns3/fifo-queue-scheduler.h"
@@ -63,7 +63,7 @@ class GpuAcceleratorTestCase : public TestCase
         gpu->TraceConnectWithoutContext("TaskCompleted",
                                         MakeCallback(&GpuAcceleratorTestCase::TaskCompleted, this));
 
-        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+        Ptr<Task> task = CreateObject<SimpleTask>();
         task->SetComputeDemand(1e11); // 100 GFLOP
         task->SetInputSize(1e10);     // 10 GB
         task->SetOutputSize(1e10);    // 10 GB
@@ -130,7 +130,7 @@ class GpuAcceleratorNoSchedulerTestCase : public TestCase
             "TaskStarted",
             MakeCallback(&GpuAcceleratorNoSchedulerTestCase::TaskStarted, this));
 
-        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+        Ptr<Task> task = CreateObject<SimpleTask>();
         task->SetTaskId(1);
         task->SetComputeDemand(1e9);
         task->SetInputSize(1e6);

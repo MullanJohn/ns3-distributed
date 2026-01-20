@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/compute-task.h"
+#include "ns3/simple-task.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/simulator.h"
 #include "ns3/test.h"
@@ -39,9 +39,9 @@ class FifoQueueSchedulerEnqueueDequeueTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(scheduler->GetName(), "FIFO", "Name should be FIFO");
 
         // Create and enqueue tasks
-        Ptr<ComputeTask> task1 = CreateObject<ComputeTask>();
+        Ptr<Task> task1 = CreateObject<SimpleTask>();
         task1->SetTaskId(1);
-        Ptr<ComputeTask> task2 = CreateObject<ComputeTask>();
+        Ptr<Task> task2 = CreateObject<SimpleTask>();
         task2->SetTaskId(2);
 
         scheduler->Enqueue(task1);
@@ -84,7 +84,7 @@ class FifoQueueSchedulerOrderTestCase : public TestCase
         // Enqueue 5 tasks
         for (uint32_t i = 1; i <= 5; i++)
         {
-            Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+            Ptr<Task> task = CreateObject<SimpleTask>();
             task->SetTaskId(i);
             scheduler->Enqueue(task);
         }
@@ -156,9 +156,9 @@ class FifoQueueSchedulerPeekTestCase : public TestCase
     {
         Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
-        Ptr<ComputeTask> task1 = CreateObject<ComputeTask>();
+        Ptr<Task> task1 = CreateObject<SimpleTask>();
         task1->SetTaskId(1);
-        Ptr<ComputeTask> task2 = CreateObject<ComputeTask>();
+        Ptr<Task> task2 = CreateObject<SimpleTask>();
         task2->SetTaskId(2);
 
         scheduler->Enqueue(task1);

@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/compute-task.h"
+#include "ns3/simple-task.h"
 #include "ns3/double.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
@@ -45,7 +45,7 @@ class FixedRatioProcessingModelTestCase : public TestCase
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
 
         // Create task with known values
-        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+        Ptr<Task> task = CreateObject<SimpleTask>();
         task->SetTaskId(1);
         task->SetInputSize(1e10);     // 10 GB
         task->SetComputeDemand(1e11); // 100 GFLOP
@@ -94,7 +94,7 @@ class FixedRatioVariedHardwareTestCase : public TestCase
         fastGpu->SetAttribute("MemoryBandwidth", DoubleValue(2e11)); // 200 GB/s
         fastGpu->SetAttribute("ProcessingModel", PointerValue(model));
 
-        Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+        Ptr<Task> task = CreateObject<SimpleTask>();
         task->SetTaskId(1);
         task->SetInputSize(1e10);     // 10 GB
         task->SetComputeDemand(1e11); // 100 GFLOP

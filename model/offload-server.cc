@@ -8,6 +8,7 @@
 
 #include "offload-server.h"
 
+#include "simple-task.h"
 #include "tcp-connection-manager.h"
 
 #include "ns3/log.h"
@@ -296,8 +297,8 @@ OffloadServer::ProcessTask(const OffloadHeader& header, const Address& clientAdd
         return;
     }
 
-    // Create a ComputeTask object from the header
-    Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+    // Create a Task from the header
+    Ptr<Task> task = CreateObject<SimpleTask>();
     task->SetTaskId(header.GetTaskId());
     task->SetComputeDemand(header.GetComputeDemand());
     task->SetInputSize(header.GetInputSize());
@@ -331,15 +332,15 @@ OffloadServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
     }
 
     Address clientAddr = it->second.clientAddr;
-    Ptr<ComputeTask> computeTask = it->second.task;
+    Ptr<Task> pendingTask = it->second.task;
     m_pendingTasks.erase(it);
 
-    SendResponse(clientAddr, computeTask, duration);
+    SendResponse(clientAddr, pendingTask, duration);
 }
 
 void
 OffloadServer::SendResponse(const Address& clientAddr,
-                            Ptr<const ComputeTask> task,
+                            Ptr<const Task> task,
                             Time duration)
 {
     NS_LOG_FUNCTION(this << clientAddr << task->GetTaskId() << duration);
