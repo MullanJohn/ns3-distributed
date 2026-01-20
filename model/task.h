@@ -23,11 +23,9 @@ namespace ns3
  * @brief Abstract base class representing a task to be executed on an accelerator.
  *
  * Task provides a common interface for all task types in the distributed computing
- * simulation framework. Concrete implementations (e.g., ComputeTask) define specific
- * task characteristics such as compute demand, I/O sizes, or inference parameters.
- *
- * All tasks have a unique identifier and arrival time metadata. Derived classes
- * must implement GetTaskId() and GetName() to identify the task and its type.
+ * simulation framework. All tasks have common fields for compute demand, I/O sizes,
+ * and timing metadata. Derived classes must implement GetName() to identify the
+ * task type.
  */
 class Task : public Object
 {
@@ -44,38 +42,78 @@ class Task : public Object
     /**
      * @brief Get the unique task identifier.
      * @return The task ID.
-     *
-     * Must be implemented by derived classes to provide task identification.
      */
-    virtual uint64_t GetTaskId() const = 0;
+    virtual uint64_t GetTaskId() const;
+
+    /**
+     * @brief Set the unique task identifier.
+     * @param id The task ID.
+     */
+    void SetTaskId(uint64_t id);
 
     /**
      * @brief Get the task type name.
-     * @return A string identifying the task type (e.g., "ComputeTask", "InferenceTask").
+     * @return A string identifying the task type (e.g., "SimpleTask", "InferenceTask").
      *
      * Used for logging and for dispatching tasks to appropriate accelerators or headers.
      */
     virtual std::string GetName() const = 0;
 
     /**
+     * @brief Get the input data size in bytes.
+     * @return The input size.
+     */
+    uint64_t GetInputSize() const;
+
+    /**
+     * @brief Set the input data size in bytes.
+     * @param bytes The input size.
+     */
+    void SetInputSize(uint64_t bytes);
+
+    /**
+     * @brief Get the output data size in bytes.
+     * @return The output size.
+     */
+    uint64_t GetOutputSize() const;
+
+    /**
+     * @brief Set the output data size in bytes.
+     * @param bytes The output size.
+     */
+    void SetOutputSize(uint64_t bytes);
+
+    /**
+     * @brief Get the compute demand in FLOPS.
+     * @return The compute demand.
+     */
+    double GetComputeDemand() const;
+
+    /**
+     * @brief Set the compute demand in FLOPS.
+     * @param flops The compute demand.
+     */
+    void SetComputeDemand(double flops);
+
+    /**
      * @brief Get the task arrival time.
      * @return The arrival time.
-     *
-     * Default implementation returns the stored arrival time.
      */
     virtual Time GetArrivalTime() const;
 
     /**
      * @brief Set the task arrival time.
      * @param time The arrival time.
-     *
-     * Default implementation stores the arrival time in m_arrivalTime.
      */
     virtual void SetArrivalTime(Time time);
 
   protected:
     void DoDispose() override;
 
+    uint64_t m_taskId{0};       //!< Unique task identifier
+    uint64_t m_inputSize{0};    //!< Input data size in bytes
+    uint64_t m_outputSize{0};   //!< Output data size in bytes
+    double m_computeDemand{0.0}; //!< Compute demand in FLOPS
     Time m_arrivalTime{Seconds(0)}; //!< Time when task arrived
 };
 
