@@ -18,7 +18,7 @@
 namespace ns3
 {
 
-class Accelerator;  // Forward declaration
+class Accelerator; // Forward declaration
 
 /**
  * @ingroup distributed
@@ -62,10 +62,10 @@ class ProcessingModel : public Object
      */
     struct Result
     {
-        Time processingTime;  //!< Total time to process the task
-        uint64_t outputSize;  //!< Output data size in bytes
-        double utilization;   //!< Device utilization during processing [0.0, 1.0]
-        bool success;         //!< True if processing calculation succeeded
+        Time processingTime; //!< Total time to process the task
+        uint64_t outputSize; //!< Output data size in bytes
+        double utilization;  //!< Device utilization during processing [0.0, 1.0]
+        bool success;        //!< True if processing calculation succeeded
 
         /**
          * @brief Default constructor creates a failed result.

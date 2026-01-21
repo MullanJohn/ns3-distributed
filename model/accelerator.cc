@@ -65,7 +65,7 @@ Accelerator::GetTypeId()
 Accelerator::Accelerator()
     : m_node(nullptr),
       m_energyModel(nullptr),
-      m_lastEnergyUpdateTime(Seconds(-1)),  // Sentinel value: not yet initialized
+      m_lastEnergyUpdateTime(Seconds(-1)), // Sentinel value: not yet initialized
       m_totalEnergy(0.0),
       m_currentPower(0.0),
       m_taskStartEnergy(0.0)
@@ -176,8 +176,8 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
         m_powerTrace(m_currentPower);
         m_energyTrace(m_totalEnergy);
 
-        NS_LOG_DEBUG("Energy state updated: power=" << m_currentPower << "W, totalEnergy="
-                                                    << m_totalEnergy << "J");
+        NS_LOG_DEBUG("Energy state updated: power=" << m_currentPower
+                                                    << "W, totalEnergy=" << m_totalEnergy << "J");
     }
 
     m_lastEnergyUpdateTime = now;

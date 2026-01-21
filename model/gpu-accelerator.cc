@@ -120,8 +120,7 @@ GpuAccelerator::SubmitTask(Ptr<Task> task)
     m_queueScheduler->Enqueue(task);
     m_queueLength = m_queueScheduler->GetLength() + (m_busy ? 1 : 0);
 
-    NS_LOG_DEBUG("Task " << task->GetTaskId()
-                         << " submitted, queue length: " << m_queueLength);
+    NS_LOG_DEBUG("Task " << task->GetTaskId() << " submitted, queue length: " << m_queueLength);
 
     if (!m_busy)
     {
@@ -137,7 +136,7 @@ GpuAccelerator::StartNextTask()
     if (m_queueScheduler->IsEmpty())
     {
         m_busy = false;
-        UpdateEnergyState(false, 0.0);  // Transition to idle
+        UpdateEnergyState(false, 0.0); // Transition to idle
         return;
     }
 
@@ -181,9 +180,8 @@ GpuAccelerator::StartNextTask()
     m_queueLength = m_queueScheduler->GetLength() + 1;
 
     NS_LOG_DEBUG("Processing time: " << result.processingTime);
-    m_currentEvent = Simulator::Schedule(result.processingTime,
-                                          &GpuAccelerator::ProcessingComplete,
-                                          this);
+    m_currentEvent =
+        Simulator::Schedule(result.processingTime, &GpuAccelerator::ProcessingComplete, this);
 }
 
 void

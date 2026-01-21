@@ -78,18 +78,18 @@ class GpuAccelerator : public Accelerator
     void ProcessingComplete();
 
     // GPU-specific attributes
-    double m_computeRate;               //!< Compute rate in FLOPS
-    double m_memoryBandwidth;           //!< Memory bandwidth in bytes/sec
-    double m_frequency;                 //!< Operating frequency in Hz
-    double m_voltage;                   //!< Operating voltage in Volts
-    Ptr<ProcessingModel> m_processingModel;  //!< Processing model for timing calculation
-    Ptr<QueueScheduler> m_queueScheduler;    //!< Queue scheduler for task management
+    double m_computeRate;                   //!< Compute rate in FLOPS
+    double m_memoryBandwidth;               //!< Memory bandwidth in bytes/sec
+    double m_frequency;                     //!< Operating frequency in Hz
+    double m_voltage;                       //!< Operating voltage in Volts
+    Ptr<ProcessingModel> m_processingModel; //!< Processing model for timing calculation
+    Ptr<QueueScheduler> m_queueScheduler;   //!< Queue scheduler for task management
 
     // State
-    Ptr<Task> m_currentTask;           //!< Currently executing task
-    bool m_busy;                       //!< True if processing a task
-    EventId m_currentEvent;            //!< Current scheduled event
-    Time m_taskStartTime;              //!< When current task started
+    Ptr<Task> m_currentTask; //!< Currently executing task
+    bool m_busy;             //!< True if processing a task
+    EventId m_currentEvent;  //!< Current scheduled event
+    Time m_taskStartTime;    //!< When current task started
 
     // Statistics
     uint64_t m_tasksCompleted; //!< Number of completed tasks

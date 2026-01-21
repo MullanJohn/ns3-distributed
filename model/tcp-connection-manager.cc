@@ -209,9 +209,8 @@ TcpConnectionManager::CreateConnectionTo(const Address& remote)
     }
 
     // Set up callbacks
-    socket->SetConnectCallback(
-        MakeCallback(&TcpConnectionManager::HandleConnectionSucceeded, this),
-        MakeCallback(&TcpConnectionManager::HandleConnectionFailed, this));
+    socket->SetConnectCallback(MakeCallback(&TcpConnectionManager::HandleConnectionSucceeded, this),
+                               MakeCallback(&TcpConnectionManager::HandleConnectionFailed, this));
     socket->SetRecvCallback(MakeCallback(&TcpConnectionManager::HandleRead, this));
     socket->SetCloseCallbacks(MakeCallback(&TcpConnectionManager::HandlePeerClose, this),
                               MakeCallback(&TcpConnectionManager::HandlePeerError, this));
@@ -467,7 +466,8 @@ TcpConnectionManager::Send(Ptr<Packet> packet)
     }
     if (uniqueRemotes > 1)
     {
-        NS_LOG_ERROR("Connected to multiple servers. Use Send(packet, address) to specify destination.");
+        NS_LOG_ERROR(
+            "Connected to multiple servers. Use Send(packet, address) to specify destination.");
         m_txDropTrace(packet, Address());
         return;
     }
@@ -673,8 +673,8 @@ TcpConnectionManager::Close(const Address& peer)
             }
         }
 
-        NS_LOG_DEBUG("Client mode: closing " << socketsToClose.size()
-                                             << " connections to " << peer);
+        NS_LOG_DEBUG("Client mode: closing " << socketsToClose.size() << " connections to "
+                                             << peer);
         for (auto& socket : socketsToClose)
         {
             CleanupSocket(socket);

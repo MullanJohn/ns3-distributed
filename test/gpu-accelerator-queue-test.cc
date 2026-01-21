@@ -6,13 +6,13 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/simple-task.h"
 #include "ns3/double.h"
 #include "ns3/dvfs-energy-model.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/pointer.h"
+#include "ns3/simple-task.h"
 #include "ns3/simulator.h"
 #include "ns3/task.h"
 #include "ns3/test.h"

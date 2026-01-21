@@ -101,8 +101,8 @@ class BatchingQueueScheduler : public QueueScheduler
     void DoDispose() override;
 
   private:
-    std::queue<Ptr<Task>> m_queue;  //!< Internal FIFO queue
-    uint32_t m_maxBatchSize;        //!< Maximum batch size for DequeueBatch()
+    std::queue<Ptr<Task>> m_queue; //!< Internal FIFO queue
+    uint32_t m_maxBatchSize;       //!< Maximum batch size for DequeueBatch()
 };
 
 } // namespace ns3

@@ -20,9 +20,7 @@ NS_OBJECT_ENSURE_REGISTERED(EnergyModel);
 TypeId
 EnergyModel::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::EnergyModel")
-                            .SetParent<Object>()
-                            .SetGroupName("Distributed");
+    static TypeId tid = TypeId("ns3::EnergyModel").SetParent<Object>().SetGroupName("Distributed");
     return tid;
 }
 

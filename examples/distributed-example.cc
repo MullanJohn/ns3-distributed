@@ -16,10 +16,10 @@
 #include "ns3/network-module.h"
 #include "ns3/offload-client-helper.h"
 #include "ns3/offload-client.h"
-#include "ns3/simple-task-header.h"
 #include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-module.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/task.h"
 
 // ===========================================================================
@@ -170,7 +170,9 @@ main(int argc, char* argv[])
     cmd.AddValue("gpuVoltage", "GPU operating voltage in Volts", gpuVoltage);
     cmd.AddValue("gpuFrequency", "GPU operating frequency in Hz", gpuFrequency);
     cmd.AddValue("staticPower", "GPU static power in Watts", staticPower);
-    cmd.AddValue("effectiveCapacitance", "GPU effective capacitance in Farads", effectiveCapacitance);
+    cmd.AddValue("effectiveCapacitance",
+                 "GPU effective capacitance in Farads",
+                 effectiveCapacitance);
     cmd.Parse(argc, argv);
 
     NS_LOG_UNCOND("Single-Client Distributed Computing Example");

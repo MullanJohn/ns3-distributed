@@ -117,8 +117,7 @@ class EnergyModel : public Object
      * @param utilization Current utilization level [0.0, 1.0].
      * @return PowerState with active power values.
      */
-    virtual PowerState CalculateActivePower(Ptr<Accelerator> accelerator,
-                                            double utilization) = 0;
+    virtual PowerState CalculateActivePower(Ptr<Accelerator> accelerator, double utilization) = 0;
 
     /**
      * @brief Get the name of this energy model.

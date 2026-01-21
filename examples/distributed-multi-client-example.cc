@@ -16,10 +16,10 @@
 #include "ns3/network-module.h"
 #include "ns3/offload-client-helper.h"
 #include "ns3/offload-client.h"
-#include "ns3/simple-task-header.h"
 #include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-module.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/task.h"
 
 // ===========================================================================

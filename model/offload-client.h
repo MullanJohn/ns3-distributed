@@ -170,8 +170,9 @@ class OffloadClient : public Application
     std::map<uint64_t, Time> m_sendTimes; //!< Map of task ID to send time
 
     // Trace sources
-    TracedCallback<const SimpleTaskHeader&> m_taskSentTrace;               //!< Task sent trace
-    TracedCallback<const SimpleTaskHeader&, Time> m_responseReceivedTrace; //!< Response received trace
+    TracedCallback<const SimpleTaskHeader&> m_taskSentTrace; //!< Task sent trace
+    TracedCallback<const SimpleTaskHeader&, Time>
+        m_responseReceivedTrace; //!< Response received trace
 };
 
 } // namespace ns3

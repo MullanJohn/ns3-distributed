@@ -147,7 +147,9 @@ class LoadBalancer : public Application
      * @param payload The task payload.
      * @param clientAddr The originating client address for response routing.
      */
-    void ForwardTask(const SimpleTaskHeader& header, Ptr<Packet> payload, const Address& clientAddr);
+    void ForwardTask(const SimpleTaskHeader& header,
+                     Ptr<Packet> payload,
+                     const Address& clientAddr);
 
     /**
      * @brief Route a response back to the client.
@@ -155,7 +157,9 @@ class LoadBalancer : public Application
      * @param payload The response payload.
      * @param backendAddr The backend that sent the response.
      */
-    void RouteResponse(const SimpleTaskHeader& header, Ptr<Packet> payload, const Address& backendAddr);
+    void RouteResponse(const SimpleTaskHeader& header,
+                       Ptr<Packet> payload,
+                       const Address& backendAddr);
 
     // ========== Configuration ==========
     uint16_t m_port;                          //!< Port to listen on

@@ -20,8 +20,7 @@ NS_OBJECT_ENSURE_REGISTERED(TaskHeader);
 TypeId
 TaskHeader::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::TaskHeader").SetParent<Header>().SetGroupName("Distributed");
+    static TypeId tid = TypeId("ns3::TaskHeader").SetParent<Header>().SetGroupName("Distributed");
     return tid;
 }
 

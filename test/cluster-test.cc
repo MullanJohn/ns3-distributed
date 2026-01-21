@@ -37,7 +37,9 @@ ClusterBasicTestCase::DoRun()
     Cluster cluster;
     NS_TEST_ASSERT_MSG_EQ(cluster.GetN(), 0, "Empty cluster should have 0 backends");
     NS_TEST_ASSERT_MSG_EQ(cluster.IsEmpty(), true, "Empty cluster should report IsEmpty()");
-    NS_TEST_ASSERT_MSG_EQ((cluster.Begin() == cluster.End()), true, "Empty cluster Begin() should equal End()");
+    NS_TEST_ASSERT_MSG_EQ((cluster.Begin() == cluster.End()),
+                          true,
+                          "Empty cluster Begin() should equal End()");
 
     // Create test nodes
     Ptr<Node> node1 = CreateObject<Node>();
@@ -107,7 +109,8 @@ ClusterIterationTestCase::DoRun()
     {
         Ptr<Node> node = CreateObject<Node>();
         nodes.push_back(node);
-        Address addr = InetSocketAddress(Ipv4Address(("10.1." + std::to_string(i) + ".1").c_str()), 9000 + i);
+        Address addr =
+            InetSocketAddress(Ipv4Address(("10.1." + std::to_string(i) + ".1").c_str()), 9000 + i);
         cluster.AddBackend(node, addr);
     }
 
@@ -124,7 +127,9 @@ ClusterIterationTestCase::DoRun()
     count = 0;
     for (const auto& backend : cluster)
     {
-        NS_TEST_ASSERT_MSG_EQ(backend.node, nodes[count], "Range-based for should return backends in order");
+        NS_TEST_ASSERT_MSG_EQ(backend.node,
+                              nodes[count],
+                              "Range-based for should return backends in order");
         count++;
     }
     NS_TEST_ASSERT_MSG_EQ(count, 5, "Range-based for should iterate over all 5 backends");

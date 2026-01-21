@@ -6,7 +6,6 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/simple-task.h"
 #include "ns3/double.h"
 #include "ns3/dvfs-energy-model.h"
 #include "ns3/energy-model.h"
@@ -14,6 +13,7 @@
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/pointer.h"
+#include "ns3/simple-task.h"
 #include "ns3/simulator.h"
 #include "ns3/test.h"
 
@@ -41,13 +41,13 @@ class DvfsEnergyModelTestCase : public TestCase
     {
         // Create a GPU accelerator with known voltage and frequency
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
-        gpu->SetAttribute("Voltage", DoubleValue(1.0));      // 1.0V
-        gpu->SetAttribute("Frequency", DoubleValue(1.0e9));  // 1 GHz
+        gpu->SetAttribute("Voltage", DoubleValue(1.0));     // 1.0V
+        gpu->SetAttribute("Frequency", DoubleValue(1.0e9)); // 1 GHz
 
         // Create DVFS energy model
         Ptr<DvfsEnergyModel> energy = CreateObject<DvfsEnergyModel>();
-        energy->SetAttribute("EffectiveCapacitance", DoubleValue(1e-9));  // 1nF
-        energy->SetAttribute("StaticPower", DoubleValue(10.0));           // 10W static
+        energy->SetAttribute("EffectiveCapacitance", DoubleValue(1e-9)); // 1nF
+        energy->SetAttribute("StaticPower", DoubleValue(10.0));          // 10W static
 
         // Calculate active power with utilization = 1.0
         // P_dynamic = C * V^2 * f * util = 1e-9 * 1.0 * 1.0e9 * 1.0 = 1.0W
@@ -64,7 +64,10 @@ class DvfsEnergyModelTestCase : public TestCase
 
         NS_TEST_ASSERT_MSG_EQ(idle.valid, true, "Idle PowerState should be valid");
         NS_TEST_ASSERT_MSG_EQ_TOL(idle.dynamicPower, 0.0, 1e-9, "Idle dynamic power should be 0W");
-        NS_TEST_ASSERT_MSG_EQ_TOL(idle.GetTotalPower(), 10.0, 1e-9, "Idle total power should be 10W");
+        NS_TEST_ASSERT_MSG_EQ_TOL(idle.GetTotalPower(),
+                                  10.0,
+                                  1e-9,
+                                  "Idle total power should be 10W");
 
         NS_TEST_ASSERT_MSG_EQ(energy->GetName(), "DVFS", "Energy model name should be DVFS");
 
@@ -95,10 +98,10 @@ class AcceleratorEnergyTrackingTestCase : public TestCase
 
         // Create GPU accelerator with energy model
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
-        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));      // 1 TFLOPS
-        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12));  // 1 TB/s
-        gpu->SetAttribute("Voltage", DoubleValue(1.0));           // 1.0V
-        gpu->SetAttribute("Frequency", DoubleValue(1.0e9));       // 1 GHz
+        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));     // 1 TFLOPS
+        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12)); // 1 TB/s
+        gpu->SetAttribute("Voltage", DoubleValue(1.0));          // 1.0V
+        gpu->SetAttribute("Frequency", DoubleValue(1.0e9));      // 1 GHz
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
         gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
 

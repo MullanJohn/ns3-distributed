@@ -70,7 +70,7 @@ class FifoQueueScheduler : public QueueScheduler
     void DoDispose() override;
 
   private:
-    std::queue<Ptr<Task>> m_queue;  //!< Internal FIFO queue
+    std::queue<Ptr<Task>> m_queue; //!< Internal FIFO queue
 };
 
 } // namespace ns3

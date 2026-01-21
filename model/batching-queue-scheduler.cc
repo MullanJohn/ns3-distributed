@@ -106,7 +106,8 @@ BatchingQueueScheduler::DequeueBatch(uint32_t maxBatch)
         m_queue.pop();
     }
 
-    NS_LOG_DEBUG("Dequeued batch of " << batch.size() << " tasks, queue length: " << m_queue.size());
+    NS_LOG_DEBUG("Dequeued batch of " << batch.size()
+                                      << " tasks, queue length: " << m_queue.size());
     return batch;
 }
 

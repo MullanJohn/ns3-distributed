@@ -156,7 +156,7 @@ class OffloadServer : public Application
     struct PendingTask
     {
         Address clientAddr; //!< Client address for response routing
-        Ptr<Task> task; //!< The task being processed
+        Ptr<Task> task;     //!< The task being processed
     };
 
     std::unordered_map<uint64_t, PendingTask> m_pendingTasks;

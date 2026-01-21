@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/simple-task-header.h"
 #include "ns3/packet.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/task-header.h"
 #include "ns3/test.h"
 

@@ -59,7 +59,7 @@ class DvfsEnergyModel : public EnergyModel
     // EnergyModel interface implementation
     EnergyModel::PowerState CalculateIdlePower(Ptr<Accelerator> accelerator) override;
     EnergyModel::PowerState CalculateActivePower(Ptr<Accelerator> accelerator,
-                                                  double utilization) override;
+                                                 double utilization) override;
     std::string GetName() const override;
 
     /**

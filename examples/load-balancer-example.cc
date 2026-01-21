@@ -18,10 +18,10 @@
 #include "ns3/network-module.h"
 #include "ns3/offload-client-helper.h"
 #include "ns3/offload-client.h"
-#include "ns3/simple-task-header.h"
 #include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-module.h"
+#include "ns3/simple-task-header.h"
 
 // ===========================================================================
 //
@@ -247,8 +247,7 @@ main(int argc, char* argv[])
         ApplicationContainer serverApps = serverHelper.Install(serverNodes.Get(i));
 
         servers[i] = DynamicCast<OffloadServer>(serverApps.Get(0));
-        servers[i]->TraceConnectWithoutContext("TaskReceived",
-                                               MakeBoundCallback(&TaskReceived, i));
+        servers[i]->TraceConnectWithoutContext("TaskReceived", MakeBoundCallback(&TaskReceived, i));
         servers[i]->TraceConnectWithoutContext("TaskCompleted",
                                                MakeBoundCallback(&ServerTaskCompleted, i));
 
@@ -314,18 +313,16 @@ main(int argc, char* argv[])
     for (uint32_t i = 0; i < numClients; ++i)
     {
         NS_LOG_UNCOND("Client " << i << ": sent=" << clients[i]->GetTasksSent()
-                                << ", responses=" << clients[i]->GetResponsesReceived()
-                                << ", TX=" << clients[i]->GetTotalTx()
-                                << ", RX=" << clients[i]->GetTotalRx());
+                                << ", responses=" << clients[i]->GetResponsesReceived() << ", TX="
+                                << clients[i]->GetTotalTx() << ", RX=" << clients[i]->GetTotalRx());
         totalTasks += clients[i]->GetTasksSent();
         totalResponses += clients[i]->GetResponsesReceived();
     }
 
     NS_LOG_UNCOND("");
-    NS_LOG_UNCOND("LoadBalancer: forwarded=" << lb->GetTasksForwarded()
-                                             << ", routed=" << lb->GetResponsesRouted()
-                                             << ", clientRx=" << lb->GetClientRx()
-                                             << ", backendRx=" << lb->GetBackendRx());
+    NS_LOG_UNCOND("LoadBalancer: forwarded="
+                  << lb->GetTasksForwarded() << ", routed=" << lb->GetResponsesRouted()
+                  << ", clientRx=" << lb->GetClientRx() << ", backendRx=" << lb->GetBackendRx());
 
     NS_LOG_UNCOND("");
     double totalEnergy = 0;
@@ -333,9 +330,8 @@ main(int argc, char* argv[])
     {
         double energy = gpus[i]->GetTotalEnergy();
         totalEnergy += energy;
-        NS_LOG_UNCOND("Server " << i << ": completed=" << servers[i]->GetTasksCompleted()
-                                << ", RX=" << servers[i]->GetTotalRx()
-                                << ", energy=" << energy << "J");
+        NS_LOG_UNCOND("Server " << i << ": completed=" << servers[i]->GetTasksCompleted() << ", RX="
+                                << servers[i]->GetTotalRx() << ", energy=" << energy << "J");
     }
 
     NS_LOG_UNCOND("");

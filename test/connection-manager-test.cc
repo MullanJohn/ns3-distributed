@@ -81,15 +81,9 @@ class TcpConnectionManagerBasicTestCase : public TestCase
             MakeCallback(&TcpConnectionManagerBasicTestCase::ClientReceive, this));
 
         // Schedule operations during simulation
-        Simulator::Schedule(Seconds(0.0),
-                            &TcpConnectionManagerBasicTestCase::ServerBind,
-                            this);
-        Simulator::Schedule(Seconds(0.1),
-                            &TcpConnectionManagerBasicTestCase::ClientConnect,
-                            this);
-        Simulator::Schedule(Seconds(0.3),
-                            &TcpConnectionManagerBasicTestCase::ClientSend,
-                            this);
+        Simulator::Schedule(Seconds(0.0), &TcpConnectionManagerBasicTestCase::ServerBind, this);
+        Simulator::Schedule(Seconds(0.1), &TcpConnectionManagerBasicTestCase::ClientConnect, this);
+        Simulator::Schedule(Seconds(0.3), &TcpConnectionManagerBasicTestCase::ClientSend, this);
 
         // Run simulation
         Simulator::Stop(Seconds(1.0));
@@ -199,15 +193,11 @@ class TcpConnectionManagerPoolingTestCase : public TestCase
         m_clientConn->SetNode(clientNode);
 
         // Schedule operations
-        Simulator::Schedule(Seconds(0.0),
-                            &TcpConnectionManagerPoolingTestCase::ServerBind,
-                            this);
+        Simulator::Schedule(Seconds(0.0), &TcpConnectionManagerPoolingTestCase::ServerBind, this);
         Simulator::Schedule(Seconds(0.1),
                             &TcpConnectionManagerPoolingTestCase::ClientConnect,
                             this);
-        Simulator::Schedule(Seconds(0.5),
-                            &TcpConnectionManagerPoolingTestCase::CheckPool,
-                            this);
+        Simulator::Schedule(Seconds(0.5), &TcpConnectionManagerPoolingTestCase::CheckPool, this);
 
         Simulator::Stop(Seconds(1.0));
         Simulator::Run();
@@ -249,9 +239,7 @@ class TcpConnectionManagerPoolingTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetIdleConnectionCount(),
                               2,
                               "2 should be idle after acquire");
-        NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetActiveConnectionCount(),
-                              1,
-                              "1 should be active");
+        NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetActiveConnectionCount(), 1, "1 should be active");
 
         // Release
         m_clientConn->ReleaseConnection(connId);
@@ -317,9 +305,7 @@ class TcpConnectionManagerClosePeerTestCase : public TestCase
         m_clientConn->SetNode(clientNode);
 
         // Schedule operations
-        Simulator::Schedule(Seconds(0.0),
-                            &TcpConnectionManagerClosePeerTestCase::ServerBind,
-                            this);
+        Simulator::Schedule(Seconds(0.0), &TcpConnectionManagerClosePeerTestCase::ServerBind, this);
         Simulator::Schedule(Seconds(0.1),
                             &TcpConnectionManagerClosePeerTestCase::ClientConnect,
                             this);
@@ -425,15 +411,9 @@ class UdpConnectionManagerBasicTestCase : public TestCase
             MakeCallback(&UdpConnectionManagerBasicTestCase::ClientReceive, this));
 
         // Schedule operations
-        Simulator::Schedule(Seconds(0.0),
-                            &UdpConnectionManagerBasicTestCase::ServerBind,
-                            this);
-        Simulator::Schedule(Seconds(0.1),
-                            &UdpConnectionManagerBasicTestCase::ClientConnect,
-                            this);
-        Simulator::Schedule(Seconds(0.2),
-                            &UdpConnectionManagerBasicTestCase::ClientSend,
-                            this);
+        Simulator::Schedule(Seconds(0.0), &UdpConnectionManagerBasicTestCase::ServerBind, this);
+        Simulator::Schedule(Seconds(0.1), &UdpConnectionManagerBasicTestCase::ClientConnect, this);
+        Simulator::Schedule(Seconds(0.2), &UdpConnectionManagerBasicTestCase::ClientSend, this);
 
         Simulator::Stop(Seconds(1.0));
         Simulator::Run();

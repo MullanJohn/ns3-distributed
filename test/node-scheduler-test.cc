@@ -10,8 +10,8 @@
 #include "ns3/inet-socket-address.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/node.h"
-#include "ns3/simple-task-header.h"
 #include "ns3/round-robin-scheduler.h"
+#include "ns3/simple-task-header.h"
 #include "ns3/test.h"
 
 using namespace ns3;
@@ -40,13 +40,16 @@ RoundRobinSchedulerTestCase::DoRun()
     for (uint32_t i = 0; i < 3; i++)
     {
         Ptr<Node> node = CreateObject<Node>();
-        Address addr = InetSocketAddress(Ipv4Address(("10.1." + std::to_string(i) + ".1").c_str()), 9000);
+        Address addr =
+            InetSocketAddress(Ipv4Address(("10.1." + std::to_string(i) + ".1").c_str()), 9000);
         cluster.AddBackend(node, addr);
     }
 
     // Create scheduler
     Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
-    NS_TEST_ASSERT_MSG_EQ(scheduler->GetName(), "RoundRobin", "Scheduler name should be RoundRobin");
+    NS_TEST_ASSERT_MSG_EQ(scheduler->GetName(),
+                          "RoundRobin",
+                          "Scheduler name should be RoundRobin");
 
     scheduler->Initialize(cluster);
 
@@ -173,7 +176,9 @@ RoundRobinForkTestCase::DoRun()
     for (uint32_t i = 0; i < 3; i++)
     {
         Ptr<Node> node = CreateObject<Node>();
-        cluster.AddBackend(node, InetSocketAddress(Ipv4Address(("10.1." + std::to_string(i) + ".1").c_str()), 9000));
+        cluster.AddBackend(
+            node,
+            InetSocketAddress(Ipv4Address(("10.1." + std::to_string(i) + ".1").c_str()), 9000));
     }
 
     Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();

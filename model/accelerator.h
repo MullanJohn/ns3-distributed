@@ -219,19 +219,19 @@ class Accelerator : public Object
     Ptr<Node> m_node; //!< Node this accelerator is aggregated to
 
     // Trace sources for subclasses to fire
-    TracedCallback<Ptr<const Task>> m_taskStartedTrace;              //!< Task started
-    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace;      //!< Task completed
-    TracedCallback<Ptr<const Task>, std::string> m_taskFailedTrace;  //!< Task failed
-    TracedCallback<double> m_powerTrace;                              //!< Power state changes
-    TracedCallback<double> m_energyTrace;                             //!< Total energy accumulation
-    TracedCallback<Ptr<const Task>, double> m_taskEnergyTrace;        //!< Per-task energy
+    TracedCallback<Ptr<const Task>> m_taskStartedTrace;             //!< Task started
+    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace;     //!< Task completed
+    TracedCallback<Ptr<const Task>, std::string> m_taskFailedTrace; //!< Task failed
+    TracedCallback<double> m_powerTrace;                            //!< Power state changes
+    TracedCallback<double> m_energyTrace;                           //!< Total energy accumulation
+    TracedCallback<Ptr<const Task>, double> m_taskEnergyTrace;      //!< Per-task energy
 
   private:
-    Ptr<EnergyModel> m_energyModel;   //!< Energy model for power calculation
-    Time m_lastEnergyUpdateTime;      //!< Time of last energy state update
-    double m_totalEnergy;             //!< Total energy consumed in Joules
-    double m_currentPower;            //!< Current power consumption in Watts
-    double m_taskStartEnergy;         //!< Energy at task start for per-task tracking
+    Ptr<EnergyModel> m_energyModel; //!< Energy model for power calculation
+    Time m_lastEnergyUpdateTime;    //!< Time of last energy state update
+    double m_totalEnergy;           //!< Total energy consumed in Joules
+    double m_currentPower;          //!< Current power consumption in Watts
+    double m_taskStartEnergy;       //!< Energy at task start for per-task tracking
 };
 
 } // namespace ns3

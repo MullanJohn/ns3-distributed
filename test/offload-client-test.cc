@@ -160,12 +160,8 @@ class OffloadClientMultiClientTestCase : public TestCase
         Simulator::Destroy();
 
         // Verify both clients sent their tasks
-        NS_TEST_ASSERT_MSG_EQ(client1->GetTasksSent(),
-                              3,
-                              "Client 1 should have sent 3 tasks");
-        NS_TEST_ASSERT_MSG_EQ(client2->GetTasksSent(),
-                              3,
-                              "Client 2 should have sent 3 tasks");
+        NS_TEST_ASSERT_MSG_EQ(client1->GetTasksSent(), 3, "Client 1 should have sent 3 tasks");
+        NS_TEST_ASSERT_MSG_EQ(client2->GetTasksSent(), 3, "Client 2 should have sent 3 tasks");
 
         // Verify both clients received all their responses
         // This is the key test - if task IDs collided, responses would be misrouted

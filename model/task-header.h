@@ -56,8 +56,8 @@ class TaskHeader : public Header
      */
     enum MessageType
     {
-        TASK_REQUEST = 0,  //!< Request message (client to server)
-        TASK_RESPONSE = 1  //!< Response message (server to client)
+        TASK_REQUEST = 0, //!< Request message (client to server)
+        TASK_RESPONSE = 1 //!< Response message (server to client)
     };
 
     /**

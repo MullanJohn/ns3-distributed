@@ -133,12 +133,12 @@ class Task : public Object
   protected:
     void DoDispose() override;
 
-    uint64_t m_taskId{0};       //!< Unique task identifier
-    uint64_t m_inputSize{0};    //!< Input data size in bytes
-    uint64_t m_outputSize{0};   //!< Output data size in bytes
-    double m_computeDemand{0.0}; //!< Compute demand in FLOPS
+    uint64_t m_taskId{0};           //!< Unique task identifier
+    uint64_t m_inputSize{0};        //!< Input data size in bytes
+    uint64_t m_outputSize{0};       //!< Output data size in bytes
+    double m_computeDemand{0.0};    //!< Compute demand in FLOPS
     Time m_arrivalTime{Seconds(0)}; //!< Time when task arrived
-    Time m_deadline{Time(-1)};  //!< Task deadline (-1 = no deadline)
+    Time m_deadline{Time(-1)};      //!< Task deadline (-1 = no deadline)
 };
 
 } // namespace ns3

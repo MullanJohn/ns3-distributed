@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/simple-task.h"
 #include "ns3/fifo-queue-scheduler.h"
+#include "ns3/simple-task.h"
 #include "ns3/simulator.h"
 #include "ns3/test.h"
 

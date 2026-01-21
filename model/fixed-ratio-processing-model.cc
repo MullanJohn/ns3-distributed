@@ -22,11 +22,10 @@ NS_OBJECT_ENSURE_REGISTERED(FixedRatioProcessingModel);
 TypeId
 FixedRatioProcessingModel::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::FixedRatioProcessingModel")
-            .SetParent<ProcessingModel>()
-            .SetGroupName("Distributed")
-            .AddConstructor<FixedRatioProcessingModel>();
+    static TypeId tid = TypeId("ns3::FixedRatioProcessingModel")
+                            .SetParent<ProcessingModel>()
+                            .SetGroupName("Distributed")
+                            .AddConstructor<FixedRatioProcessingModel>();
     return tid;
 }
 
@@ -64,7 +63,7 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
     {
         NS_LOG_WARN("FixedRatioProcessingModel requires GpuAccelerator, received: "
                     << accelerator->GetName());
-        return Result();  // Returns success=false
+        return Result(); // Returns success=false
     }
 
     // Get hardware properties from accelerator
@@ -87,11 +86,9 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
     double utilization = (totalSeconds > 0) ? (computeSeconds / totalSeconds) : 1.0;
 
     NS_LOG_DEBUG("Task " << task->GetTaskId() << " processing:"
-                         << " input=" << Seconds(inputTransferSeconds)
-                         << " compute=" << Seconds(computeSeconds)
-                         << " output=" << Seconds(outputTransferSeconds)
-                         << " total=" << Seconds(totalSeconds)
-                         << " utilization=" << utilization);
+                         << " input=" << Seconds(inputTransferSeconds) << " compute="
+                         << Seconds(computeSeconds) << " output=" << Seconds(outputTransferSeconds)
+                         << " total=" << Seconds(totalSeconds) << " utilization=" << utilization);
 
     return Result(Seconds(totalSeconds), outputSize, utilization);
 }

@@ -168,8 +168,7 @@ LoadBalancer::StartApplication()
         m_frontendConnMgr = CreateObject<TcpConnectionManager>();
     }
     m_frontendConnMgr->SetNode(GetNode());
-    m_frontendConnMgr->SetReceiveCallback(
-        MakeCallback(&LoadBalancer::HandleFrontendReceive, this));
+    m_frontendConnMgr->SetReceiveCallback(MakeCallback(&LoadBalancer::HandleFrontendReceive, this));
     m_frontendConnMgr->Bind(m_port);
 
     // Create default backend ConnectionManager if not set
@@ -178,8 +177,7 @@ LoadBalancer::StartApplication()
         m_backendConnMgr = CreateObject<TcpConnectionManager>();
     }
     m_backendConnMgr->SetNode(GetNode());
-    m_backendConnMgr->SetReceiveCallback(
-        MakeCallback(&LoadBalancer::HandleBackendReceive, this));
+    m_backendConnMgr->SetReceiveCallback(MakeCallback(&LoadBalancer::HandleBackendReceive, this));
 
     // Connect to all backends
     for (uint32_t i = 0; i < m_cluster.GetN(); i++)
@@ -315,7 +313,8 @@ LoadBalancer::HandleBackendReceive(Ptr<Packet> packet, const Address& from)
 
         if (buffer->GetSize() < totalSize)
         {
-            NS_LOG_DEBUG("Backend buffer has " << buffer->GetSize() << " bytes, need " << totalSize);
+            NS_LOG_DEBUG("Backend buffer has " << buffer->GetSize() << " bytes, need "
+                                               << totalSize);
             break;
         }
 

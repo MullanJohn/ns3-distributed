@@ -340,9 +340,7 @@ OffloadServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
 }
 
 void
-OffloadServer::SendResponse(const Address& clientAddr,
-                            Ptr<const Task> task,
-                            Time duration)
+OffloadServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration)
 {
     NS_LOG_FUNCTION(this << clientAddr << task->GetTaskId() << duration);
 
