@@ -130,15 +130,28 @@ class Task : public Object
      */
     void ClearDeadline();
 
+    /**
+     * @brief Get the required accelerator type.
+     * @return The accelerator type string (e.g., "GPU", "TPU"). Empty string means any accelerator.
+     */
+    std::string GetRequiredAcceleratorType() const;
+
+    /**
+     * @brief Set the required accelerator type.
+     * @param type The accelerator type (e.g., "GPU", "TPU"). Empty string means any accelerator.
+     */
+    void SetRequiredAcceleratorType(const std::string& type);
+
   protected:
     void DoDispose() override;
 
-    uint64_t m_taskId{0};           //!< Unique task identifier
-    uint64_t m_inputSize{0};        //!< Input data size in bytes
-    uint64_t m_outputSize{0};       //!< Output data size in bytes
-    double m_computeDemand{0.0};    //!< Compute demand in FLOPS
-    Time m_arrivalTime{Seconds(0)}; //!< Time when task arrived
-    Time m_deadline{Time(-1)};      //!< Task deadline (-1 = no deadline)
+    uint64_t m_taskId{0};                      //!< Unique task identifier
+    uint64_t m_inputSize{0};                   //!< Input data size in bytes
+    uint64_t m_outputSize{0};                  //!< Output data size in bytes
+    double m_computeDemand{0.0};               //!< Compute demand in FLOPS
+    Time m_arrivalTime{Seconds(0)};            //!< Time when task arrived
+    Time m_deadline{Time(-1)};                 //!< Task deadline (-1 = no deadline)
+    std::string m_requiredAcceleratorType{""}; //!< Required accelerator type (empty = any)
 };
 
 } // namespace ns3
