@@ -40,6 +40,31 @@ class SimpleTask : public Task
      */
     std::string GetName() const override;
 
+    /**
+     * @brief Serialize this task to a packet using SimpleTaskHeader.
+     *
+     * @param isResponse true for response (output payload), false for request (input payload).
+     * @return A packet with SimpleTaskHeader and payload.
+     */
+    Ptr<Packet> Serialize(bool isResponse) const override;
+
+    /**
+     * @brief Get SimpleTaskHeader size.
+     * @return SimpleTaskHeader::SERIALIZED_SIZE
+     */
+    uint32_t GetSerializedHeaderSize() const override;
+
+    /**
+     * @brief Create a SimpleTask from a packet containing SimpleTaskHeader.
+     *
+     * Static factory method for deserialization. The packet should have
+     * a SimpleTaskHeader at the front.
+     *
+     * @param packet The packet to deserialize.
+     * @return A new SimpleTask populated from the header.
+     */
+    static Ptr<SimpleTask> Deserialize(Ptr<Packet> packet);
+
   protected:
     void DoDispose() override;
 };
