@@ -13,6 +13,7 @@
 #include "ns3/node.h"
 #include "ns3/ptr.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -54,8 +55,8 @@ class Cluster
      */
     struct Backend
     {
-        Ptr<Node> node;              //!< The backend server node (may have GpuAccelerator aggregated)
-        Address address;             //!< Server address (InetSocketAddress with IP and port)
+        Ptr<Node> node;  //!< The backend server node (may have GpuAccelerator aggregated)
+        Address address; //!< Server address (InetSocketAddress with IP and port)
         std::string acceleratorType; //!< Type of accelerator (e.g., "GPU", "TPU"). Empty = any.
     };
 
@@ -136,8 +137,30 @@ class Cluster
      */
     void Clear();
 
+    /**
+     * @brief Get backend indices for a specific accelerator type.
+     *
+     * Returns a vector of indices into the cluster for backends matching
+     * the specified accelerator type. This enables efficient scheduling
+     * decisions without iterating through all backends.
+     *
+     * @param acceleratorType The accelerator type to filter by (e.g., "GPU", "TPU").
+     * @return Vector of backend indices matching the type. Empty if none match.
+     */
+    const std::vector<uint32_t>& GetBackendsByType(const std::string& acceleratorType) const;
+
+    /**
+     * @brief Check if the cluster has backends of a specific accelerator type.
+     *
+     * @param acceleratorType The accelerator type to check for.
+     * @return true if at least one backend has this accelerator type.
+     */
+    bool HasAcceleratorType(const std::string& acceleratorType) const;
+
   private:
     std::vector<Backend> m_backends; //!< The collection of backend servers
+    std::map<std::string, std::vector<uint32_t>>
+        m_typeIndex; //!< accelerator type → backend indices
 };
 
 } // namespace ns3
