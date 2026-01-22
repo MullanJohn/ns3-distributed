@@ -22,14 +22,16 @@ Cluster::Cluster()
 }
 
 void
-Cluster::AddBackend(Ptr<Node> node, const Address& address)
+Cluster::AddBackend(Ptr<Node> node, const Address& address, const std::string& acceleratorType)
 {
-    NS_LOG_FUNCTION(this << node << address);
+    NS_LOG_FUNCTION(this << node << address << acceleratorType);
     Backend backend;
     backend.node = node;
     backend.address = address;
+    backend.acceleratorType = acceleratorType;
     m_backends.push_back(backend);
-    NS_LOG_DEBUG("Added backend " << (m_backends.size() - 1) << " to cluster");
+    NS_LOG_DEBUG("Added backend " << (m_backends.size() - 1) << " with accelerator type '"
+                                  << acceleratorType << "' to cluster");
 }
 
 uint32_t

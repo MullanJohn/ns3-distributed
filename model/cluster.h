@@ -13,6 +13,7 @@
 #include "ns3/node.h"
 #include "ns3/ptr.h"
 
+#include <string>
 #include <vector>
 
 namespace ns3
@@ -53,8 +54,9 @@ class Cluster
      */
     struct Backend
     {
-        Ptr<Node> node;  //!< The backend server node (may have GpuAccelerator aggregated)
-        Address address; //!< Server address (InetSocketAddress with IP and port)
+        Ptr<Node> node;              //!< The backend server node (may have GpuAccelerator aggregated)
+        Address address;             //!< Server address (InetSocketAddress with IP and port)
+        std::string acceleratorType; //!< Type of accelerator (e.g., "GPU", "TPU"). Empty = any.
     };
 
     /// Iterator type for traversing backends
@@ -72,8 +74,12 @@ class Cluster
      *             application installed and optionally a GpuAccelerator aggregated.
      * @param address The address clients should connect to (typically
      *                InetSocketAddress with the server's IP and port).
+     * @param acceleratorType The type of accelerator on this backend (e.g., "GPU", "TPU").
+     *                        Empty string means any/unspecified.
      */
-    void AddBackend(Ptr<Node> node, const Address& address);
+    void AddBackend(Ptr<Node> node,
+                    const Address& address,
+                    const std::string& acceleratorType = "");
 
     /**
      * @brief Get the number of backends in the cluster.
