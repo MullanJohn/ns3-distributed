@@ -17,6 +17,7 @@ build_lib(
                  model/task.cc
                  model/simple-task.cc
                  model/dag-task.cc
+                 model/admission-policy.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
                  model/udp-connection-manager.cc
@@ -45,6 +46,7 @@ build_lib(
                  model/task.h
                  model/simple-task.h
                  model/dag-task.h
+                 model/admission-policy.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
                  model/udp-connection-manager.h
