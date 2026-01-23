@@ -47,6 +47,8 @@ DagTask::DoDispose()
         node.dataSuccessors.clear();
     }
     m_nodes.clear();
+    m_taskIdToIndex.clear();
+    m_completedCount = 0;
     Object::DoDispose();
 }
 
@@ -59,7 +61,16 @@ DagTask::AddTask(Ptr<Task> task)
     node.inDegree = 0;
     node.completed = false;
     m_nodes.push_back(node);
-    return static_cast<uint32_t>(m_nodes.size() - 1);
+
+    uint32_t idx = static_cast<uint32_t>(m_nodes.size() - 1);
+
+    // Add to taskId index for O(1) lookup
+    if (task)
+    {
+        m_taskIdToIndex[task->GetTaskId()] = idx;
+    }
+
+    return idx;
 }
 
 void
@@ -118,6 +129,21 @@ DagTask::GetReadyTasks() const
     return ready;
 }
 
+std::vector<uint32_t>
+DagTask::GetSinkTasks() const
+{
+    NS_LOG_FUNCTION(this);
+    std::vector<uint32_t> sinks;
+    for (uint32_t i = 0; i < m_nodes.size(); i++)
+    {
+        if (m_nodes[i].successors.empty())
+        {
+            sinks.push_back(i);
+        }
+    }
+    return sinks;
+}
+
 void
 DagTask::MarkCompleted(uint32_t idx)
 {
@@ -133,6 +159,7 @@ DagTask::MarkCompleted(uint32_t idx)
         return;
     }
     m_nodes[idx].completed = true;
+    m_completedCount++;
     // Decrement in-degree of all successors
     for (uint32_t successorIdx : m_nodes[idx].successors)
     {
@@ -160,6 +187,48 @@ DagTask::GetTask(uint32_t idx) const
     return m_nodes[idx].task;
 }
 
+int32_t
+DagTask::GetTaskIndex(uint64_t taskId) const
+{
+    NS_LOG_FUNCTION(this << taskId);
+    auto it = m_taskIdToIndex.find(taskId);
+    if (it != m_taskIdToIndex.end())
+    {
+        return static_cast<int32_t>(it->second);
+    }
+    return -1;
+}
+
+bool
+DagTask::SetTask(uint32_t idx, Ptr<Task> task)
+{
+    NS_LOG_FUNCTION(this << idx << task);
+    if (idx >= m_nodes.size())
+    {
+        NS_LOG_ERROR("Invalid task index: " << idx);
+        return false;
+    }
+
+    // Update taskId index if task ID changed
+    Ptr<Task> oldTask = m_nodes[idx].task;
+    if (oldTask && task && oldTask->GetTaskId() != task->GetTaskId())
+    {
+        m_taskIdToIndex.erase(oldTask->GetTaskId());
+        m_taskIdToIndex[task->GetTaskId()] = idx;
+    }
+    else if (!oldTask && task)
+    {
+        m_taskIdToIndex[task->GetTaskId()] = idx;
+    }
+    else if (oldTask && !task)
+    {
+        m_taskIdToIndex.erase(oldTask->GetTaskId());
+    }
+
+    m_nodes[idx].task = task;
+    return true;
+}
+
 uint32_t
 DagTask::GetTaskCount() const
 {
@@ -170,14 +239,7 @@ bool
 DagTask::IsComplete() const
 {
     NS_LOG_FUNCTION(this);
-    for (const auto& node : m_nodes)
-    {
-        if (!node.completed)
-        {
-            return false;
-        }
-    }
-    return true;
+    return m_completedCount == m_nodes.size();
 }
 
 bool

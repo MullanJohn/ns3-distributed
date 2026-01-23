@@ -15,6 +15,7 @@
 #include "ns3/ptr.h"
 
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
 
 namespace ns3
@@ -101,6 +102,20 @@ class DagTask : public Object
     std::vector<uint32_t> GetReadyTasks() const;
 
     /**
+     * @brief Get indices of sink tasks (tasks with no successors).
+     *
+     * Sink tasks are the final outputs of the DAG - their results should
+     * be returned to the client when the DAG completes.
+     *
+     * @note Well-designed workload DAGs typically have a single sink task
+     * that aggregates results from upstream tasks. If your DAG has multiple
+     * sinks, consider adding an aggregation task to produce a single output.
+     *
+     * @return Vector of sink task indices (usually contains one element).
+     */
+    std::vector<uint32_t> GetSinkTasks() const;
+
+    /**
      * @brief Mark a task as completed.
      *
      * This decrements the in-degree of all successor tasks.
@@ -115,6 +130,24 @@ class DagTask : public Object
      * @return The task, or nullptr if index is invalid.
      */
     Ptr<Task> GetTask(uint32_t idx) const;
+
+    /**
+     * @brief Get the index of a task by its task ID.
+     * @param taskId The task ID to search for.
+     * @return The task index, or -1 if not found.
+     */
+    int32_t GetTaskIndex(uint64_t taskId) const;
+
+    /**
+     * @brief Update a task at the given index.
+     *
+     * Used to replace original task with response data after execution.
+     *
+     * @param idx The task index.
+     * @param task The new task to set.
+     * @return true if successful, false if index is invalid.
+     */
+    bool SetTask(uint32_t idx, Ptr<Task> task);
 
     /**
      * @brief Get the number of tasks in the DAG.
@@ -154,6 +187,8 @@ class DagTask : public Object
     };
 
     std::vector<DagNode> m_nodes; //!< All nodes in the DAG
+    uint32_t m_completedCount{0}; //!< Count of completed tasks for O(1) IsComplete()
+    std::unordered_map<uint64_t, uint32_t> m_taskIdToIndex; //!< taskId → index for O(1) lookup
 };
 
 } // namespace ns3
