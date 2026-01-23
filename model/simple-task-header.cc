@@ -67,18 +67,18 @@ SimpleTaskHeader::Serialize(Buffer::Iterator start) const
     NS_LOG_FUNCTION(this << &start);
 
     start.WriteU8(static_cast<uint8_t>(m_messageType));
-    start.WriteU64(m_taskId);
+    start.WriteHtonU64(m_taskId);
 
-    // Serialize double as uint64_t (bit-level copy)
+    // Serialize double as uint64_t (bit-level copy) in network byte order
     uint64_t computeDemandBits;
     std::memcpy(&computeDemandBits, &m_computeDemand, sizeof(m_computeDemand));
-    start.WriteU64(computeDemandBits);
+    start.WriteHtonU64(computeDemandBits);
 
-    start.WriteU64(m_inputSize);
-    start.WriteU64(m_outputSize);
+    start.WriteHtonU64(m_inputSize);
+    start.WriteHtonU64(m_outputSize);
 
-    // Serialize deadline as int64_t (cast to uint64_t for WriteU64)
-    start.WriteU64(static_cast<uint64_t>(m_deadlineNs));
+    // Serialize deadline as int64_t in network byte order
+    start.WriteHtonU64(static_cast<uint64_t>(m_deadlineNs));
 }
 
 uint32_t
@@ -96,17 +96,17 @@ SimpleTaskHeader::Deserialize(Buffer::Iterator start)
     }
     m_messageType = static_cast<MessageType>(messageTypeByte);
 
-    m_taskId = start.ReadU64();
+    m_taskId = start.ReadNtohU64();
 
-    // Deserialize double from uint64_t
-    uint64_t computeDemandBits = start.ReadU64();
+    // Deserialize double from uint64_t in network byte order
+    uint64_t computeDemandBits = start.ReadNtohU64();
     std::memcpy(&m_computeDemand, &computeDemandBits, sizeof(m_computeDemand));
 
-    m_inputSize = start.ReadU64();
-    m_outputSize = start.ReadU64();
+    m_inputSize = start.ReadNtohU64();
+    m_outputSize = start.ReadNtohU64();
 
-    // Deserialize deadline (stored as uint64_t, interpret as int64_t)
-    m_deadlineNs = static_cast<int64_t>(start.ReadU64());
+    // Deserialize deadline (stored as uint64_t in network byte order)
+    m_deadlineNs = static_cast<int64_t>(start.ReadNtohU64());
 
     return start.GetDistanceFrom(original);
 }
@@ -212,7 +212,7 @@ SimpleTaskHeader::GetOutputSize() const
 uint64_t
 SimpleTaskHeader::GetRequestPayloadSize() const
 {
-    return (m_inputSize > SERIALIZED_SIZE) ? (m_inputSize - SERIALIZED_SIZE) : 0;
+    return m_inputSize;
 }
 
 uint64_t

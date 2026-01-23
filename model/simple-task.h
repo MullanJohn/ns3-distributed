@@ -55,15 +55,17 @@ class SimpleTask : public Task
     uint32_t GetSerializedHeaderSize() const override;
 
     /**
-     * @brief Create a SimpleTask from a packet containing SimpleTaskHeader.
+     * @brief Deserialize a SimpleTask from a packet buffer.
      *
-     * Static factory method for deserialization. The packet should have
-     * a SimpleTaskHeader at the front.
+     * Stream-aware deserialization that handles message boundary detection.
+     * Peeks at the header to determine total message size, and only extracts
+     * data if a complete message is available.
      *
-     * @param packet The packet to deserialize.
-     * @return A new SimpleTask populated from the header.
+     * @param packet The packet buffer (may contain multiple messages or partial data).
+     * @param consumedBytes Output: bytes consumed from packet (0 if not enough data).
+     * @return A new SimpleTask, or nullptr if not enough data for complete message.
      */
-    static Ptr<SimpleTask> Deserialize(Ptr<Packet> packet);
+    static Ptr<Task> Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes);
 
   protected:
     void DoDispose() override;
