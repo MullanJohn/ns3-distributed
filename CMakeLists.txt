@@ -18,6 +18,9 @@ build_lib(
                  model/simple-task.cc
                  model/dag-task.cc
                  model/admission-policy.cc
+                 model/always-admit-policy.cc
+                 model/cluster-scheduler.cc
+                 model/first-fit-scheduler.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
                  model/udp-connection-manager.cc
@@ -47,6 +50,9 @@ build_lib(
                  model/simple-task.h
                  model/dag-task.h
                  model/admission-policy.h
+                 model/always-admit-policy.h
+                 model/cluster-scheduler.h
+                 model/first-fit-scheduler.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
                  model/udp-connection-manager.h

@@ -9,7 +9,7 @@
 #ifndef FIRST_FIT_SCHEDULER_H
 #define FIRST_FIT_SCHEDULER_H
 
-#include "scheduler.h"
+#include "cluster-scheduler.h"
 
 #include <map>
 #include <string>
@@ -29,7 +29,7 @@ namespace ns3
  * - Second task: Backend 2 (GPU matches, round-robin skips CPU)
  * - Third task: Backend 0 (wraps around)
  */
-class FirstFitScheduler : public Scheduler
+class FirstFitScheduler : public ClusterScheduler
 {
   public:
     /**
@@ -58,6 +58,9 @@ class FirstFitScheduler : public Scheduler
      * @return "FirstFit"
      */
     std::string GetName() const override;
+
+  protected:
+    void DoDispose() override;
 
   private:
     std::map<std::string, uint32_t> m_nextIndexByType; //!< Per-type round-robin indices

@@ -20,7 +20,7 @@ TypeId
 FirstFitScheduler::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::FirstFitScheduler")
-                            .SetParent<Scheduler>()
+                            .SetParent<ClusterScheduler>()
                             .SetGroupName("Distributed")
                             .AddConstructor<FirstFitScheduler>();
     return tid;
@@ -34,6 +34,14 @@ FirstFitScheduler::FirstFitScheduler()
 FirstFitScheduler::~FirstFitScheduler()
 {
     NS_LOG_FUNCTION(this);
+}
+
+void
+FirstFitScheduler::DoDispose()
+{
+    NS_LOG_FUNCTION(this);
+    m_nextIndexByType.clear();
+    ClusterScheduler::DoDispose();
 }
 
 int32_t

@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef SCHEDULER_H
-#define SCHEDULER_H
+#ifndef CLUSTER_SCHEDULER_H
+#define CLUSTER_SCHEDULER_H
 
 #include "cluster.h"
 #include "task.h"
@@ -22,14 +22,14 @@ namespace ns3
  * @ingroup distributed
  * @brief Abstract base class for task scheduling policies.
  *
- * Scheduler determines which backend in a cluster should execute a given task.
+ * ClusterScheduler determines which backend in a cluster should execute a given task.
  *
- * Scheduler is used by EdgeOrchestrator for task placement decisions during
+ * ClusterScheduler is used by EdgeOrchestrator for task placement decisions during
  * DAG execution.
  *
  * Example usage:
  * @code
- * Ptr<Scheduler> scheduler = CreateObject<RoundRobinScheduler>();
+ * Ptr<ClusterScheduler> scheduler = CreateObject<FirstFitScheduler>();
  *
  * Ptr<Task> task = CreateObject<SimpleTask>();
  * task->SetRequiredAcceleratorType("GPU");
@@ -41,7 +41,7 @@ namespace ns3
  * }
  * @endcode
  */
-class Scheduler : public Object
+class ClusterScheduler : public Object
 {
   public:
     /**
@@ -50,8 +50,8 @@ class Scheduler : public Object
      */
     static TypeId GetTypeId();
 
-    Scheduler();
-    ~Scheduler() override;
+    ClusterScheduler();
+    ~ClusterScheduler() override;
 
     /**
      * @brief Select a backend to execute the given task.
@@ -89,4 +89,4 @@ class Scheduler : public Object
 
 } // namespace ns3
 
-#endif // SCHEDULER_H
+#endif // CLUSTER_SCHEDULER_H
