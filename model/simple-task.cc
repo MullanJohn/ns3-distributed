@@ -63,6 +63,7 @@ SimpleTask::Serialize(bool isResponse) const
     header.SetInputSize(m_inputSize);
     header.SetOutputSize(m_outputSize);
     header.SetDeadlineNs(m_deadline.IsNegative() ? -1 : m_deadline.GetNanoSeconds());
+    header.SetAcceleratorType(GetRequiredAcceleratorType());
 
     // Create packet with header
     Ptr<Packet> packet = Create<Packet>();
@@ -121,6 +122,7 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
     task->SetComputeDemand(header.GetComputeDemand());
     task->SetInputSize(header.GetInputSize());
     task->SetOutputSize(header.GetOutputSize());
+    task->SetRequiredAcceleratorType(header.GetAcceleratorType());
 
     if (header.HasDeadline())
     {

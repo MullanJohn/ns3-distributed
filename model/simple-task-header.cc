@@ -26,7 +26,8 @@ SimpleTaskHeader::SimpleTaskHeader()
       m_computeDemand(0.0),
       m_inputSize(0),
       m_outputSize(0),
-      m_deadlineNs(-1)
+      m_deadlineNs(-1),
+      m_acceleratorType("")
 {
     NS_LOG_FUNCTION(this);
 }
@@ -58,7 +59,8 @@ SimpleTaskHeader::GetSerializedSize() const
            sizeof(uint64_t) + // m_computeDemand (as uint64_t)
            sizeof(uint64_t) + // m_inputSize
            sizeof(uint64_t) + // m_outputSize
-           sizeof(int64_t);   // m_deadlineNs
+           sizeof(int64_t) +  // m_deadlineNs
+           ACCEL_TYPE_SIZE;   // m_acceleratorType (fixed 16 bytes)
 }
 
 void
@@ -79,6 +81,12 @@ SimpleTaskHeader::Serialize(Buffer::Iterator start) const
 
     // Serialize deadline as int64_t in network byte order
     start.WriteHtonU64(static_cast<uint64_t>(m_deadlineNs));
+
+    // Serialize accelerator type as fixed 16 bytes (null-padded)
+    for (uint32_t i = 0; i < ACCEL_TYPE_SIZE; i++)
+    {
+        start.WriteU8(i < m_acceleratorType.size() ? m_acceleratorType[i] : 0);
+    }
 }
 
 uint32_t
@@ -108,6 +116,14 @@ SimpleTaskHeader::Deserialize(Buffer::Iterator start)
     // Deserialize deadline (stored as uint64_t in network byte order)
     m_deadlineNs = static_cast<int64_t>(start.ReadNtohU64());
 
+    // Deserialize accelerator type (fixed 16 bytes, null-terminated)
+    char accelBuf[ACCEL_TYPE_SIZE + 1] = {0};
+    for (uint32_t i = 0; i < ACCEL_TYPE_SIZE; i++)
+    {
+        accelBuf[i] = static_cast<char>(start.ReadU8());
+    }
+    m_acceleratorType = std::string(accelBuf); // Stops at first null
+
     return start.GetDistanceFrom(original);
 }
 
@@ -132,6 +148,7 @@ SimpleTaskHeader::Print(std::ostream& os) const
     os << ", TaskId: " << m_taskId << ", ComputeDemand: " << m_computeDemand
        << ", InputSize: " << m_inputSize << ", OutputSize: " << m_outputSize
        << ", Deadline: " << (m_deadlineNs >= 0 ? std::to_string(m_deadlineNs) + "ns" : "none")
+       << ", AcceleratorType: " << (m_acceleratorType.empty() ? "any" : m_acceleratorType)
        << ")";
 }
 
@@ -238,6 +255,20 @@ SimpleTaskHeader::SetDeadlineNs(int64_t deadlineNs)
 {
     NS_LOG_FUNCTION(this << deadlineNs);
     m_deadlineNs = deadlineNs;
+}
+
+std::string
+SimpleTaskHeader::GetAcceleratorType() const
+{
+    return m_acceleratorType;
+}
+
+void
+SimpleTaskHeader::SetAcceleratorType(const std::string& type)
+{
+    NS_LOG_FUNCTION(this << type);
+    // Truncate if longer than ACCEL_TYPE_SIZE
+    m_acceleratorType = type.substr(0, ACCEL_TYPE_SIZE);
 }
 
 } // namespace ns3
