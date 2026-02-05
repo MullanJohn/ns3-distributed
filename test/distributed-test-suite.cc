@@ -53,6 +53,8 @@ TestCase* CreateDagTaskDependencyTestCase();
 TestCase* CreateDagTaskCycleDetectionTestCase();
 TestCase* CreateDagTaskDataDependencyTestCase();
 TestCase* CreateDagTaskDataAccumulationTestCase();
+TestCase* CreateOrchestratorHeaderRequestTestCase();
+TestCase* CreateOrchestratorHeaderResponseTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -104,6 +106,8 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateDagTaskCycleDetectionTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDagTaskDataDependencyTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDagTaskDataAccumulationTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOrchestratorHeaderRequestTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOrchestratorHeaderResponseTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;

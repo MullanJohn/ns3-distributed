@@ -34,6 +34,7 @@ build_lib(
                  model/fifo-queue-scheduler.cc
                  model/batching-queue-scheduler.cc
                  model/simple-task-header.cc
+                 model/orchestrator-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
                  model/cluster.cc
@@ -66,6 +67,7 @@ build_lib(
                  model/fifo-queue-scheduler.h
                  model/batching-queue-scheduler.h
                  model/simple-task-header.h
+                 model/orchestrator-header.h
                  model/offload-client.h
                  model/offload-server.h
                  model/cluster.h
@@ -86,6 +88,7 @@ build_lib(
                  test/gpu-accelerator-queue-test.cc
                  test/task-header-test.cc
                  test/simple-task-header-test.cc
+                 test/orchestrator-header-test.cc
                  test/offload-server-test.cc
                  test/offload-client-test.cc
                  test/cluster-test.cc
