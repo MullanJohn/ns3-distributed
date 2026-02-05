@@ -134,4 +134,40 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
     return task;
 }
 
+Ptr<Task>
+SimpleTask::DeserializeHeader(Ptr<Packet> packet, uint64_t& consumedBytes)
+{
+    NS_LOG_FUNCTION(packet);
+    consumedBytes = 0;
+
+    // Check if we have enough data for the header
+    if (packet->GetSize() < SimpleTaskHeader::SERIALIZED_SIZE)
+    {
+        NS_LOG_DEBUG("Not enough data for header: have " << packet->GetSize() << ", need "
+                                                         << SimpleTaskHeader::SERIALIZED_SIZE);
+        return nullptr;
+    }
+
+    // Peek at header (non-destructive)
+    SimpleTaskHeader header;
+    packet->PeekHeader(header);
+
+    // Create task from header data only - no payload consumed
+    Ptr<SimpleTask> task = CreateObject<SimpleTask>();
+    task->SetTaskId(header.GetTaskId());
+    task->SetComputeDemand(header.GetComputeDemand());
+    task->SetInputSize(header.GetInputSize());
+    task->SetOutputSize(header.GetOutputSize());
+    task->SetRequiredAcceleratorType(header.GetAcceleratorType());
+
+    if (header.HasDeadline())
+    {
+        task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
+    }
+
+    // Only the header bytes are consumed, not payload
+    consumedBytes = SimpleTaskHeader::SERIALIZED_SIZE;
+    return task;
+}
+
 } // namespace ns3

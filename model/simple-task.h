@@ -67,6 +67,19 @@ class SimpleTask : public Task
      */
     static Ptr<Task> Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes);
 
+    /**
+     * @brief Deserialize a SimpleTask from header bytes only (no payload).
+     *
+     * Creates a task with all metadata fields populated but does not
+     * expect or consume any payload bytes. Used for DAG admission
+     * requests where only task metadata is sent.
+     *
+     * @param packet The packet buffer containing at least one header.
+     * @param consumedBytes Output: bytes consumed (header size, or 0 if insufficient data).
+     * @return A new SimpleTask, or nullptr if not enough data for header.
+     */
+    static Ptr<Task> DeserializeHeader(Ptr<Packet> packet, uint64_t& consumedBytes);
+
   protected:
     void DoDispose() override;
 };
