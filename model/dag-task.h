@@ -11,7 +11,9 @@
 
 #include "task.h"
 
+#include "ns3/callback.h"
 #include "ns3/object.h"
+#include "ns3/packet.h"
 #include "ns3/ptr.h"
 
 #include <cstdint>
@@ -170,6 +172,56 @@ class DagTask : public Object
      */
     bool Validate() const;
 
+    /**
+     * @brief Serialize DAG metadata for admission request (Phase 1).
+     *
+     * Serializes task headers (no payload data) and graph edges.
+     *
+     * @return Packet containing the serialized DAG metadata.
+     */
+    Ptr<Packet> SerializeMetadata() const;
+
+    /**
+     * @brief Serialize full DAG data for data upload (Phase 2).
+     *
+     * Serializes complete tasks (headers + payload data) and graph edges.
+     *
+     * @return Packet containing the serialized DAG with full data.
+     */
+    Ptr<Packet> SerializeFullData() const;
+
+    /**
+     * @brief Deserialize DAG metadata from a packet (Phase 1).
+     *
+     * Reconstructs a DagTask from metadata-only serialization.
+     * Tasks will have metadata but no payload data.
+     *
+     * @param packet The packet containing the serialized DAG metadata.
+     * @param deserializer Callback to deserialize individual task headers.
+     * @param consumedBytes Output: total bytes consumed from packet.
+     * @return The deserialized DagTask, or nullptr on failure.
+     */
+    static Ptr<DagTask> DeserializeMetadata(
+        Ptr<Packet> packet,
+        Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+        uint64_t& consumedBytes);
+
+    /**
+     * @brief Deserialize full DAG data from a packet (Phase 2).
+     *
+     * Reconstructs a DagTask from full serialization.
+     * Tasks will have metadata and payload data.
+     *
+     * @param packet The packet containing the serialized DAG data.
+     * @param deserializer Callback to deserialize individual tasks.
+     * @param consumedBytes Output: total bytes consumed from packet.
+     * @return The deserialized DagTask, or nullptr on failure.
+     */
+    static Ptr<DagTask> DeserializeFullData(
+        Ptr<Packet> packet,
+        Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+        uint64_t& consumedBytes);
+
   protected:
     void DoDispose() override;
 
@@ -185,6 +237,25 @@ class DagTask : public Object
         uint32_t inDegree{0};                 //!< Count of incomplete predecessors
         bool completed{false};                //!< Whether this task is completed
     };
+
+    /**
+     * @brief Internal helper for serialization.
+     * @param metadataOnly If true, serialize headers only; if false, serialize full tasks.
+     * @return Packet with serialized DAG.
+     */
+    Ptr<Packet> SerializeInternal(bool metadataOnly) const;
+
+    /**
+     * @brief Internal helper for deserialization.
+     * @param packet The packet to deserialize from.
+     * @param deserializer The task deserializer callback.
+     * @param consumedBytes Output: bytes consumed.
+     * @return Deserialized DagTask, or nullptr on failure.
+     */
+    static Ptr<DagTask> DeserializeInternal(
+        Ptr<Packet> packet,
+        Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+        uint64_t& consumedBytes);
 
     std::vector<DagNode> m_nodes; //!< All nodes in the DAG
     uint32_t m_completedCount{0}; //!< Count of completed tasks for O(1) IsComplete()

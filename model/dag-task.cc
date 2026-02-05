@@ -10,6 +10,8 @@
 
 #include "ns3/log.h"
 
+#include <set>
+
 namespace ns3
 {
 
@@ -284,6 +286,265 @@ DagTask::Validate() const
         }
     }
     return true;
+}
+
+Ptr<Packet>
+DagTask::SerializeMetadata() const
+{
+    NS_LOG_FUNCTION(this);
+    return SerializeInternal(true);
+}
+
+Ptr<Packet>
+DagTask::SerializeFullData() const
+{
+    NS_LOG_FUNCTION(this);
+    return SerializeInternal(false);
+}
+
+Ptr<DagTask>
+DagTask::DeserializeMetadata(Ptr<Packet> packet,
+                              Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+                              uint64_t& consumedBytes)
+{
+    NS_LOG_FUNCTION(packet);
+    return DeserializeInternal(packet, deserializer, consumedBytes);
+}
+
+Ptr<DagTask>
+DagTask::DeserializeFullData(Ptr<Packet> packet,
+                              Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+                              uint64_t& consumedBytes)
+{
+    NS_LOG_FUNCTION(packet);
+    return DeserializeInternal(packet, deserializer, consumedBytes);
+}
+
+Ptr<Packet>
+DagTask::SerializeInternal(bool metadataOnly) const
+{
+    NS_LOG_FUNCTION(this << metadataOnly);
+
+    Ptr<Packet> result = Create<Packet>();
+
+    // Write task count (4 bytes, network byte order)
+    uint32_t taskCount = static_cast<uint32_t>(m_nodes.size());
+    uint8_t countBuf[4];
+    countBuf[0] = (taskCount >> 24) & 0xFF;
+    countBuf[1] = (taskCount >> 16) & 0xFF;
+    countBuf[2] = (taskCount >> 8) & 0xFF;
+    countBuf[3] = taskCount & 0xFF;
+    result->AddAtEnd(Create<Packet>(countBuf, 4));
+
+    // Serialize each task
+    for (uint32_t i = 0; i < m_nodes.size(); i++)
+    {
+        Ptr<Task> task = m_nodes[i].task;
+        Ptr<Packet> taskPacket;
+
+        if (metadataOnly)
+        {
+            // Serialize header only by taking a fragment of the full serialization
+            Ptr<Packet> fullPacket = task->Serialize(false);
+            uint32_t headerSize = task->GetSerializedHeaderSize();
+            taskPacket = fullPacket->CreateFragment(0, headerSize);
+        }
+        else
+        {
+            taskPacket = task->Serialize(false);
+        }
+
+        // Write task serialized size (8 bytes, network byte order)
+        uint64_t taskSize = taskPacket->GetSize();
+        uint8_t sizeBuf[8];
+        sizeBuf[0] = (taskSize >> 56) & 0xFF;
+        sizeBuf[1] = (taskSize >> 48) & 0xFF;
+        sizeBuf[2] = (taskSize >> 40) & 0xFF;
+        sizeBuf[3] = (taskSize >> 32) & 0xFF;
+        sizeBuf[4] = (taskSize >> 24) & 0xFF;
+        sizeBuf[5] = (taskSize >> 16) & 0xFF;
+        sizeBuf[6] = (taskSize >> 8) & 0xFF;
+        sizeBuf[7] = taskSize & 0xFF;
+        result->AddAtEnd(Create<Packet>(sizeBuf, 8));
+
+        // Write task bytes
+        result->AddAtEnd(taskPacket);
+    }
+
+    // Count edges (all entries in successors lists)
+    uint32_t edgeCount = 0;
+    for (const auto& node : m_nodes)
+    {
+        edgeCount += static_cast<uint32_t>(node.successors.size());
+    }
+
+    // Write edge count (4 bytes, network byte order)
+    uint8_t edgeCountBuf[4];
+    edgeCountBuf[0] = (edgeCount >> 24) & 0xFF;
+    edgeCountBuf[1] = (edgeCount >> 16) & 0xFF;
+    edgeCountBuf[2] = (edgeCount >> 8) & 0xFF;
+    edgeCountBuf[3] = edgeCount & 0xFF;
+    result->AddAtEnd(Create<Packet>(edgeCountBuf, 4));
+
+    // Write edges
+    for (uint32_t fromIdx = 0; fromIdx < m_nodes.size(); fromIdx++)
+    {
+        const DagNode& node = m_nodes[fromIdx];
+
+        // Build set of data successors for quick lookup
+        std::set<uint32_t> dataSuccSet(node.dataSuccessors.begin(), node.dataSuccessors.end());
+
+        for (uint32_t toIdx : node.successors)
+        {
+            uint8_t edgeBuf[9];
+            edgeBuf[0] = (fromIdx >> 24) & 0xFF;
+            edgeBuf[1] = (fromIdx >> 16) & 0xFF;
+            edgeBuf[2] = (fromIdx >> 8) & 0xFF;
+            edgeBuf[3] = fromIdx & 0xFF;
+            edgeBuf[4] = (toIdx >> 24) & 0xFF;
+            edgeBuf[5] = (toIdx >> 16) & 0xFF;
+            edgeBuf[6] = (toIdx >> 8) & 0xFF;
+            edgeBuf[7] = toIdx & 0xFF;
+            edgeBuf[8] = dataSuccSet.count(toIdx) ? 1 : 0;
+            result->AddAtEnd(Create<Packet>(edgeBuf, 9));
+        }
+    }
+
+    return result;
+}
+
+Ptr<DagTask>
+DagTask::DeserializeInternal(Ptr<Packet> packet,
+                              Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+                              uint64_t& consumedBytes)
+{
+    NS_LOG_FUNCTION(packet);
+    consumedBytes = 0;
+
+    // Need at least 4 bytes for task count
+    if (packet->GetSize() < 4)
+    {
+        NS_LOG_WARN("Not enough data for task count");
+        return nullptr;
+    }
+
+    uint64_t offset = 0;
+
+    // Read task count
+    uint8_t countBuf[4];
+    Ptr<Packet> countFragment = packet->CreateFragment(offset, 4);
+    countFragment->CopyData(countBuf, 4);
+    uint32_t taskCount = (static_cast<uint32_t>(countBuf[0]) << 24) |
+                         (static_cast<uint32_t>(countBuf[1]) << 16) |
+                         (static_cast<uint32_t>(countBuf[2]) << 8) |
+                         static_cast<uint32_t>(countBuf[3]);
+    offset += 4;
+
+    Ptr<DagTask> dag = CreateObject<DagTask>();
+
+    // Deserialize each task
+    for (uint32_t i = 0; i < taskCount; i++)
+    {
+        // Need 8 bytes for task size
+        if (packet->GetSize() < offset + 8)
+        {
+            NS_LOG_WARN("Not enough data for task size at index " << i);
+            return nullptr;
+        }
+
+        // Read task serialized size
+        uint8_t sizeBuf[8];
+        Ptr<Packet> sizeFragment = packet->CreateFragment(offset, 8);
+        sizeFragment->CopyData(sizeBuf, 8);
+        uint64_t taskSize = 0;
+        for (int j = 0; j < 8; j++)
+        {
+            taskSize = (taskSize << 8) | sizeBuf[j];
+        }
+        offset += 8;
+
+        // Check we have enough data for the task
+        if (packet->GetSize() < offset + taskSize)
+        {
+            NS_LOG_WARN("Not enough data for task at index " << i);
+            return nullptr;
+        }
+
+        // Extract task bytes as a fragment and deserialize
+        Ptr<Packet> taskPacket = packet->CreateFragment(offset, taskSize);
+        uint64_t taskConsumed = 0;
+        Ptr<Task> task = deserializer(taskPacket, taskConsumed);
+
+        if (!task)
+        {
+            NS_LOG_WARN("Failed to deserialize task at index " << i);
+            return nullptr;
+        }
+
+        dag->AddTask(task);
+        offset += taskSize;
+    }
+
+    // Need 4 bytes for edge count
+    if (packet->GetSize() < offset + 4)
+    {
+        NS_LOG_WARN("Not enough data for edge count");
+        return nullptr;
+    }
+
+    // Read edge count
+    uint8_t edgeCountBuf[4];
+    Ptr<Packet> edgeCountFragment = packet->CreateFragment(offset, 4);
+    edgeCountFragment->CopyData(edgeCountBuf, 4);
+    uint32_t edgeCount = (static_cast<uint32_t>(edgeCountBuf[0]) << 24) |
+                         (static_cast<uint32_t>(edgeCountBuf[1]) << 16) |
+                         (static_cast<uint32_t>(edgeCountBuf[2]) << 8) |
+                         static_cast<uint32_t>(edgeCountBuf[3]);
+    offset += 4;
+
+    // Read edges
+    for (uint32_t i = 0; i < edgeCount; i++)
+    {
+        if (packet->GetSize() < offset + 9)
+        {
+            NS_LOG_WARN("Not enough data for edge " << i);
+            return nullptr;
+        }
+
+        uint8_t edgeBuf[9];
+        Ptr<Packet> edgeFragment = packet->CreateFragment(offset, 9);
+        edgeFragment->CopyData(edgeBuf, 9);
+
+        uint32_t fromIdx = (static_cast<uint32_t>(edgeBuf[0]) << 24) |
+                           (static_cast<uint32_t>(edgeBuf[1]) << 16) |
+                           (static_cast<uint32_t>(edgeBuf[2]) << 8) |
+                           static_cast<uint32_t>(edgeBuf[3]);
+        uint32_t toIdx = (static_cast<uint32_t>(edgeBuf[4]) << 24) |
+                         (static_cast<uint32_t>(edgeBuf[5]) << 16) |
+                         (static_cast<uint32_t>(edgeBuf[6]) << 8) |
+                         static_cast<uint32_t>(edgeBuf[7]);
+        bool isData = (edgeBuf[8] != 0);
+
+        if (fromIdx >= taskCount || toIdx >= taskCount)
+        {
+            NS_LOG_WARN("Invalid edge indices: " << fromIdx << " -> " << toIdx);
+            return nullptr;
+        }
+
+        if (isData)
+        {
+            dag->AddDataDependency(fromIdx, toIdx);
+        }
+        else
+        {
+            dag->AddDependency(fromIdx, toIdx);
+        }
+
+        offset += 9;
+    }
+
+    consumedBytes = offset;
+    return dag;
 }
 
 } // namespace ns3
