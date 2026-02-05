@@ -8,6 +8,7 @@
 
 #include "ns3/orchestrator-header.h"
 #include "ns3/packet.h"
+#include "ns3/simulator.h"
 #include "ns3/test.h"
 
 namespace ns3
@@ -96,6 +97,86 @@ class OrchestratorHeaderResponseTestCase : public TestCase
     }
 };
 
+/**
+ * @ingroup distributed-tests
+ * @brief Test OrchestratorHeader serialization roundtrip for DAG_ADMISSION_REQUEST
+ */
+class OrchestratorHeaderDagRequestTestCase : public TestCase
+{
+  public:
+    OrchestratorHeaderDagRequestTestCase()
+        : TestCase("Test OrchestratorHeader DAG_ADMISSION_REQUEST roundtrip")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        OrchestratorHeader original;
+        original.SetMessageType(OrchestratorHeader::DAG_ADMISSION_REQUEST);
+        original.SetTaskId(99);
+        original.SetPayloadSize(2048);
+
+        Ptr<Packet> packet = Create<Packet>();
+        packet->AddHeader(original);
+
+        OrchestratorHeader deserialized;
+        packet->RemoveHeader(deserialized);
+
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetMessageType(),
+                              OrchestratorHeader::DAG_ADMISSION_REQUEST,
+                              "Message type should be DAG_ADMISSION_REQUEST");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetTaskId(), 99, "Task ID should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetPayloadSize(), 2048, "Payload size should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsDagRequest(), true, "IsDagRequest should be true");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsDagResponse(), false, "IsDagResponse should be false");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsRequest(), false, "IsRequest should be false");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsResponse(), false, "IsResponse should be false");
+
+        Simulator::Destroy();
+    }
+};
+
+/**
+ * @ingroup distributed-tests
+ * @brief Test OrchestratorHeader serialization roundtrip for DAG_ADMISSION_RESPONSE
+ */
+class OrchestratorHeaderDagResponseTestCase : public TestCase
+{
+  public:
+    OrchestratorHeaderDagResponseTestCase()
+        : TestCase("Test OrchestratorHeader DAG_ADMISSION_RESPONSE roundtrip")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        OrchestratorHeader original;
+        original.SetMessageType(OrchestratorHeader::DAG_ADMISSION_RESPONSE);
+        original.SetTaskId(200);
+        original.SetAdmitted(true);
+        original.SetPayloadSize(0);
+
+        Ptr<Packet> packet = Create<Packet>();
+        packet->AddHeader(original);
+
+        OrchestratorHeader deserialized;
+        packet->RemoveHeader(deserialized);
+
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetMessageType(),
+                              OrchestratorHeader::DAG_ADMISSION_RESPONSE,
+                              "Message type should be DAG_ADMISSION_RESPONSE");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsDagResponse(), true, "IsDagResponse should be true");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsDagRequest(), false, "IsDagRequest should be false");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsAdmitted(), true, "Should be admitted");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetTaskId(), 200, "Task ID should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetPayloadSize(), 0, "Payload size should be 0");
+
+        Simulator::Destroy();
+    }
+};
+
 } // namespace
 
 TestCase*
@@ -108,6 +189,18 @@ TestCase*
 CreateOrchestratorHeaderResponseTestCase()
 {
     return new OrchestratorHeaderResponseTestCase;
+}
+
+TestCase*
+CreateOrchestratorHeaderDagRequestTestCase()
+{
+    return new OrchestratorHeaderDagRequestTestCase;
+}
+
+TestCase*
+CreateOrchestratorHeaderDagResponseTestCase()
+{
+    return new OrchestratorHeaderDagResponseTestCase;
 }
 
 } // namespace ns3
