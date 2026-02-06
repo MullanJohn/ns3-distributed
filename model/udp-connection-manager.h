@@ -60,8 +60,8 @@ class UdpConnectionManager : public ConnectionManager
     void Bind(uint16_t port) override;
     void Bind(const Address& local) override;
     void Connect(const Address& remote) override;
-    void Send(Ptr<Packet> packet) override;
-    void Send(Ptr<Packet> packet, const Address& to) override;
+    bool Send(Ptr<Packet> packet) override;
+    bool Send(Ptr<Packet> packet, const Address& to) override;
     void SetReceiveCallback(ReceiveCallback callback) override;
     void Close() override;
     void Close(const Address& peer) override;

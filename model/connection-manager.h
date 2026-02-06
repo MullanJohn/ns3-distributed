@@ -141,8 +141,9 @@ class ConnectionManager : public Object
      * In server mode with a single client, sends to that client.
      *
      * @param packet The packet to send.
+     * @return true if the packet was sent successfully, false on failure.
      */
-    virtual void Send(Ptr<Packet> packet) = 0;
+    virtual bool Send(Ptr<Packet> packet) = 0;
 
     /**
      * @brief Send a packet to a specific peer.
@@ -153,8 +154,9 @@ class ConnectionManager : public Object
      *
      * @param packet The packet to send.
      * @param to The destination address.
+     * @return true if the packet was sent successfully, false on failure.
      */
-    virtual void Send(Ptr<Packet> packet, const Address& to) = 0;
+    virtual bool Send(Ptr<Packet> packet, const Address& to) = 0;
 
     /**
      * @brief Set the callback for receiving data.

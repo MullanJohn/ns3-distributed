@@ -107,8 +107,8 @@ class TcpConnectionManager : public ConnectionManager
     void Bind(uint16_t port) override;
     void Bind(const Address& local) override;
     void Connect(const Address& remote) override;
-    void Send(Ptr<Packet> packet) override;
-    void Send(Ptr<Packet> packet, const Address& to) override;
+    bool Send(Ptr<Packet> packet) override;
+    bool Send(Ptr<Packet> packet, const Address& to) override;
     void SetReceiveCallback(ReceiveCallback callback) override;
     void Close() override;
     void Close(const Address& peer) override;
@@ -169,7 +169,7 @@ class TcpConnectionManager : public ConnectionManager
      * @param connId The connection identifier from AcquireConnection().
      * @param packet The packet to send.
      */
-    void Send(ConnectionId connId, Ptr<Packet> packet);
+    bool Send(ConnectionId connId, Ptr<Packet> packet);
 
     /**
      * @brief Release a connection back to the pool.
