@@ -29,7 +29,7 @@ namespace ns3
  * Concrete implementations (e.g., SimpleTaskHeader) add task-specific
  * fields like compute demand, I/O sizes, or inference parameters.
  *
- * LoadBalancer and NodeScheduler use this interface to route messages
+ * OffloadServer and EdgeOrchestrator use this interface to route messages
  * without inspecting task-specific fields.
  *
  * Example usage:

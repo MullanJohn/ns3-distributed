@@ -38,11 +38,7 @@ build_lib(
                  model/offload-client.cc
                  model/offload-server.cc
                  model/cluster.cc
-                 model/node-scheduler.cc
-                 model/round-robin-scheduler.cc
-                 model/load-balancer.cc
                  helper/distributed-helper.cc
-                 helper/load-balancer-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
@@ -71,11 +67,7 @@ build_lib(
                  model/offload-client.h
                  model/offload-server.h
                  model/cluster.h
-                 model/node-scheduler.h
-                 model/round-robin-scheduler.h
-                 model/load-balancer.h
                  helper/distributed-helper.h
-                 helper/load-balancer-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
@@ -92,7 +84,6 @@ build_lib(
                  test/offload-server-test.cc
                  test/offload-client-test.cc
                  test/cluster-test.cc
-                 test/node-scheduler-test.cc
                  test/fixed-ratio-processing-test.cc
                  test/fifo-queue-scheduler-test.cc
                  test/batching-queue-scheduler-test.cc

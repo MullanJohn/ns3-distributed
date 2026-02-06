@@ -22,11 +22,11 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Represents a cluster of backend server nodes for load balancing.
+ * @brief Represents a cluster of backend server nodes for distributed computing.
  *
  * A Cluster holds references to server nodes and their addresses. It provides
  * iteration and access patterns similar to NodeContainer. The Cluster is used
- * by NodeScheduler implementations to select which backend should handle
+ * by ClusterScheduler implementations to select which backend should handle
  * incoming tasks.
  *
  * Each backend in the cluster is represented by a Backend struct containing:

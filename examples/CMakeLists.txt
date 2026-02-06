@@ -12,9 +12,3 @@ build_lib_example(
                       ${libpoint-to-point}
 )
 
-build_lib_example(
-    NAME load-balancer-example
-    SOURCE_FILES load-balancer-example.cc
-    LIBRARIES_TO_LINK ${libdistributed}
-                      ${libpoint-to-point}
-)
