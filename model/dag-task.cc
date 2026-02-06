@@ -50,6 +50,7 @@ DagTask::DoDispose()
     }
     m_nodes.clear();
     m_taskIdToIndex.clear();
+    m_readySet.clear();
     m_completedCount = 0;
     Object::DoDispose();
 }
@@ -65,6 +66,9 @@ DagTask::AddTask(Ptr<Task> task)
     m_nodes.push_back(node);
 
     uint32_t idx = static_cast<uint32_t>(m_nodes.size() - 1);
+
+    // New tasks have inDegree=0, so they are ready
+    m_readySet.insert(idx);
 
     // Add to taskId index for O(1) lookup
     if (task)
@@ -92,6 +96,10 @@ DagTask::AddDependency(uint32_t fromIdx, uint32_t toIdx)
     }
     m_nodes[fromIdx].successors.push_back(toIdx);
     m_nodes[toIdx].inDegree++;
+    if (m_nodes[toIdx].inDegree == 1)
+    {
+        m_readySet.erase(toIdx);
+    }
 }
 
 void
@@ -112,6 +120,10 @@ DagTask::AddDataDependency(uint32_t fromIdx, uint32_t toIdx)
     // Create ordering dependency
     m_nodes[fromIdx].successors.push_back(toIdx);
     m_nodes[toIdx].inDegree++;
+    if (m_nodes[toIdx].inDegree == 1)
+    {
+        m_readySet.erase(toIdx);
+    }
     // Mark data flow
     m_nodes[fromIdx].dataSuccessors.push_back(toIdx);
 }
@@ -120,15 +132,7 @@ std::vector<uint32_t>
 DagTask::GetReadyTasks() const
 {
     NS_LOG_FUNCTION(this);
-    std::vector<uint32_t> ready;
-    for (uint32_t i = 0; i < m_nodes.size(); i++)
-    {
-        if (!m_nodes[i].completed && m_nodes[i].inDegree == 0)
-        {
-            ready.push_back(i);
-        }
-    }
-    return ready;
+    return std::vector<uint32_t>(m_readySet.begin(), m_readySet.end());
 }
 
 std::vector<uint32_t>
@@ -162,12 +166,17 @@ DagTask::MarkCompleted(uint32_t idx)
     }
     m_nodes[idx].completed = true;
     m_completedCount++;
+    m_readySet.erase(idx);
     // Decrement in-degree of all successors
     for (uint32_t successorIdx : m_nodes[idx].successors)
     {
         if (m_nodes[successorIdx].inDegree > 0)
         {
             m_nodes[successorIdx].inDegree--;
+            if (m_nodes[successorIdx].inDegree == 0 && !m_nodes[successorIdx].completed)
+            {
+                m_readySet.insert(successorIdx);
+            }
         }
     }
     // Propagate data to data-dependent successors

@@ -17,6 +17,7 @@
 #include "ns3/ptr.h"
 
 #include <cstdint>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -260,6 +261,7 @@ class DagTask : public Object
     std::vector<DagNode> m_nodes; //!< All nodes in the DAG
     uint32_t m_completedCount{0}; //!< Count of completed tasks for O(1) IsComplete()
     std::unordered_map<uint64_t, uint32_t> m_taskIdToIndex; //!< taskId → index for O(1) lookup
+    std::set<uint32_t> m_readySet; //!< Indices of tasks with inDegree==0 and !completed
 };
 
 } // namespace ns3
