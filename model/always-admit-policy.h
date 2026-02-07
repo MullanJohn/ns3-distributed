@@ -36,12 +36,12 @@ class AlwaysAdmitPolicy : public AdmissionPolicy
     /**
      * @brief Always admits the workload.
      *
-     * @param metrics Workload metadata (ignored)
+     * @param dag The workload DAG (ignored)
      * @param cluster Current cluster state (ignored)
      * @param activeWorkloadCount Number of active workloads (ignored)
      * @return Always returns true
      */
-    bool ShouldAdmit(const WorkloadMetrics& metrics,
+    bool ShouldAdmit(Ptr<DagTask> dag,
                      const Cluster& cluster,
                      uint32_t activeWorkloadCount) override;
 

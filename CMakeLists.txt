@@ -37,6 +37,7 @@ build_lib(
                  model/orchestrator-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
+                 model/edge-orchestrator.cc
                  model/cluster.cc
                  helper/distributed-helper.cc
                  helper/offload-client-helper.cc
@@ -66,6 +67,7 @@ build_lib(
                  model/orchestrator-header.h
                  model/offload-client.h
                  model/offload-server.h
+                 model/edge-orchestrator.h
                  model/cluster.h
                  helper/distributed-helper.h
                  helper/offload-client-helper.h

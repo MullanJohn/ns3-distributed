@@ -338,6 +338,8 @@ DagTask::SerializeInternal(bool metadataOnly) const
 
     // Write task count (4 bytes, network byte order)
     uint32_t taskCount = static_cast<uint32_t>(m_nodes.size());
+    NS_ASSERT_MSG(taskCount < (1u << 24),
+                  "DAG task count exceeds wire protocol limit");
     uint8_t countBuf[4];
     countBuf[0] = (taskCount >> 24) & 0xFF;
     countBuf[1] = (taskCount >> 16) & 0xFF;
