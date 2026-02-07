@@ -164,6 +164,17 @@ class Task : public Object
      */
     virtual uint32_t GetSerializedHeaderSize() const = 0;
 
+    /**
+     * @brief Get the task type identifier.
+     *
+     * Returns a stable 1-byte identifier for this task type. Used by DAG
+     * serialization and the EdgeOrchestrator's task type registry to dispatch
+     * deserialization to the correct callback.
+     *
+     * @return The task type identifier.
+     */
+    virtual uint8_t GetTaskType() const = 0;
+
   protected:
     void DoDispose() override;
 

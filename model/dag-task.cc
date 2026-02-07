@@ -363,6 +363,12 @@ DagTask::SerializeInternal(bool metadataOnly) const
             taskPacket = task->Serialize(false);
         }
 
+        // Prepend task type byte for dispatch-based deserialization
+        uint8_t typeByte = task->GetTaskType();
+        Ptr<Packet> typePrefix = Create<Packet>(&typeByte, 1);
+        typePrefix->AddAtEnd(taskPacket);
+        taskPacket = typePrefix;
+
         // Write task serialized size (8 bytes, network byte order)
         uint64_t taskSize = taskPacket->GetSize();
         uint8_t sizeBuf[8];

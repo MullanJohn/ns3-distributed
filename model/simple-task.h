@@ -34,11 +34,19 @@ class SimpleTask : public Task
     SimpleTask();
     ~SimpleTask() override;
 
+    static constexpr uint8_t TASK_TYPE = 0; //!< Task type identifier for SimpleTask
+
     /**
      * @brief Get the task type name.
      * @return "SimpleTask"
      */
     std::string GetName() const override;
+
+    /**
+     * @brief Get the task type identifier.
+     * @return SimpleTask::TASK_TYPE (0)
+     */
+    uint8_t GetTaskType() const override;
 
     /**
      * @brief Serialize this task to a packet using SimpleTaskHeader.

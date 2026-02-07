@@ -19,6 +19,51 @@ namespace
 {
 
 /**
+ * @brief Strip a 1-byte type prefix and delegate to the given deserializer.
+ *
+ * Used in tests to match the wire format produced by DagTask::SerializeInternal(),
+ * which prepends a task type byte to each serialized task.
+ */
+static Ptr<Task>
+StripTypePrefixAndDeserialize(
+    Ptr<Packet> packet,
+    uint64_t& consumedBytes,
+    Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer)
+{
+    consumedBytes = 0;
+    if (packet->GetSize() < 1)
+    {
+        return nullptr;
+    }
+    Ptr<Packet> subPacket = packet->CreateFragment(1, packet->GetSize() - 1);
+    uint64_t subConsumed = 0;
+    Ptr<Task> task = deserializer(subPacket, subConsumed);
+    if (subConsumed > 0)
+    {
+        consumedBytes = 1 + subConsumed;
+    }
+    return task;
+}
+
+/// @brief Deserialize a type-prefixed full task (header + payload).
+static Ptr<Task>
+DeserializeWithTypePrefix(Ptr<Packet> packet, uint64_t& consumedBytes)
+{
+    return StripTypePrefixAndDeserialize(packet,
+                                         consumedBytes,
+                                         MakeCallback(&SimpleTask::Deserialize));
+}
+
+/// @brief Deserialize a type-prefixed metadata-only task (header only).
+static Ptr<Task>
+DeserializeHeaderWithTypePrefix(Ptr<Packet> packet, uint64_t& consumedBytes)
+{
+    return StripTypePrefixAndDeserialize(packet,
+                                         consumedBytes,
+                                         MakeCallback(&SimpleTask::DeserializeHeader));
+}
+
+/**
  * @ingroup distributed-tests
  * @brief Test DagTask metadata serialization roundtrip
  *
@@ -81,11 +126,11 @@ class DagTaskSerializeMetadataTestCase : public TestCase
         Ptr<Packet> packet = dag->SerializeMetadata();
         NS_TEST_ASSERT_MSG_GT(packet->GetSize(), 0, "Serialized packet should not be empty");
 
-        // Deserialize metadata
+        // Deserialize metadata (callback must handle type byte prefix)
         uint64_t consumedBytes = 0;
         Ptr<DagTask> restored = DagTask::DeserializeMetadata(
             packet,
-            MakeCallback(&SimpleTask::DeserializeHeader),
+            MakeCallback(&DeserializeHeaderWithTypePrefix),
             consumedBytes);
 
         NS_TEST_ASSERT_MSG_NE(restored, nullptr, "Deserialized DAG should not be null");
@@ -192,11 +237,11 @@ class DagTaskSerializeFullDataTestCase : public TestCase
         Ptr<Packet> packet = dag->SerializeFullData();
         NS_TEST_ASSERT_MSG_GT(packet->GetSize(), 0, "Serialized packet should not be empty");
 
-        // Deserialize full data
+        // Deserialize full data (callback must handle type byte prefix)
         uint64_t consumedBytes = 0;
         Ptr<DagTask> restored = DagTask::DeserializeFullData(
             packet,
-            MakeCallback(&SimpleTask::Deserialize),
+            MakeCallback(&DeserializeWithTypePrefix),
             consumedBytes);
 
         NS_TEST_ASSERT_MSG_NE(restored, nullptr, "Deserialized DAG should not be null");
@@ -245,7 +290,7 @@ class DagTaskDeserializeFailureTestCase : public TestCase
         Ptr<Packet> empty = Create<Packet>();
         Ptr<DagTask> result = DagTask::DeserializeMetadata(
             empty,
-            MakeCallback(&SimpleTask::DeserializeHeader),
+            MakeCallback(&DeserializeHeaderWithTypePrefix),
             consumedBytes);
         NS_TEST_ASSERT_MSG_EQ(result, nullptr, "Empty packet should return nullptr");
         NS_TEST_ASSERT_MSG_EQ(consumedBytes, 0, "Empty packet should consume 0 bytes");
@@ -256,7 +301,7 @@ class DagTaskDeserializeFailureTestCase : public TestCase
         consumedBytes = 0;
         result = DagTask::DeserializeMetadata(
             truncated,
-            MakeCallback(&SimpleTask::DeserializeHeader),
+            MakeCallback(&DeserializeHeaderWithTypePrefix),
             consumedBytes);
         NS_TEST_ASSERT_MSG_EQ(result, nullptr, "Truncated packet should return nullptr");
         NS_TEST_ASSERT_MSG_EQ(consumedBytes, 0, "Truncated packet should consume 0 bytes");

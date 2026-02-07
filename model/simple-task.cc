@@ -51,6 +51,12 @@ SimpleTask::GetName() const
     return "SimpleTask";
 }
 
+uint8_t
+SimpleTask::GetTaskType() const
+{
+    return TASK_TYPE;
+}
+
 Ptr<Packet>
 SimpleTask::Serialize(bool isResponse) const
 {
