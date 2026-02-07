@@ -51,8 +51,6 @@ TestCase* CreateDagTaskDataDependencyTestCase();
 TestCase* CreateDagTaskDataAccumulationTestCase();
 TestCase* CreateOrchestratorHeaderRequestTestCase();
 TestCase* CreateOrchestratorHeaderResponseTestCase();
-TestCase* CreateOrchestratorHeaderDagRequestTestCase();
-TestCase* CreateOrchestratorHeaderDagResponseTestCase();
 TestCase* CreateDagTaskSerializeMetadataTestCase();
 TestCase* CreateDagTaskSerializeFullDataTestCase();
 TestCase* CreateDagTaskDeserializeFailureTestCase();
@@ -105,8 +103,6 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateDagTaskDataAccumulationTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOrchestratorHeaderRequestTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOrchestratorHeaderResponseTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateOrchestratorHeaderDagRequestTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateOrchestratorHeaderDagResponseTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDagTaskSerializeMetadataTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDagTaskSerializeFullDataTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDagTaskDeserializeFailureTestCase(), TestCase::Duration::QUICK);

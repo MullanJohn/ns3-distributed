@@ -105,18 +105,6 @@ OrchestratorHeader::IsResponse() const
     return m_messageType == ADMISSION_RESPONSE;
 }
 
-bool
-OrchestratorHeader::IsDagRequest() const
-{
-    return m_messageType == DAG_ADMISSION_REQUEST;
-}
-
-bool
-OrchestratorHeader::IsDagResponse() const
-{
-    return m_messageType == DAG_ADMISSION_RESPONSE;
-}
-
 std::string
 OrchestratorHeader::GetMessageTypeName() const
 {
@@ -126,10 +114,6 @@ OrchestratorHeader::GetMessageTypeName() const
         return "ADMISSION_REQUEST";
     case ADMISSION_RESPONSE:
         return "ADMISSION_RESPONSE";
-    case DAG_ADMISSION_REQUEST:
-        return "DAG_ADMISSION_REQUEST";
-    case DAG_ADMISSION_RESPONSE:
-        return "DAG_ADMISSION_RESPONSE";
     default:
         return "UNKNOWN";
     }

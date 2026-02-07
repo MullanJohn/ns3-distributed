@@ -29,7 +29,7 @@ namespace ns3
  * Protocol:
  *
  * Phase 1 - Admission:
- * - Client: ADMISSION_REQUEST + TaskHeader (metadata only, no payload)
+ * - Client: ADMISSION_REQUEST + serialized DAG metadata (no payloads)
  * - Server: ADMISSION_RESPONSE (taskId + admit/reject)
  *
  * Phase 2 - Execution (if admitted):
@@ -57,10 +57,8 @@ class OrchestratorHeader : public Header
      */
     enum MessageType : uint8_t
     {
-        ADMISSION_REQUEST = 2,      //!< Client requests task admission (TaskHeader follows)
-        ADMISSION_RESPONSE = 3,     //!< Server responds to task admission (admit/reject)
-        DAG_ADMISSION_REQUEST = 4,  //!< Client requests DAG admission (serialized DAG follows)
-        DAG_ADMISSION_RESPONSE = 5  //!< Server responds to DAG admission (admit/reject)
+        ADMISSION_REQUEST = 2,  //!< Client requests admission (serialized DAG metadata follows)
+        ADMISSION_RESPONSE = 3  //!< Server responds to admission (admit/reject)
     };
 
     /**
@@ -147,18 +145,6 @@ class OrchestratorHeader : public Header
      * @return true if ADMISSION_RESPONSE.
      */
     bool IsResponse() const;
-
-    /**
-     * @brief Check if this is a DAG request message.
-     * @return true if DAG_ADMISSION_REQUEST.
-     */
-    bool IsDagRequest() const;
-
-    /**
-     * @brief Check if this is a DAG response message.
-     * @return true if DAG_ADMISSION_RESPONSE.
-     */
-    bool IsDagResponse() const;
 
     /**
      * @brief Get string representation of message type.
