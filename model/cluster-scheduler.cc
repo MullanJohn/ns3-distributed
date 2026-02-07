@@ -19,9 +19,8 @@ NS_OBJECT_ENSURE_REGISTERED(ClusterScheduler);
 TypeId
 ClusterScheduler::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::ClusterScheduler")
-                            .SetParent<Object>()
-                            .SetGroupName("Distributed");
+    static TypeId tid =
+        TypeId("ns3::ClusterScheduler").SetParent<Object>().SetGroupName("Distributed");
     // Note: No AddConstructor because this is an abstract class
     return tid;
 }

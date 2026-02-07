@@ -159,8 +159,8 @@ void
 OrchestratorHeader::Print(std::ostream& os) const
 {
     os << "OrchestratorHeader(type=" << GetMessageTypeName() << ", taskId=" << m_taskId
-       << ", admitted=" << (m_admitted ? "true" : "false")
-       << ", payloadSize=" << m_payloadSize << ")";
+       << ", admitted=" << (m_admitted ? "true" : "false") << ", payloadSize=" << m_payloadSize
+       << ")";
 }
 
 } // namespace ns3

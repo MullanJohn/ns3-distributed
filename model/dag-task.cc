@@ -313,8 +313,8 @@ DagTask::SerializeFullData() const
 
 Ptr<DagTask>
 DagTask::DeserializeMetadata(Ptr<Packet> packet,
-                              Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
-                              uint64_t& consumedBytes)
+                             Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+                             uint64_t& consumedBytes)
 {
     NS_LOG_FUNCTION(packet);
     return DeserializeInternal(packet, deserializer, consumedBytes);
@@ -322,8 +322,8 @@ DagTask::DeserializeMetadata(Ptr<Packet> packet,
 
 Ptr<DagTask>
 DagTask::DeserializeFullData(Ptr<Packet> packet,
-                              Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
-                              uint64_t& consumedBytes)
+                             Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+                             uint64_t& consumedBytes)
 {
     NS_LOG_FUNCTION(packet);
     return DeserializeInternal(packet, deserializer, consumedBytes);
@@ -338,8 +338,7 @@ DagTask::SerializeInternal(bool metadataOnly) const
 
     // Write task count (4 bytes, network byte order)
     uint32_t taskCount = static_cast<uint32_t>(m_nodes.size());
-    NS_ASSERT_MSG(taskCount < (1u << 24),
-                  "DAG task count exceeds wire protocol limit");
+    NS_ASSERT_MSG(taskCount < (1u << 24), "DAG task count exceeds wire protocol limit");
     uint8_t countBuf[4];
     countBuf[0] = (taskCount >> 24) & 0xFF;
     countBuf[1] = (taskCount >> 16) & 0xFF;
@@ -432,8 +431,8 @@ DagTask::SerializeInternal(bool metadataOnly) const
 
 Ptr<DagTask>
 DagTask::DeserializeInternal(Ptr<Packet> packet,
-                              Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
-                              uint64_t& consumedBytes)
+                             Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
+                             uint64_t& consumedBytes)
 {
     NS_LOG_FUNCTION(packet);
     consumedBytes = 0;
@@ -451,10 +450,9 @@ DagTask::DeserializeInternal(Ptr<Packet> packet,
     uint8_t countBuf[4];
     Ptr<Packet> countFragment = packet->CreateFragment(offset, 4);
     countFragment->CopyData(countBuf, 4);
-    uint32_t taskCount = (static_cast<uint32_t>(countBuf[0]) << 24) |
-                         (static_cast<uint32_t>(countBuf[1]) << 16) |
-                         (static_cast<uint32_t>(countBuf[2]) << 8) |
-                         static_cast<uint32_t>(countBuf[3]);
+    uint32_t taskCount =
+        (static_cast<uint32_t>(countBuf[0]) << 24) | (static_cast<uint32_t>(countBuf[1]) << 16) |
+        (static_cast<uint32_t>(countBuf[2]) << 8) | static_cast<uint32_t>(countBuf[3]);
     offset += 4;
 
     Ptr<DagTask> dag = CreateObject<DagTask>();
@@ -532,14 +530,12 @@ DagTask::DeserializeInternal(Ptr<Packet> packet,
         Ptr<Packet> edgeFragment = packet->CreateFragment(offset, 9);
         edgeFragment->CopyData(edgeBuf, 9);
 
-        uint32_t fromIdx = (static_cast<uint32_t>(edgeBuf[0]) << 24) |
-                           (static_cast<uint32_t>(edgeBuf[1]) << 16) |
-                           (static_cast<uint32_t>(edgeBuf[2]) << 8) |
-                           static_cast<uint32_t>(edgeBuf[3]);
-        uint32_t toIdx = (static_cast<uint32_t>(edgeBuf[4]) << 24) |
-                         (static_cast<uint32_t>(edgeBuf[5]) << 16) |
-                         (static_cast<uint32_t>(edgeBuf[6]) << 8) |
-                         static_cast<uint32_t>(edgeBuf[7]);
+        uint32_t fromIdx =
+            (static_cast<uint32_t>(edgeBuf[0]) << 24) | (static_cast<uint32_t>(edgeBuf[1]) << 16) |
+            (static_cast<uint32_t>(edgeBuf[2]) << 8) | static_cast<uint32_t>(edgeBuf[3]);
+        uint32_t toIdx =
+            (static_cast<uint32_t>(edgeBuf[4]) << 24) | (static_cast<uint32_t>(edgeBuf[5]) << 16) |
+            (static_cast<uint32_t>(edgeBuf[6]) << 8) | static_cast<uint32_t>(edgeBuf[7]);
         bool isData = (edgeBuf[8] != 0);
 
         if (fromIdx >= taskCount || toIdx >= taskCount)

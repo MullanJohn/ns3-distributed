@@ -57,8 +57,8 @@ class OrchestratorHeader : public Header
      */
     enum MessageType : uint8_t
     {
-        ADMISSION_REQUEST = 2,  //!< Client requests admission (serialized DAG metadata follows)
-        ADMISSION_RESPONSE = 3  //!< Server responds to admission (admit/reject)
+        ADMISSION_REQUEST = 2, //!< Client requests admission (serialized DAG metadata follows)
+        ADMISSION_RESPONSE = 3 //!< Server responds to admission (admit/reject)
     };
 
     /**

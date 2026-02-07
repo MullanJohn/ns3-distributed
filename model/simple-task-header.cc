@@ -148,8 +148,7 @@ SimpleTaskHeader::Print(std::ostream& os) const
     os << ", TaskId: " << m_taskId << ", ComputeDemand: " << m_computeDemand
        << ", InputSize: " << m_inputSize << ", OutputSize: " << m_outputSize
        << ", Deadline: " << (m_deadlineNs >= 0 ? std::to_string(m_deadlineNs) + "ns" : "none")
-       << ", AcceleratorType: " << (m_acceleratorType.empty() ? "any" : m_acceleratorType)
-       << ")";
+       << ", AcceleratorType: " << (m_acceleratorType.empty() ? "any" : m_acceleratorType) << ")";
 }
 
 std::string

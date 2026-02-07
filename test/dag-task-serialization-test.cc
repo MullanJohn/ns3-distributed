@@ -25,10 +25,9 @@ namespace
  * which prepends a task type byte to each serialized task.
  */
 static Ptr<Task>
-StripTypePrefixAndDeserialize(
-    Ptr<Packet> packet,
-    uint64_t& consumedBytes,
-    Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer)
+StripTypePrefixAndDeserialize(Ptr<Packet> packet,
+                              uint64_t& consumedBytes,
+                              Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer)
 {
     consumedBytes = 0;
     if (packet->GetSize() < 1)
@@ -128,15 +127,13 @@ class DagTaskSerializeMetadataTestCase : public TestCase
 
         // Deserialize metadata (callback must handle type byte prefix)
         uint64_t consumedBytes = 0;
-        Ptr<DagTask> restored = DagTask::DeserializeMetadata(
-            packet,
-            MakeCallback(&DeserializeHeaderWithTypePrefix),
-            consumedBytes);
+        Ptr<DagTask> restored =
+            DagTask::DeserializeMetadata(packet,
+                                         MakeCallback(&DeserializeHeaderWithTypePrefix),
+                                         consumedBytes);
 
         NS_TEST_ASSERT_MSG_NE(restored, nullptr, "Deserialized DAG should not be null");
-        NS_TEST_ASSERT_MSG_EQ(consumedBytes,
-                              packet->GetSize(),
-                              "Should consume entire packet");
+        NS_TEST_ASSERT_MSG_EQ(consumedBytes, packet->GetSize(), "Should consume entire packet");
 
         // Verify task count
         NS_TEST_ASSERT_MSG_EQ(restored->GetTaskCount(), 4, "Should have 4 tasks");
@@ -239,15 +236,13 @@ class DagTaskSerializeFullDataTestCase : public TestCase
 
         // Deserialize full data (callback must handle type byte prefix)
         uint64_t consumedBytes = 0;
-        Ptr<DagTask> restored = DagTask::DeserializeFullData(
-            packet,
-            MakeCallback(&DeserializeWithTypePrefix),
-            consumedBytes);
+        Ptr<DagTask> restored =
+            DagTask::DeserializeFullData(packet,
+                                         MakeCallback(&DeserializeWithTypePrefix),
+                                         consumedBytes);
 
         NS_TEST_ASSERT_MSG_NE(restored, nullptr, "Deserialized DAG should not be null");
-        NS_TEST_ASSERT_MSG_EQ(consumedBytes,
-                              packet->GetSize(),
-                              "Should consume entire packet");
+        NS_TEST_ASSERT_MSG_EQ(consumedBytes, packet->GetSize(), "Should consume entire packet");
 
         // Verify task count
         NS_TEST_ASSERT_MSG_EQ(restored->GetTaskCount(), 3, "Should have 3 tasks");
@@ -288,10 +283,10 @@ class DagTaskDeserializeFailureTestCase : public TestCase
 
         // Empty packet
         Ptr<Packet> empty = Create<Packet>();
-        Ptr<DagTask> result = DagTask::DeserializeMetadata(
-            empty,
-            MakeCallback(&DeserializeHeaderWithTypePrefix),
-            consumedBytes);
+        Ptr<DagTask> result =
+            DagTask::DeserializeMetadata(empty,
+                                         MakeCallback(&DeserializeHeaderWithTypePrefix),
+                                         consumedBytes);
         NS_TEST_ASSERT_MSG_EQ(result, nullptr, "Empty packet should return nullptr");
         NS_TEST_ASSERT_MSG_EQ(consumedBytes, 0, "Empty packet should consume 0 bytes");
 
@@ -299,10 +294,9 @@ class DagTaskDeserializeFailureTestCase : public TestCase
         uint8_t truncBuf[4] = {0, 0, 0, 1}; // taskCount = 1
         Ptr<Packet> truncated = Create<Packet>(truncBuf, 4);
         consumedBytes = 0;
-        result = DagTask::DeserializeMetadata(
-            truncated,
-            MakeCallback(&DeserializeHeaderWithTypePrefix),
-            consumedBytes);
+        result = DagTask::DeserializeMetadata(truncated,
+                                              MakeCallback(&DeserializeHeaderWithTypePrefix),
+                                              consumedBytes);
         NS_TEST_ASSERT_MSG_EQ(result, nullptr, "Truncated packet should return nullptr");
         NS_TEST_ASSERT_MSG_EQ(consumedBytes, 0, "Truncated packet should consume 0 bytes");
 
