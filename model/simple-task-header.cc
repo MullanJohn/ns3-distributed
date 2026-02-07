@@ -26,7 +26,8 @@ SimpleTaskHeader::SimpleTaskHeader()
       m_computeDemand(0.0),
       m_inputSize(0),
       m_outputSize(0),
-      m_deadlineNs(-1)
+      m_deadlineNs(-1),
+      m_acceleratorType("")
 {
     NS_LOG_FUNCTION(this);
 }
@@ -58,7 +59,8 @@ SimpleTaskHeader::GetSerializedSize() const
            sizeof(uint64_t) + // m_computeDemand (as uint64_t)
            sizeof(uint64_t) + // m_inputSize
            sizeof(uint64_t) + // m_outputSize
-           sizeof(int64_t);   // m_deadlineNs
+           sizeof(int64_t) +  // m_deadlineNs
+           ACCEL_TYPE_SIZE;   // m_acceleratorType (fixed 16 bytes)
 }
 
 void
@@ -67,18 +69,24 @@ SimpleTaskHeader::Serialize(Buffer::Iterator start) const
     NS_LOG_FUNCTION(this << &start);
 
     start.WriteU8(static_cast<uint8_t>(m_messageType));
-    start.WriteU64(m_taskId);
+    start.WriteHtonU64(m_taskId);
 
-    // Serialize double as uint64_t (bit-level copy)
+    // Serialize double as uint64_t (bit-level copy) in network byte order
     uint64_t computeDemandBits;
     std::memcpy(&computeDemandBits, &m_computeDemand, sizeof(m_computeDemand));
-    start.WriteU64(computeDemandBits);
+    start.WriteHtonU64(computeDemandBits);
 
-    start.WriteU64(m_inputSize);
-    start.WriteU64(m_outputSize);
+    start.WriteHtonU64(m_inputSize);
+    start.WriteHtonU64(m_outputSize);
 
-    // Serialize deadline as int64_t (cast to uint64_t for WriteU64)
-    start.WriteU64(static_cast<uint64_t>(m_deadlineNs));
+    // Serialize deadline as int64_t in network byte order
+    start.WriteHtonU64(static_cast<uint64_t>(m_deadlineNs));
+
+    // Serialize accelerator type as fixed 16 bytes (null-padded)
+    for (uint32_t i = 0; i < ACCEL_TYPE_SIZE; i++)
+    {
+        start.WriteU8(i < m_acceleratorType.size() ? m_acceleratorType[i] : 0);
+    }
 }
 
 uint32_t
@@ -96,17 +104,25 @@ SimpleTaskHeader::Deserialize(Buffer::Iterator start)
     }
     m_messageType = static_cast<MessageType>(messageTypeByte);
 
-    m_taskId = start.ReadU64();
+    m_taskId = start.ReadNtohU64();
 
-    // Deserialize double from uint64_t
-    uint64_t computeDemandBits = start.ReadU64();
+    // Deserialize double from uint64_t in network byte order
+    uint64_t computeDemandBits = start.ReadNtohU64();
     std::memcpy(&m_computeDemand, &computeDemandBits, sizeof(m_computeDemand));
 
-    m_inputSize = start.ReadU64();
-    m_outputSize = start.ReadU64();
+    m_inputSize = start.ReadNtohU64();
+    m_outputSize = start.ReadNtohU64();
 
-    // Deserialize deadline (stored as uint64_t, interpret as int64_t)
-    m_deadlineNs = static_cast<int64_t>(start.ReadU64());
+    // Deserialize deadline (stored as uint64_t in network byte order)
+    m_deadlineNs = static_cast<int64_t>(start.ReadNtohU64());
+
+    // Deserialize accelerator type (fixed 16 bytes, null-terminated)
+    char accelBuf[ACCEL_TYPE_SIZE + 1] = {0};
+    for (uint32_t i = 0; i < ACCEL_TYPE_SIZE; i++)
+    {
+        accelBuf[i] = static_cast<char>(start.ReadU8());
+    }
+    m_acceleratorType = std::string(accelBuf); // Stops at first null
 
     return start.GetDistanceFrom(original);
 }
@@ -132,7 +148,7 @@ SimpleTaskHeader::Print(std::ostream& os) const
     os << ", TaskId: " << m_taskId << ", ComputeDemand: " << m_computeDemand
        << ", InputSize: " << m_inputSize << ", OutputSize: " << m_outputSize
        << ", Deadline: " << (m_deadlineNs >= 0 ? std::to_string(m_deadlineNs) + "ns" : "none")
-       << ")";
+       << ", AcceleratorType: " << (m_acceleratorType.empty() ? "any" : m_acceleratorType) << ")";
 }
 
 std::string
@@ -212,7 +228,7 @@ SimpleTaskHeader::GetOutputSize() const
 uint64_t
 SimpleTaskHeader::GetRequestPayloadSize() const
 {
-    return (m_inputSize > SERIALIZED_SIZE) ? (m_inputSize - SERIALIZED_SIZE) : 0;
+    return m_inputSize;
 }
 
 uint64_t
@@ -238,6 +254,20 @@ SimpleTaskHeader::SetDeadlineNs(int64_t deadlineNs)
 {
     NS_LOG_FUNCTION(this << deadlineNs);
     m_deadlineNs = deadlineNs;
+}
+
+std::string
+SimpleTaskHeader::GetAcceleratorType() const
+{
+    return m_acceleratorType;
+}
+
+void
+SimpleTaskHeader::SetAcceleratorType(const std::string& type)
+{
+    NS_LOG_FUNCTION(this << type);
+    // Truncate if longer than ACCEL_TYPE_SIZE
+    m_acceleratorType = type.substr(0, ACCEL_TYPE_SIZE);
 }
 
 } // namespace ns3

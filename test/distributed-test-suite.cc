@@ -29,10 +29,6 @@ TestCase* CreateOffloadServerNoAcceleratorTestCase();
 TestCase* CreateOffloadClientMultiClientTestCase();
 TestCase* CreateClusterBasicTestCase();
 TestCase* CreateClusterIterationTestCase();
-TestCase* CreateRoundRobinSchedulerTestCase();
-TestCase* CreateRoundRobinEmptyClusterTestCase();
-TestCase* CreateRoundRobinSingleBackendTestCase();
-TestCase* CreateRoundRobinForkTestCase();
 TestCase* CreateFixedRatioProcessingModelTestCase();
 TestCase* CreateFixedRatioVariedHardwareTestCase();
 TestCase* CreateProcessingModelResultTestCase();
@@ -53,6 +49,11 @@ TestCase* CreateDagTaskDependencyTestCase();
 TestCase* CreateDagTaskCycleDetectionTestCase();
 TestCase* CreateDagTaskDataDependencyTestCase();
 TestCase* CreateDagTaskDataAccumulationTestCase();
+TestCase* CreateOrchestratorHeaderRequestTestCase();
+TestCase* CreateOrchestratorHeaderResponseTestCase();
+TestCase* CreateDagTaskSerializeMetadataTestCase();
+TestCase* CreateDagTaskSerializeFullDataTestCase();
+TestCase* CreateDagTaskDeserializeFailureTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -80,10 +81,6 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateOffloadClientMultiClientTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterIterationTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateRoundRobinSchedulerTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateRoundRobinEmptyClusterTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateRoundRobinSingleBackendTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateRoundRobinForkTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateFixedRatioProcessingModelTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateFixedRatioVariedHardwareTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateProcessingModelResultTestCase(), TestCase::Duration::QUICK);
@@ -104,6 +101,11 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateDagTaskCycleDetectionTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDagTaskDataDependencyTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDagTaskDataAccumulationTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOrchestratorHeaderRequestTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOrchestratorHeaderResponseTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskSerializeMetadataTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskSerializeFullDataTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagTaskDeserializeFailureTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;

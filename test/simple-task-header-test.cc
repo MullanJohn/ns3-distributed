@@ -38,17 +38,19 @@ class SimpleTaskHeaderTestCase : public TestCase
         original.SetInputSize(1024 * 1024);
         original.SetOutputSize(512 * 1024);
         original.SetDeadlineNs(1000000000); // 1 second deadline
+        original.SetAcceleratorType("GPU");
 
         // Verify serialized size
-        uint32_t expectedSize = sizeof(uint8_t) +  // messageType
-                                sizeof(uint64_t) + // taskId
-                                sizeof(uint64_t) + // computeDemand (as double)
-                                sizeof(uint64_t) + // inputSize
-                                sizeof(uint64_t) + // outputSize
-                                sizeof(int64_t);   // deadline
+        uint32_t expectedSize = sizeof(uint8_t) +                  // messageType
+                                sizeof(uint64_t) +                 // taskId
+                                sizeof(uint64_t) +                 // computeDemand (as double)
+                                sizeof(uint64_t) +                 // inputSize
+                                sizeof(uint64_t) +                 // outputSize
+                                sizeof(int64_t) +                  // deadline
+                                SimpleTaskHeader::ACCEL_TYPE_SIZE; // acceleratorType
         NS_TEST_ASSERT_MSG_EQ(original.GetSerializedSize(),
                               expectedSize,
-                              "Serialized size should be 41 bytes");
+                              "Serialized size should be 57 bytes");
 
         // Create packet with header
         Ptr<Packet> packet = Create<Packet>();
@@ -71,6 +73,9 @@ class SimpleTaskHeaderTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetOutputSize(), 512 * 1024, "Output size should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.HasDeadline(), true, "Should have deadline");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetDeadlineNs(), 1000000000, "Deadline should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetAcceleratorType(),
+                              "GPU",
+                              "Accelerator type should match");
     }
 };
 

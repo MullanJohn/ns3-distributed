@@ -11,6 +11,7 @@
 
 #include "ns3/nstime.h"
 #include "ns3/object.h"
+#include "ns3/packet.h"
 #include "ns3/ptr.h"
 
 #include <string>
@@ -141,6 +142,38 @@ class Task : public Object
      * @param type The accelerator type (e.g., "GPU", "TPU"). Empty string means any accelerator.
      */
     void SetRequiredAcceleratorType(const std::string& type);
+
+    /**
+     * @brief Serialize this task to a packet for network transmission.
+     *
+     * Creates a packet containing the task's header and payload data.
+     * Each Task subclass implements this using its corresponding TaskHeader.
+     *
+     * @param isResponse true for response (output payload), false for request (input payload).
+     * @return A packet ready for transmission.
+     */
+    virtual Ptr<Packet> Serialize(bool isResponse) const = 0;
+
+    /**
+     * @brief Get the serialized header size for this task type.
+     *
+     * Used for TCP stream reassembly to know how many bytes to read
+     * before the header can be fully deserialized.
+     *
+     * @return Header size in bytes.
+     */
+    virtual uint32_t GetSerializedHeaderSize() const = 0;
+
+    /**
+     * @brief Get the task type identifier.
+     *
+     * Returns a stable 1-byte identifier for this task type. Used by DAG
+     * serialization and the EdgeOrchestrator's task type registry to dispatch
+     * deserialization to the correct callback.
+     *
+     * @return The task type identifier.
+     */
+    virtual uint8_t GetTaskType() const = 0;
 
   protected:
     void DoDispose() override;

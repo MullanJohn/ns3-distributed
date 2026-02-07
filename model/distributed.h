@@ -14,7 +14,7 @@
  *
  * This module provides classes for simulating distributed computing workloads
  * in ns-3. It models task offloading from clients to servers with hardware
- * accelerators, including load balancing across server clusters.
+ * accelerators.
  *
  * Key components:
  * - Task/TaskHeader: Abstract interfaces for tasks and protocol headers
@@ -22,9 +22,8 @@
  * - ProcessingModel: Abstract interface for compute timing models
  * - QueueScheduler: Abstract interface for task queue management
  * - ConnectionManager: Abstract interface for transport layer (TCP, UDP)
- * - NodeScheduler: Abstract interface for backend selection policies
+ * - ClusterScheduler: Abstract interface for backend selection policies
  * - OffloadClient/OffloadServer: TCP-based client-server for task offloading
- * - LoadBalancer: Distributes tasks across a cluster of servers
  */
 
 // Task
@@ -50,11 +49,10 @@
 #include "ns3/tcp-connection-manager.h"
 #include "ns3/udp-connection-manager.h"
 
-// Load balancing
+// Orchestration
+#include "ns3/cluster-scheduler.h"
 #include "ns3/cluster.h"
-#include "ns3/load-balancer.h"
-#include "ns3/node-scheduler.h"
-#include "ns3/round-robin-scheduler.h"
+#include "ns3/first-fit-scheduler.h"
 
 // Applications
 #include "ns3/offload-client.h"

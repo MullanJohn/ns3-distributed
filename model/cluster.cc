@@ -25,13 +25,18 @@ void
 Cluster::AddBackend(Ptr<Node> node, const Address& address, const std::string& acceleratorType)
 {
     NS_LOG_FUNCTION(this << node << address << acceleratorType);
+    uint32_t idx = m_backends.size();
     Backend backend;
     backend.node = node;
     backend.address = address;
     backend.acceleratorType = acceleratorType;
     m_backends.push_back(backend);
-    NS_LOG_DEBUG("Added backend " << (m_backends.size() - 1) << " with accelerator type '"
-                                  << acceleratorType << "' to cluster");
+
+    // Update type index
+    m_typeIndex[acceleratorType].push_back(idx);
+
+    NS_LOG_DEBUG("Added backend " << idx << " with accelerator type '" << acceleratorType
+                                  << "' to cluster");
 }
 
 uint32_t
@@ -82,6 +87,26 @@ void
 Cluster::Clear()
 {
     m_backends.clear();
+    m_typeIndex.clear();
+}
+
+const std::vector<uint32_t>&
+Cluster::GetBackendsByType(const std::string& acceleratorType) const
+{
+    static const std::vector<uint32_t> empty;
+    auto it = m_typeIndex.find(acceleratorType);
+    if (it != m_typeIndex.end())
+    {
+        return it->second;
+    }
+    return empty;
+}
+
+bool
+Cluster::HasAcceleratorType(const std::string& acceleratorType) const
+{
+    auto it = m_typeIndex.find(acceleratorType);
+    return it != m_typeIndex.end() && !it->second.empty();
 }
 
 } // namespace ns3

@@ -120,20 +120,19 @@ class TaskHeaderPayloadSizeTestCase : public TestCase
         // Access via base class reference
         const TaskHeader& base = header;
 
-        // Request payload = inputSize - headerSize (or 0 if inputSize <= headerSize)
-        uint64_t expectedRequestPayload = 1000 - SimpleTaskHeader::SERIALIZED_SIZE;
+        // Request payload = inputSize (the actual data to transmit)
         NS_TEST_ASSERT_MSG_EQ(base.GetRequestPayloadSize(),
-                              expectedRequestPayload,
-                              "Request payload size");
+                              1000,
+                              "Request payload size should equal input size");
 
         // Response payload = outputSize
         NS_TEST_ASSERT_MSG_EQ(base.GetResponsePayloadSize(), 500, "Response payload size");
 
-        // Test edge case: inputSize <= headerSize
+        // Test edge case: small inputSize still returns the actual size
         header.SetInputSize(10);
         NS_TEST_ASSERT_MSG_EQ(base.GetRequestPayloadSize(),
-                              0,
-                              "Request payload should be 0 when input smaller than header");
+                              10,
+                              "Request payload size should equal input size");
     }
 };
 

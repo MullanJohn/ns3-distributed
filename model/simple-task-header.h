@@ -32,6 +32,11 @@ class SimpleTaskHeader : public TaskHeader
 {
   public:
     /**
+     * @brief Fixed size for accelerator type string.
+     */
+    static constexpr uint32_t ACCEL_TYPE_SIZE = 16;
+
+    /**
      * @brief Serialized size of the header in bytes.
      *
      * The header consists of:
@@ -41,8 +46,9 @@ class SimpleTaskHeader : public TaskHeader
      * - inputSize: 8 bytes
      * - outputSize: 8 bytes
      * - deadline: 8 bytes (int64_t nanoseconds, -1 = no deadline)
+     * - acceleratorType: 16 bytes (null-padded string)
      */
-    static constexpr uint32_t SERIALIZED_SIZE = 41;
+    static constexpr uint32_t SERIALIZED_SIZE = 57;
 
     /**
      * @brief Get the type ID.
@@ -116,6 +122,18 @@ class SimpleTaskHeader : public TaskHeader
     void SetDeadlineNs(int64_t deadlineNs);
 
     /**
+     * @brief Get the required accelerator type.
+     * @return The accelerator type string (e.g., "GPU", "TPU"). Empty means any.
+     */
+    std::string GetAcceleratorType() const;
+
+    /**
+     * @brief Set the required accelerator type.
+     * @param type The accelerator type (max 16 chars, will be truncated if longer).
+     */
+    void SetAcceleratorType(const std::string& type);
+
+    /**
      * @brief Get a string representation of the header.
      * @return String representation.
      */
@@ -129,12 +147,13 @@ class SimpleTaskHeader : public TaskHeader
     void Print(std::ostream& os) const override;
 
   private:
-    MessageType m_messageType; //!< Message type (request/response)
-    uint64_t m_taskId;         //!< Unique task identifier
-    double m_computeDemand;    //!< Compute demand in FLOPS
-    uint64_t m_inputSize;      //!< Input data size in bytes
-    uint64_t m_outputSize;     //!< Output data size in bytes
-    int64_t m_deadlineNs;      //!< Task deadline in nanoseconds (-1 = no deadline)
+    MessageType m_messageType;     //!< Message type (request/response)
+    uint64_t m_taskId;             //!< Unique task identifier
+    double m_computeDemand;        //!< Compute demand in FLOPS
+    uint64_t m_inputSize;          //!< Input data size in bytes
+    uint64_t m_outputSize;         //!< Output data size in bytes
+    int64_t m_deadlineNs;          //!< Task deadline in nanoseconds (-1 = no deadline)
+    std::string m_acceleratorType; //!< Required accelerator type (empty = any)
 };
 
 } // namespace ns3

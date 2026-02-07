@@ -17,6 +17,10 @@ build_lib(
                  model/task.cc
                  model/simple-task.cc
                  model/dag-task.cc
+                 model/admission-policy.cc
+                 model/always-admit-policy.cc
+                 model/cluster-scheduler.cc
+                 model/first-fit-scheduler.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
                  model/udp-connection-manager.cc
@@ -30,14 +34,12 @@ build_lib(
                  model/fifo-queue-scheduler.cc
                  model/batching-queue-scheduler.cc
                  model/simple-task-header.cc
+                 model/orchestrator-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
+                 model/edge-orchestrator.cc
                  model/cluster.cc
-                 model/node-scheduler.cc
-                 model/round-robin-scheduler.cc
-                 model/load-balancer.cc
                  helper/distributed-helper.cc
-                 helper/load-balancer-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
@@ -45,6 +47,10 @@ build_lib(
                  model/task.h
                  model/simple-task.h
                  model/dag-task.h
+                 model/admission-policy.h
+                 model/always-admit-policy.h
+                 model/cluster-scheduler.h
+                 model/first-fit-scheduler.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
                  model/udp-connection-manager.h
@@ -58,14 +64,12 @@ build_lib(
                  model/fifo-queue-scheduler.h
                  model/batching-queue-scheduler.h
                  model/simple-task-header.h
+                 model/orchestrator-header.h
                  model/offload-client.h
                  model/offload-server.h
+                 model/edge-orchestrator.h
                  model/cluster.h
-                 model/node-scheduler.h
-                 model/round-robin-scheduler.h
-                 model/load-balancer.h
                  helper/distributed-helper.h
-                 helper/load-balancer-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
@@ -78,14 +82,15 @@ build_lib(
                  test/gpu-accelerator-queue-test.cc
                  test/task-header-test.cc
                  test/simple-task-header-test.cc
+                 test/orchestrator-header-test.cc
                  test/offload-server-test.cc
                  test/offload-client-test.cc
                  test/cluster-test.cc
-                 test/node-scheduler-test.cc
                  test/fixed-ratio-processing-test.cc
                  test/fifo-queue-scheduler-test.cc
                  test/batching-queue-scheduler-test.cc
                  test/connection-manager-test.cc
                  test/dag-task-test.cc
+                 test/dag-task-serialization-test.cc
                  ${examples_as_tests_sources}
 )

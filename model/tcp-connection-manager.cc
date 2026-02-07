@@ -451,7 +451,7 @@ TcpConnectionManager::GetPeerAddress(Ptr<Socket> socket) const
     return Address();
 }
 
-void
+bool
 TcpConnectionManager::Send(Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this << packet);
@@ -462,14 +462,14 @@ TcpConnectionManager::Send(Ptr<Packet> packet)
     {
         NS_LOG_ERROR("Not connected to any server. Call Connect() first.");
         m_txDropTrace(packet, Address());
-        return;
+        return false;
     }
     if (uniqueRemotes > 1)
     {
         NS_LOG_ERROR(
             "Connected to multiple servers. Use Send(packet, address) to specify destination.");
         m_txDropTrace(packet, Address());
-        return;
+        return false;
     }
 
     Ptr<Socket> socket = GetIdleSocket();
@@ -477,7 +477,7 @@ TcpConnectionManager::Send(Ptr<Packet> packet)
     {
         NS_LOG_ERROR("No idle connection available for Send()");
         m_txDropTrace(packet, Address());
-        return;
+        return false;
     }
 
     Address peerAddr = GetPeerAddress(socket);
@@ -486,15 +486,17 @@ TcpConnectionManager::Send(Ptr<Packet> packet)
     {
         NS_LOG_DEBUG("Sent " << sent << " bytes");
         m_txTrace(packet, peerAddr);
+        return true;
     }
     else
     {
         NS_LOG_ERROR("Failed to send packet");
         m_txDropTrace(packet, peerAddr);
+        return false;
     }
 }
 
-void
+bool
 TcpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
 {
     NS_LOG_FUNCTION(this << packet << to);
@@ -507,7 +509,7 @@ TcpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
     {
         NS_LOG_ERROR("No connection to peer " << to);
         m_txDropTrace(packet, to);
-        return;
+        return false;
     }
 
     int sent = socket->Send(packet);
@@ -515,11 +517,13 @@ TcpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
     {
         NS_LOG_DEBUG("Sent " << sent << " bytes to " << to);
         m_txTrace(packet, to);
+        return true;
     }
     else
     {
         NS_LOG_ERROR("Failed to send packet to " << to);
         m_txDropTrace(packet, to);
+        return false;
     }
 }
 
@@ -767,7 +771,7 @@ TcpConnectionManager::AcquireConnection(const Address& peer)
     return connId;
 }
 
-void
+bool
 TcpConnectionManager::Send(ConnectionId connId, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this << connId << packet);
@@ -777,7 +781,7 @@ TcpConnectionManager::Send(ConnectionId connId, Ptr<Packet> packet)
     {
         NS_LOG_ERROR("Invalid connection ID " << connId);
         m_txDropTrace(packet, Address());
-        return;
+        return false;
     }
 
     Ptr<Socket> socket = it->second;
@@ -787,11 +791,13 @@ TcpConnectionManager::Send(ConnectionId connId, Ptr<Packet> packet)
     {
         NS_LOG_DEBUG("Sent " << sent << " bytes on connection " << connId);
         m_txTrace(packet, peerAddr);
+        return true;
     }
     else
     {
         NS_LOG_ERROR("Failed to send on connection " << connId);
         m_txDropTrace(packet, peerAddr);
+        return false;
     }
 }
 
