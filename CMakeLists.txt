@@ -35,6 +35,7 @@ build_lib(
                  model/batching-queue-scheduler.cc
                  model/simple-task-header.cc
                  model/orchestrator-header.cc
+                 model/device-metrics-header.cc
                  model/offload-client.cc
                  model/offload-server.cc
                  model/edge-orchestrator.cc
@@ -65,6 +66,7 @@ build_lib(
                  model/batching-queue-scheduler.h
                  model/simple-task-header.h
                  model/orchestrator-header.h
+                 model/device-metrics-header.h
                  model/offload-client.h
                  model/offload-server.h
                  model/edge-orchestrator.h
