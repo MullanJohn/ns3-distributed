@@ -287,9 +287,8 @@ OffloadClient::SendTask()
     header.SetOutputSize(outputSize);
 
     // Create packet with payload matching input size
-    uint32_t headerSize = header.GetSerializedSize();
-    uint32_t payloadSize = (inputSize > headerSize) ? (inputSize - headerSize) : 0;
-    Ptr<Packet> packet = Create<Packet>(payloadSize);
+    // inputSize represents the actual data payload (header size is separate)
+    Ptr<Packet> packet = Create<Packet>(inputSize);
     packet->AddHeader(header);
 
     // Track send time for RTT calculation

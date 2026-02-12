@@ -256,4 +256,24 @@ GpuAccelerator::GetFrequency() const
     return m_frequency;
 }
 
+void
+GpuAccelerator::SetFrequency(double frequency)
+{
+    NS_LOG_FUNCTION(this << frequency);
+    if (frequency == m_frequency)
+    {
+        return;
+    }
+    double ratio = frequency / m_frequency;
+    m_computeRate *= ratio;
+    m_frequency = frequency;
+}
+
+void
+GpuAccelerator::SetVoltage(double voltage)
+{
+    NS_LOG_FUNCTION(this << voltage);
+    m_voltage = voltage;
+}
+
 } // namespace ns3

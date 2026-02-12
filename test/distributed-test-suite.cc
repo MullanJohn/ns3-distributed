@@ -14,6 +14,7 @@ namespace ns3
 // Factories implemented in the other .cc files
 TestCase* CreateGpuAcceleratorTestCase();
 TestCase* CreateGpuAcceleratorNoSchedulerTestCase();
+TestCase* CreateGpuAcceleratorFrequencyScalingTestCase();
 TestCase* CreateGpuAcceleratorQueueTestCase();
 TestCase* CreateDvfsEnergyModelTestCase();
 TestCase* CreateAcceleratorEnergyTrackingTestCase();
@@ -66,6 +67,7 @@ DistributedTestSuite::DistributedTestSuite()
 {
     AddTestCase(CreateGpuAcceleratorTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateGpuAcceleratorNoSchedulerTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateGpuAcceleratorFrequencyScalingTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateGpuAcceleratorQueueTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDvfsEnergyModelTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateAcceleratorEnergyTrackingTestCase(), TestCase::Duration::QUICK);
