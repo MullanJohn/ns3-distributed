@@ -37,6 +37,8 @@ build_lib(
                  model/orchestrator-header.cc
                  model/device-metrics-header.cc
                  model/scaling-command-header.cc
+                 model/scaling-policy.cc
+                 model/utilization-scaling-policy.cc
                  model/offload-client.cc
                  model/offload-server.cc
                  model/edge-orchestrator.cc
@@ -69,6 +71,8 @@ build_lib(
                  model/orchestrator-header.h
                  model/device-metrics-header.h
                  model/scaling-command-header.h
+                 model/scaling-policy.h
+                 model/utilization-scaling-policy.h
                  model/offload-client.h
                  model/offload-server.h
                  model/edge-orchestrator.h
