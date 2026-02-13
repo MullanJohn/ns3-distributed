@@ -38,22 +38,40 @@ UtilizationScalingPolicy::~UtilizationScalingPolicy()
 }
 
 Ptr<ScalingDecision>
-UtilizationScalingPolicy::Decide(Ptr<DeviceMetrics> metrics,
-                                  double minFrequency,
-                                  double maxFrequency)
+UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
+                                 double minFrequency,
+                                 double maxFrequency)
 {
-    NS_LOG_FUNCTION(this << metrics->frequency << metrics->busy << metrics->queueLength);
+    NS_LOG_FUNCTION(this);
 
-    double targetFreq = (metrics->busy || metrics->queueLength > 0) ? maxFrequency : minFrequency;
+    bool busy;
+    double currentFreq;
+    double currentVoltage;
 
-    if (targetFreq == metrics->frequency)
+    Ptr<DeviceMetrics> metrics = backend.deviceMetrics;
+    if (metrics)
+    {
+        busy = metrics->busy || metrics->queueLength > 0;
+        currentFreq = metrics->frequency;
+        currentVoltage = metrics->voltage;
+    }
+    else
+    {
+        busy = backend.activeTasks > 0;
+        currentFreq = 0.0;
+        currentVoltage = 0.0;
+    }
+
+    double targetFreq = busy ? maxFrequency : minFrequency;
+
+    if (targetFreq == currentFreq)
     {
         return nullptr; // No change needed
     }
 
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();
     decision->targetFrequency = targetFreq;
-    decision->targetVoltage = metrics->voltage; // Pass through unchanged
+    decision->targetVoltage = currentVoltage;
     return decision;
 }
 

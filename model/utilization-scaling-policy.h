@@ -35,7 +35,7 @@ class UtilizationScalingPolicy : public ScalingPolicy
     UtilizationScalingPolicy();
     ~UtilizationScalingPolicy() override;
 
-    Ptr<ScalingDecision> Decide(Ptr<DeviceMetrics> metrics,
+    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                 double minFrequency,
                                 double maxFrequency) override;
     std::string GetName() const override;

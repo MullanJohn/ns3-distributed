@@ -9,6 +9,8 @@
 #ifndef SCALING_POLICY_H
 #define SCALING_POLICY_H
 
+#include "cluster-state.h"
+
 #include "ns3/object.h"
 #include "ns3/ptr.h"
 #include "ns3/simple-ref-count.h"
@@ -73,14 +75,14 @@ class ScalingPolicy : public Object
     ~ScalingPolicy() override;
 
     /**
-     * @brief Decide on a scaling action based on device metrics.
+     * @brief Decide on a scaling action based on backend state.
      *
-     * @param metrics Current device metrics from the backend.
+     * @param backend Per-backend state including device metrics and load counters.
      * @param minFrequency Lower frequency bound in Hz.
      * @param maxFrequency Upper frequency bound in Hz.
      * @return A scaling decision, or nullptr if no change needed.
      */
-    virtual Ptr<ScalingDecision> Decide(Ptr<DeviceMetrics> metrics,
+    virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                         double minFrequency,
                                         double maxFrequency) = 0;
 

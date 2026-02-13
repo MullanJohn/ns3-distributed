@@ -19,6 +19,7 @@
 namespace ns3
 {
 
+class ClusterState;
 class DagTask;
 
 /**
@@ -59,17 +60,16 @@ class AdmissionPolicy : public Object
      * @brief Check if a workload should be admitted.
      *
      * This method evaluates the workload against the current cluster
-     * state and policy rules to decide admission. The policy is stateless -
-     * the orchestrator tracks active workloads and passes the count here.
+     * state and policy rules to decide admission.
      *
      * @param dag The workload DAG (single tasks are wrapped as 1-node DAGs)
      * @param cluster Current cluster state with available backends
-     * @param activeWorkloadCount Number of workloads currently executing
+     * @param state Per-backend load and device metrics
      * @return true if the workload should be admitted, false if rejected
      */
     virtual bool ShouldAdmit(Ptr<DagTask> dag,
                              const Cluster& cluster,
-                             uint32_t activeWorkloadCount) = 0;
+                             const ClusterState& state) = 0;
 
     /**
      * @brief Get the policy name for logging and debugging.

@@ -45,7 +45,9 @@ FirstFitScheduler::DoDispose()
 }
 
 int32_t
-FirstFitScheduler::ScheduleTask(Ptr<Task> task, const Cluster& cluster)
+FirstFitScheduler::ScheduleTask(Ptr<Task> task,
+                                const Cluster& cluster,
+                                const ClusterState& /* state */)
 {
     NS_LOG_FUNCTION(this << task);
 
