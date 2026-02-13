@@ -157,10 +157,19 @@ class Cluster
      */
     bool HasAcceleratorType(const std::string& acceleratorType) const;
 
+    /**
+     * @brief Look up a backend index by its network address.
+     *
+     * @param address The backend address to search for.
+     * @return Backend index (0 to GetN()-1), or -1 if not found.
+     */
+    int32_t GetBackendIndex(const Address& address) const;
+
   private:
     std::vector<Backend> m_backends; //!< The collection of backend servers
     std::map<std::string, std::vector<uint32_t>>
-        m_typeIndex; //!< accelerator type → backend indices
+        m_typeIndex;                          //!< accelerator type → backend indices
+    std::map<Address, uint32_t> m_addrIndex;  //!< address → backend index
 };
 
 } // namespace ns3

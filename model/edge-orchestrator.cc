@@ -485,15 +485,7 @@ EdgeOrchestrator::HandleBackendClose(const Address& backendAddr)
     m_workerRxBuffer.erase(backendAddr);
 
     // Find backend index for the disconnected address
-    int32_t backendIdx = -1;
-    for (uint32_t i = 0; i < m_cluster.GetN(); i++)
-    {
-        if (m_cluster.Get(i).address == backendAddr)
-        {
-            backendIdx = static_cast<int32_t>(i);
-            break;
-        }
-    }
+    int32_t backendIdx = m_cluster.GetBackendIndex(backendAddr);
 
     if (backendIdx < 0)
     {

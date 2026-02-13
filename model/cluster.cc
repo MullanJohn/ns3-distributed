@@ -32,8 +32,9 @@ Cluster::AddBackend(Ptr<Node> node, const Address& address, const std::string& a
     backend.acceleratorType = acceleratorType;
     m_backends.push_back(backend);
 
-    // Update type index
+    // Update indices
     m_typeIndex[acceleratorType].push_back(idx);
+    m_addrIndex[address] = idx;
 
     NS_LOG_DEBUG("Added backend " << idx << " with accelerator type '" << acceleratorType
                                   << "' to cluster");
@@ -88,6 +89,7 @@ Cluster::Clear()
 {
     m_backends.clear();
     m_typeIndex.clear();
+    m_addrIndex.clear();
 }
 
 const std::vector<uint32_t>&
@@ -107,6 +109,17 @@ Cluster::HasAcceleratorType(const std::string& acceleratorType) const
 {
     auto it = m_typeIndex.find(acceleratorType);
     return it != m_typeIndex.end() && !it->second.empty();
+}
+
+int32_t
+Cluster::GetBackendIndex(const Address& address) const
+{
+    auto it = m_addrIndex.find(address);
+    if (it != m_addrIndex.end())
+    {
+        return static_cast<int32_t>(it->second);
+    }
+    return -1;
 }
 
 } // namespace ns3
