@@ -38,7 +38,6 @@ class GpuDeviceProtocol : public DeviceProtocol
     Ptr<DeviceMetrics> ParseMetrics(Ptr<Packet> packet) override;
     Ptr<Packet> CreateCommandPacket(Ptr<ScalingDecision> decision) override;
     void ApplyCommand(Ptr<Packet> packet, Ptr<Accelerator> accel) override;
-    std::string GetName() const override;
 };
 
 } // namespace ns3
