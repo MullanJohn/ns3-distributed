@@ -8,6 +8,7 @@
 
 #include "edge-orchestrator.h"
 
+#include "device-manager.h"
 #include "simple-task.h"
 #include "tcp-connection-manager.h"
 
@@ -63,6 +64,11 @@ EdgeOrchestrator::GetTypeId()
                           TimeValue(Seconds(0)),
                           MakeTimeAccessor(&EdgeOrchestrator::m_admissionTimeout),
                           MakeTimeChecker())
+            .AddAttribute("DeviceManager",
+                          "DVFS device manager for backend scaling (optional)",
+                          PointerValue(),
+                          MakePointerAccessor(&EdgeOrchestrator::m_deviceManager),
+                          MakePointerChecker<DeviceManager>())
             .AddTraceSource("WorkloadAdmitted",
                             "A workload has been admitted for execution",
                             MakeTraceSourceAccessor(&EdgeOrchestrator::m_workloadAdmittedTrace),
@@ -93,6 +99,7 @@ EdgeOrchestrator::GetTypeId()
 EdgeOrchestrator::EdgeOrchestrator()
     : m_admissionPolicy(nullptr),
       m_scheduler(nullptr),
+      m_deviceManager(nullptr),
       m_port(8080),
       m_clientConnMgr(nullptr),
       m_workerConnMgr(nullptr)
@@ -226,6 +233,7 @@ EdgeOrchestrator::DoDispose()
     m_workloads.clear();
     m_admissionPolicy = nullptr;
     m_scheduler = nullptr;
+    m_deviceManager = nullptr;
     m_taskTypeRegistry.clear();
     m_wireTaskType.clear();
     m_cluster.Clear();
@@ -405,6 +413,12 @@ EdgeOrchestrator::StartApplication()
     for (uint32_t i = 0; i < m_cluster.GetN(); i++)
     {
         m_workerConnMgr->Connect(m_cluster.Get(i).address);
+    }
+
+    // Start device manager if configured
+    if (m_deviceManager)
+    {
+        m_deviceManager->Start(m_cluster);
     }
 }
 
@@ -727,6 +741,12 @@ EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag,
     m_workloadsAdmitted++;
     m_workloadAdmittedTrace(workloadId, dag->GetTaskCount());
 
+    // Evaluate DVFS scaling when new workload is dispatched
+    if (m_deviceManager)
+    {
+        m_deviceManager->EvaluateScaling(m_workerConnMgr);
+    }
+
     NS_LOG_INFO("Workload " << workloadId << " admitted (" << dag->GetTaskCount() << " tasks)");
 
     return workloadId;
@@ -805,6 +825,42 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
 
     while (buffer->GetSize() > 0)
     {
+        // Need at least messageType(1) + taskId(8) to peek wireId
+        if (buffer->GetSize() < 9)
+        {
+            break;
+        }
+
+        // Peek first byte to check for DVFS control plane messages
+        uint8_t firstByte;
+        buffer->CopyData(&firstByte, 1);
+
+        // Route device metrics (type 4) to DeviceManager
+        if (firstByte == DeviceMetricsHeader::DEVICE_METRICS && m_deviceManager)
+        {
+            if (buffer->GetSize() < DeviceMetricsHeader::SERIALIZED_SIZE)
+            {
+                break; // Not enough data
+            }
+
+            // Find backend index for this address
+            uint32_t backendIdx = 0;
+            for (uint32_t i = 0; i < m_cluster.GetN(); i++)
+            {
+                if (m_cluster.Get(i).address == from)
+                {
+                    backendIdx = i;
+                    break;
+                }
+            }
+
+            Ptr<Packet> metricsPacket =
+                buffer->CreateFragment(0, DeviceMetricsHeader::SERIALIZED_SIZE);
+            buffer->RemoveAtStart(DeviceMetricsHeader::SERIALIZED_SIZE);
+            m_deviceManager->HandleMetrics(metricsPacket, backendIdx);
+            continue;
+        }
+
         // Need at least messageType(1) + taskId(8) to peek wireId
         if (buffer->GetSize() < 9)
         {
@@ -919,6 +975,12 @@ EdgeOrchestrator::OnTaskCompleted(uint64_t workloadId,
 
     // Notify scheduler
     m_scheduler->NotifyTaskCompleted(backendIdx, task);
+
+    // Evaluate DVFS scaling when a task completes
+    if (m_deviceManager)
+    {
+        m_deviceManager->EvaluateScaling(m_workerConnMgr);
+    }
 
     // Fire trace
     m_taskCompletedTrace(workloadId, taskId, backendIdx);

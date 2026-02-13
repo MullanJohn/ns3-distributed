@@ -41,6 +41,7 @@ build_lib(
                  model/utilization-scaling-policy.cc
                  model/device-protocol.cc
                  model/gpu-device-protocol.cc
+                 model/device-manager.cc
                  model/offload-client.cc
                  model/offload-server.cc
                  model/edge-orchestrator.cc
@@ -77,6 +78,7 @@ build_lib(
                  model/utilization-scaling-policy.h
                  model/device-protocol.h
                  model/gpu-device-protocol.h
+                 model/device-manager.h
                  model/offload-client.h
                  model/offload-server.h
                  model/edge-orchestrator.h

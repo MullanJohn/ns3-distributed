@@ -14,6 +14,7 @@
 #include "cluster-scheduler.h"
 #include "connection-manager.h"
 #include "dag-task.h"
+#include "device-metrics-header.h"
 #include "orchestrator-header.h"
 
 #include "ns3/application.h"
@@ -30,6 +31,8 @@
 
 namespace ns3
 {
+
+class DeviceManager;
 
 /**
  * @ingroup distributed
@@ -451,6 +454,7 @@ class EdgeOrchestrator : public Application
     // Configuration
     Ptr<AdmissionPolicy> m_admissionPolicy; //!< Admission policy (nullptr = always admit)
     Ptr<ClusterScheduler> m_scheduler;      //!< Task scheduler (required)
+    Ptr<DeviceManager> m_deviceManager;     //!< DVFS device manager (optional)
     std::map<uint8_t, TaskTypeEntry> m_taskTypeRegistry; //!< taskType → deserializers
     std::unordered_map<uint64_t, uint8_t> m_wireTaskType; //!< wireId → taskType (for backend responses)
     Cluster m_cluster;                      //!< Backend cluster
