@@ -94,5 +94,6 @@ build_lib(
                  test/connection-manager-test.cc
                  test/dag-task-test.cc
                  test/dag-task-serialization-test.cc
+                 test/device-metrics-header-test.cc
                  ${examples_as_tests_sources}
 )
