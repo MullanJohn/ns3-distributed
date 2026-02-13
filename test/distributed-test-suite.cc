@@ -56,6 +56,7 @@ TestCase* CreateDagTaskSerializeMetadataTestCase();
 TestCase* CreateDagTaskSerializeFullDataTestCase();
 TestCase* CreateDagTaskDeserializeFailureTestCase();
 TestCase* CreateDeviceMetricsHeaderTestCase();
+TestCase* CreateScalingCommandHeaderTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -110,6 +111,7 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateDagTaskSerializeFullDataTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDagTaskDeserializeFailureTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDeviceMetricsHeaderTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateScalingCommandHeaderTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
