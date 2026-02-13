@@ -10,11 +10,11 @@
 #define EDGE_ORCHESTRATOR_H
 
 #include "admission-policy.h"
-#include "cluster.h"
 #include "cluster-scheduler.h"
+#include "cluster-state.h"
+#include "cluster.h"
 #include "connection-manager.h"
 #include "dag-task.h"
-#include "device-metrics-header.h"
 #include "orchestrator-header.h"
 
 #include "ns3/application.h"
@@ -248,9 +248,7 @@ class EdgeOrchestrator : public Application
      * @param dagPacket Packet containing serialized DAG metadata.
      * @param clientAddr The client address.
      */
-    void HandleAdmissionRequest(uint64_t dagId,
-                                 Ptr<Packet> dagPacket,
-                                 const Address& clientAddr);
+    void HandleAdmissionRequest(uint64_t dagId, Ptr<Packet> dagPacket, const Address& clientAddr);
 
     /**
      * @brief Process an admission decision for a workload.
@@ -263,9 +261,7 @@ class EdgeOrchestrator : public Application
      * @param clientAddr The client address.
      * @return true if admitted, false if rejected.
      */
-    bool ProcessAdmissionDecision(Ptr<DagTask> dag,
-                                   uint64_t id,
-                                   const Address& clientAddr);
+    bool ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const Address& clientAddr);
 
     /**
      * @brief Send admission response to client.
@@ -273,9 +269,7 @@ class EdgeOrchestrator : public Application
      * @param taskId The task ID.
      * @param admitted Whether the task was admitted.
      */
-    void SendAdmissionResponse(const Address& clientAddr,
-                                uint64_t taskId,
-                                bool admitted);
+    void SendAdmissionResponse(const Address& clientAddr, uint64_t taskId, bool admitted);
 
     /**
      * @brief Check admission for a workload.
@@ -290,8 +284,7 @@ class EdgeOrchestrator : public Application
      * @param clientAddr Client address.
      * @return Workload ID on success, 0 on failure.
      */
-    uint64_t CreateAndDispatchWorkload(Ptr<DagTask> dag,
-                                        const Address& clientAddr);
+    uint64_t CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& clientAddr);
 
     /**
      * @brief Dispatch a task to a backend.
@@ -314,9 +307,7 @@ class EdgeOrchestrator : public Application
      * @param task The completed task.
      * @param backendIdx The backend that processed the task.
      */
-    void OnTaskCompleted(uint64_t workloadId,
-                         Ptr<Task> task,
-                         uint32_t backendIdx);
+    void OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t backendIdx);
 
     /**
      * @brief Process ready tasks for a DAG workload.
@@ -446,33 +437,38 @@ class EdgeOrchestrator : public Application
      *
      * @param packet The packet buffer (type byte + task data).
      * @param consumedBytes Output: bytes consumed (including type byte), 0 if insufficient data.
-     * @param metadataOnly If true, use the metadata deserializer; otherwise use the full deserializer.
+     * @param metadataOnly If true, use the metadata deserializer; otherwise use the full
+     * deserializer.
      * @return The deserialized task, or nullptr on failure.
      */
-    Ptr<Task> DispatchDeserializeImpl(Ptr<Packet> packet, uint64_t& consumedBytes, bool metadataOnly);
+    Ptr<Task> DispatchDeserializeImpl(Ptr<Packet> packet,
+                                      uint64_t& consumedBytes,
+                                      bool metadataOnly);
 
     // Configuration
     Ptr<AdmissionPolicy> m_admissionPolicy; //!< Admission policy (nullptr = always admit)
     Ptr<ClusterScheduler> m_scheduler;      //!< Task scheduler (required)
     Ptr<DeviceManager> m_deviceManager;     //!< DVFS device manager (optional)
     std::map<uint8_t, TaskTypeEntry> m_taskTypeRegistry; //!< taskType → deserializers
-    std::unordered_map<uint64_t, uint8_t> m_wireTaskType; //!< wireId → taskType (for backend responses)
-    Cluster m_cluster;                      //!< Backend cluster
-    uint16_t m_port;                        //!< Listen port
+    std::unordered_map<uint64_t, uint8_t>
+        m_wireTaskType;          //!< wireId → taskType (for backend responses)
+    Cluster m_cluster;           //!< Backend cluster
+    ClusterState m_clusterState; //!< Per-backend load and device metrics
+    uint16_t m_port;             //!< Listen port
 
     // Connection management
-    Ptr<ConnectionManager> m_clientConnMgr;            //!< For client connections (listening)
-    Ptr<ConnectionManager> m_workerConnMgr;            //!< For worker connections (outgoing)
-    std::map<Address, Ptr<Packet>> m_rxBuffer;         //!< Per-client receive buffers
-    std::map<Address, Ptr<Packet>> m_workerRxBuffer;   //!< Per-worker receive buffers
+    Ptr<ConnectionManager> m_clientConnMgr;          //!< For client connections (listening)
+    Ptr<ConnectionManager> m_workerConnMgr;          //!< For worker connections (outgoing)
+    std::map<Address, Ptr<Packet>> m_rxBuffer;       //!< Per-client receive buffers
+    std::map<Address, Ptr<Packet>> m_workerRxBuffer; //!< Per-worker receive buffers
 
     // Workload state
     struct WorkloadState
     {
-        Ptr<DagTask> dag;                            //!< The DAG workflow
-        Address clientAddr;                          //!< Client address for response routing
-        std::map<uint64_t, uint32_t> taskToBackend;  //!< originalTaskId → backendIdx
-        uint32_t pendingTasks{0};                    //!< Tasks dispatched but not completed
+        Ptr<DagTask> dag;                           //!< The DAG workflow
+        Address clientAddr;                         //!< Client address for response routing
+        std::map<uint64_t, uint32_t> taskToBackend; //!< originalTaskId → backendIdx
+        uint32_t pendingTasks{0};                   //!< Tasks dispatched but not completed
     };
 
     std::map<uint64_t, WorkloadState> m_workloads; //!< Active workloads
@@ -483,14 +479,14 @@ class EdgeOrchestrator : public Application
     // so the queue front tells the orchestrator what format to expect.
     struct PendingAdmission
     {
-        uint64_t id;           //!< DAG ID from Phase 1
-        EventId timeoutEvent;  //!< Timeout event (default: not running)
+        uint64_t id;          //!< DAG ID from Phase 1
+        EventId timeoutEvent; //!< Timeout event (default: not running)
     };
 
     std::map<Address, std::deque<PendingAdmission>> m_pendingAdmissionQueue;
 
     // Admission timeout tracking
-    Time m_admissionTimeout;  //!< Timeout for pending admissions (0 = no timeout)
+    Time m_admissionTimeout; //!< Timeout for pending admissions (0 = no timeout)
 
     // Statistics
     uint64_t m_workloadsAdmitted{0};  //!< Total admitted
@@ -499,11 +495,13 @@ class EdgeOrchestrator : public Application
     uint64_t m_workloadsCancelled{0}; //!< Total cancelled (client disconnect)
 
     // Traces
-    TracedCallback<uint64_t, uint32_t> m_workloadAdmittedTrace;  //!< (workloadId, taskCount)
+    TracedCallback<uint64_t, uint32_t> m_workloadAdmittedTrace; //!< (workloadId, taskCount)
     TracedCallback<uint32_t, const std::string&> m_workloadRejectedTrace; //!< (taskCount, reason)
-    TracedCallback<uint64_t> m_workloadCancelledTrace; //!< (workloadId)
-    TracedCallback<uint64_t, uint64_t, uint32_t> m_taskDispatchedTrace; //!< (workloadId, taskId, backendIdx)
-    TracedCallback<uint64_t, uint64_t, uint32_t> m_taskCompletedTrace;  //!< (workloadId, taskId, backendIdx)
+    TracedCallback<uint64_t> m_workloadCancelledTrace;                    //!< (workloadId)
+    TracedCallback<uint64_t, uint64_t, uint32_t>
+        m_taskDispatchedTrace; //!< (workloadId, taskId, backendIdx)
+    TracedCallback<uint64_t, uint64_t, uint32_t>
+        m_taskCompletedTrace;                          //!< (workloadId, taskId, backendIdx)
     TracedCallback<uint64_t> m_workloadCompletedTrace; //!< (workloadId)
 };
 

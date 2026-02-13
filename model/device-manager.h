@@ -9,6 +9,7 @@
 #ifndef DEVICE_MANAGER_H
 #define DEVICE_MANAGER_H
 
+#include "cluster-state.h"
 #include "cluster.h"
 #include "connection-manager.h"
 #include "device-protocol.h"
@@ -49,13 +50,14 @@ class DeviceManager : public Object
     ~DeviceManager() override;
 
     /**
-     * @brief Initialize the device manager with a cluster configuration.
+     * @brief Initialize the device manager with a cluster and connection manager.
      *
      * Must be called before HandleMetrics() or EvaluateScaling().
      *
      * @param cluster The backend cluster.
+     * @param workerCm The worker connection manager for sending commands.
      */
-    void Start(const Cluster& cluster);
+    void Start(const Cluster& cluster, Ptr<ConnectionManager> workerCm);
 
     /**
      * @brief Store metrics received from a backend.
@@ -64,19 +66,34 @@ class DeviceManager : public Object
      *
      * @param packet The metrics packet (DeviceMetricsHeader).
      * @param backendIdx The backend index in the cluster.
+     * @param state The cluster state to update with parsed metrics.
      */
-    void HandleMetrics(Ptr<Packet> packet, uint32_t backendIdx);
+    void HandleMetrics(Ptr<Packet> packet, uint32_t backendIdx, ClusterState& state);
 
     /**
-     * @brief Evaluate scaling decisions for all backends with stored metrics.
+     * @brief Try to consume a device metrics message from a receive buffer.
      *
-     * Called by EdgeOrchestrator on task events. For each backend with
-     * metrics, runs ScalingPolicy::Decide() and sends command packets
+     * Peeks at the first byte of the buffer. If it is a metrics message and
+     * enough data is available, the message is consumed (removed from the
+     * buffer), parsed, and stored in ClusterState.
+     *
+     * @param buffer The receive buffer (modified in-place if consumed).
+     * @param from The backend address (used to resolve backend index).
+     * @param state The cluster state to update.
+     * @return true if a metrics message was consumed, false otherwise.
+     */
+    bool TryConsumeMetrics(Ptr<Packet> buffer, const Address& from, ClusterState& state);
+
+    /**
+     * @brief Evaluate scaling decisions for all backends.
+     *
+     * Called by EdgeOrchestrator on task events. For each backend,
+     * runs ScalingPolicy::Decide() and sends command packets
      * if frequency or voltage changed.
      *
-     * @param workerCm The worker ConnectionManager for sending commands.
+     * @param state The cluster state with per-backend load and metrics.
      */
-    void EvaluateScaling(Ptr<ConnectionManager> workerCm);
+    void EvaluateScaling(const ClusterState& state);
 
     /**
      * @brief TracedCallback signature for frequency change events.
@@ -85,8 +102,8 @@ class DeviceManager : public Object
      * @param newFreq The new frequency in Hz.
      */
     typedef void (*FrequencyChangedTracedCallback)(uint32_t backendIdx,
-                                                    double oldFreq,
-                                                    double newFreq);
+                                                   double oldFreq,
+                                                   double newFreq);
 
   protected:
     void DoDispose() override;
@@ -97,8 +114,10 @@ class DeviceManager : public Object
     double m_minFrequency;                //!< Lower frequency bound in Hz
     double m_maxFrequency;                //!< Upper frequency bound in Hz
 
-    Cluster m_cluster;                              //!< Backend cluster reference
-    std::vector<Ptr<DeviceMetrics>> m_backendMetrics; //!< Latest metrics per backend
+    Ptr<ConnectionManager> m_workerConnMgr; //!< Worker connection for sending commands
+    Cluster m_cluster;                      //!< Backend cluster reference
+    std::vector<double>
+        m_commandedFrequency; //!< Expected frequency per backend (reported or commanded)
 
     TracedCallback<uint32_t, double, double> m_frequencyChangedTrace; //!< Frequency change trace
 };

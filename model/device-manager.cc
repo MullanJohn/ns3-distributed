@@ -8,6 +8,8 @@
 
 #include "device-manager.h"
 
+#include "device-metrics-header.h"
+
 #include "ns3/double.h"
 #include "ns3/log.h"
 #include "ns3/pointer.h"
@@ -69,33 +71,61 @@ DeviceManager::~DeviceManager()
 }
 
 void
-DeviceManager::Start(const Cluster& cluster)
+DeviceManager::Start(const Cluster& cluster, Ptr<ConnectionManager> workerCm)
 {
     NS_LOG_FUNCTION(this);
     m_cluster = cluster;
-    m_backendMetrics.resize(cluster.GetN());
+    m_workerConnMgr = workerCm;
+    m_commandedFrequency.resize(cluster.GetN(), 0.0);
+}
+
+bool
+DeviceManager::TryConsumeMetrics(Ptr<Packet> buffer, const Address& from, ClusterState& state)
+{
+    NS_LOG_FUNCTION(this << buffer << from);
+
+    uint8_t firstByte;
+    buffer->CopyData(&firstByte, 1);
+
+    if (firstByte != DeviceMetricsHeader::DEVICE_METRICS)
+    {
+        return false;
+    }
+
+    if (buffer->GetSize() < DeviceMetricsHeader::SERIALIZED_SIZE)
+    {
+        return false;
+    }
+
+    // Resolve backend index from address
+    int32_t idx = m_cluster.GetBackendIndex(from);
+    if (idx < 0)
+    {
+        return false;
+    }
+    uint32_t backendIdx = static_cast<uint32_t>(idx);
+
+    Ptr<Packet> metricsPacket = buffer->CreateFragment(0, DeviceMetricsHeader::SERIALIZED_SIZE);
+    buffer->RemoveAtStart(DeviceMetricsHeader::SERIALIZED_SIZE);
+    HandleMetrics(metricsPacket, backendIdx, state);
+    return true;
 }
 
 void
-DeviceManager::HandleMetrics(Ptr<Packet> packet, uint32_t backendIdx)
+DeviceManager::HandleMetrics(Ptr<Packet> packet, uint32_t backendIdx, ClusterState& state)
 {
     NS_LOG_FUNCTION(this << packet << backendIdx);
 
-    if (backendIdx >= m_backendMetrics.size())
-    {
-        NS_LOG_WARN("Backend index " << backendIdx << " out of range");
-        return;
-    }
+    Ptr<DeviceMetrics> metrics = m_deviceProtocol->ParseMetrics(packet);
+    state.SetDeviceMetrics(backendIdx, metrics);
+    m_commandedFrequency[backendIdx] = metrics->frequency;
 
-    m_backendMetrics[backendIdx] = m_deviceProtocol->ParseMetrics(packet);
-
-    NS_LOG_DEBUG("Stored metrics for backend " << backendIdx
-                 << ": freq=" << m_backendMetrics[backendIdx]->frequency
-                 << " busy=" << m_backendMetrics[backendIdx]->busy);
+    NS_LOG_DEBUG("Stored metrics for backend " << backendIdx << ": freq=" << metrics->frequency
+                                               << " busy=" << metrics->busy);
 }
 
 void
-DeviceManager::EvaluateScaling(Ptr<ConnectionManager> workerCm)
+DeviceManager::EvaluateScaling(const ClusterState& state)
 {
     NS_LOG_FUNCTION(this);
 
@@ -104,30 +134,28 @@ DeviceManager::EvaluateScaling(Ptr<ConnectionManager> workerCm)
         return;
     }
 
-    for (uint32_t i = 0; i < m_backendMetrics.size(); i++)
+    for (uint32_t i = 0; i < m_commandedFrequency.size(); i++)
     {
-        Ptr<DeviceMetrics> metrics = m_backendMetrics[i];
-        if (!metrics)
-        {
-            continue; // No metrics received yet for this backend
-        }
+        const ClusterState::BackendState& backend = state.Get(i);
 
         Ptr<ScalingDecision> decision =
-            m_scalingPolicy->Decide(metrics, m_minFrequency, m_maxFrequency);
+            m_scalingPolicy->Decide(backend, m_minFrequency, m_maxFrequency);
 
         if (!decision)
         {
             continue; // No change needed
         }
 
-        NS_LOG_INFO("Scaling backend " << i << ": freq " << metrics->frequency
-                     << " -> " << decision->targetFrequency);
+        double oldFreq = m_commandedFrequency[i];
 
-        double oldFreq = metrics->frequency;
+        NS_LOG_INFO("Scaling backend " << i << ": freq " << oldFreq << " -> "
+                                       << decision->targetFrequency);
+
         m_frequencyChangedTrace(i, oldFreq, decision->targetFrequency);
+        m_commandedFrequency[i] = decision->targetFrequency;
 
         Ptr<Packet> cmdPacket = m_deviceProtocol->CreateCommandPacket(decision);
-        workerCm->Send(cmdPacket, m_cluster.Get(i).address);
+        m_workerConnMgr->Send(cmdPacket, m_cluster.Get(i).address);
     }
 }
 
@@ -137,7 +165,8 @@ DeviceManager::DoDispose()
     NS_LOG_FUNCTION(this);
     m_scalingPolicy = nullptr;
     m_deviceProtocol = nullptr;
-    m_backendMetrics.clear();
+    m_workerConnMgr = nullptr;
+    m_commandedFrequency.clear();
     m_cluster.Clear();
     Object::DoDispose();
 }

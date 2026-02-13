@@ -93,12 +93,6 @@ class ClusterState
     uint32_t GetActiveWorkloadCount() const;
 
     /**
-     * @brief Get the total number of active tasks across all backends.
-     * @return Sum of activeTasks for all backends.
-     */
-    uint32_t GetTotalActiveTasks() const;
-
-    /**
      * @brief Clear all state.
      */
     void Clear();

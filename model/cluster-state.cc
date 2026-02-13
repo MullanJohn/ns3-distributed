@@ -8,6 +8,8 @@
 
 #include "cluster-state.h"
 
+#include "scaling-policy.h"
+
 #include "ns3/log.h"
 
 namespace ns3
@@ -60,6 +62,7 @@ ClusterState::SetDeviceMetrics(uint32_t backendIdx, Ptr<DeviceMetrics> metrics)
 void
 ClusterState::SetActiveWorkloadCount(uint32_t count)
 {
+    NS_LOG_FUNCTION(this << count);
     m_activeWorkloads = count;
 }
 
@@ -67,17 +70,6 @@ uint32_t
 ClusterState::GetActiveWorkloadCount() const
 {
     return m_activeWorkloads;
-}
-
-uint32_t
-ClusterState::GetTotalActiveTasks() const
-{
-    uint32_t total = 0;
-    for (const auto& backend : m_backends)
-    {
-        total += backend.activeTasks;
-    }
-    return total;
 }
 
 void

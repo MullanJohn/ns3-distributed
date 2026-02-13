@@ -14,7 +14,6 @@
 
 #include "ns3/log.h"
 #include "ns3/nstime.h"
-
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
@@ -141,9 +140,10 @@ EdgeOrchestrator::CancelWorkload(uint64_t workloadId)
     WorkloadState state = std::move(it->second);
     m_workloads.erase(it);
 
-    // Clean up wire task type entries for dispatched tasks
+    // Clean up wire task type entries and cluster state for dispatched tasks
     for (const auto& tb : state.taskToBackend)
     {
+        m_clusterState.NotifyTaskCompleted(tb.second);
         int32_t dagIdx = state.dag->GetTaskIndex(tb.first);
         if (dagIdx >= 0)
         {
@@ -153,6 +153,7 @@ EdgeOrchestrator::CancelWorkload(uint64_t workloadId)
 
     m_workloadsCancelled++;
     m_workloadCancelledTrace(workloadId);
+    m_clusterState.SetActiveWorkloadCount(static_cast<uint32_t>(m_workloads.size()));
 
     return true;
 }
@@ -202,8 +203,8 @@ EdgeOrchestrator::CancelAllPendingAdmissions()
 
 std::map<Address, Ptr<Packet>>::iterator
 EdgeOrchestrator::AppendToBuffer(std::map<Address, Ptr<Packet>>& bufferMap,
-                                  const Address& addr,
-                                  Ptr<Packet> packet)
+                                 const Address& addr,
+                                 Ptr<Packet> packet)
 {
     auto it = bufferMap.find(addr);
     if (it == bufferMap.end())
@@ -237,6 +238,7 @@ EdgeOrchestrator::DoDispose()
     m_taskTypeRegistry.clear();
     m_wireTaskType.clear();
     m_cluster.Clear();
+    m_clusterState.Clear();
 
     Application::DoDispose();
 }
@@ -256,8 +258,8 @@ EdgeOrchestrator::GetCluster() const
 
 void
 EdgeOrchestrator::RegisterTaskType(uint8_t taskType,
-                                    DeserializerCallback fullDeserializer,
-                                    DeserializerCallback metadataDeserializer)
+                                   DeserializerCallback fullDeserializer,
+                                   DeserializerCallback metadataDeserializer)
 {
     NS_LOG_FUNCTION(this << (int)taskType);
     m_taskTypeRegistry[taskType] = {fullDeserializer, metadataDeserializer};
@@ -265,8 +267,8 @@ EdgeOrchestrator::RegisterTaskType(uint8_t taskType,
 
 Ptr<Task>
 EdgeOrchestrator::DispatchDeserializeImpl(Ptr<Packet> packet,
-                                           uint64_t& consumedBytes,
-                                           bool metadataOnly)
+                                          uint64_t& consumedBytes,
+                                          bool metadataOnly)
 {
     consumedBytes = 0;
 
@@ -409,6 +411,9 @@ EdgeOrchestrator::StartApplication()
         NS_LOG_DEBUG("Using default SimpleTask deserializer");
     }
 
+    // Initialize cluster state
+    m_clusterState.Resize(m_cluster.GetN());
+
     // Connect to all cluster backends at startup
     for (uint32_t i = 0; i < m_cluster.GetN(); i++)
     {
@@ -418,7 +423,7 @@ EdgeOrchestrator::StartApplication()
     // Start device manager if configured
     if (m_deviceManager)
     {
-        m_deviceManager->Start(m_cluster);
+        m_deviceManager->Start(m_cluster, m_workerConnMgr);
     }
 }
 
@@ -545,8 +550,8 @@ EdgeOrchestrator::ProcessClientBuffer(const Address& clientAddr)
             // Phase 1: OrchestratorHeader-framed admission message
             if (buffer->GetSize() < orchHeaderSize)
             {
-                NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need "
-                                           << orchHeaderSize << " for OrchestratorHeader");
+                NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << orchHeaderSize
+                                           << " for OrchestratorHeader");
                 break;
             }
 
@@ -577,7 +582,7 @@ EdgeOrchestrator::ProcessClientBuffer(const Address& clientAddr)
             else
             {
                 NS_LOG_WARN("Unexpected message type " << (int)msgType << " from client "
-                                                        << clientAddr << " - skipping");
+                                                       << clientAddr << " - skipping");
             }
         }
         else
@@ -586,8 +591,8 @@ EdgeOrchestrator::ProcessClientBuffer(const Address& clientAddr)
             auto queueIt = m_pendingAdmissionQueue.find(clientAddr);
             if (queueIt == m_pendingAdmissionQueue.end() || queueIt->second.empty())
             {
-                NS_LOG_ERROR("Received Phase 2 data from client " << clientAddr
-                             << " but no pending admissions - clearing buffer");
+                NS_LOG_ERROR("Received Phase 2 data from client "
+                             << clientAddr << " but no pending admissions - clearing buffer");
                 m_rxBuffer.erase(it);
                 return;
             }
@@ -629,10 +634,7 @@ EdgeOrchestrator::ProcessClientBuffer(const Address& clientAddr)
 }
 
 bool
-EdgeOrchestrator::ProcessAdmissionDecision(
-    Ptr<DagTask> dag,
-    uint64_t id,
-    const Address& clientAddr)
+EdgeOrchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << id << clientAddr);
 
@@ -663,12 +665,11 @@ EdgeOrchestrator::ProcessAdmissionDecision(
     // Schedule timeout if configured
     if (m_admissionTimeout > Seconds(0))
     {
-        queue.back().timeoutEvent = Simulator::Schedule(
-            m_admissionTimeout,
-            &EdgeOrchestrator::HandleAdmissionTimeout,
-            this,
-            clientAddr,
-            id);
+        queue.back().timeoutEvent = Simulator::Schedule(m_admissionTimeout,
+                                                        &EdgeOrchestrator::HandleAdmissionTimeout,
+                                                        this,
+                                                        clientAddr,
+                                                        id);
     }
 
     NS_LOG_INFO("Workload " << id << " admitted, awaiting data upload");
@@ -677,9 +678,7 @@ EdgeOrchestrator::ProcessAdmissionDecision(
 }
 
 void
-EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr,
-                                         uint64_t taskId,
-                                         bool admitted)
+EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t taskId, bool admitted)
 {
     NS_LOG_FUNCTION(this << clientAddr << taskId << admitted);
 
@@ -698,7 +697,7 @@ EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr,
     }
 
     NS_LOG_DEBUG("Sent ADMISSION_RESPONSE for id " << taskId << ": "
-                          << (admitted ? "admitted" : "rejected"));
+                                                   << (admitted ? "admitted" : "rejected"));
 }
 
 bool
@@ -712,14 +711,11 @@ EdgeOrchestrator::CheckAdmission(Ptr<DagTask> dag)
         return true;
     }
 
-    return m_admissionPolicy->ShouldAdmit(dag,
-                                         m_cluster,
-                                         static_cast<uint32_t>(m_workloads.size()));
+    return m_admissionPolicy->ShouldAdmit(dag, m_cluster, m_clusterState);
 }
 
 uint64_t
-EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag,
-                                             const Address& clientAddr)
+EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << dag);
 
@@ -730,6 +726,7 @@ EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag,
     state.pendingTasks = 0;
 
     m_workloads[workloadId] = state;
+    m_clusterState.SetActiveWorkloadCount(static_cast<uint32_t>(m_workloads.size()));
 
     if (!ProcessDagReadyTasks(workloadId))
     {
@@ -744,7 +741,7 @@ EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag,
     // Evaluate DVFS scaling when new workload is dispatched
     if (m_deviceManager)
     {
-        m_deviceManager->EvaluateScaling(m_workerConnMgr);
+        m_deviceManager->EvaluateScaling(m_clusterState);
     }
 
     NS_LOG_INFO("Workload " << workloadId << " admitted (" << dag->GetTaskCount() << " tasks)");
@@ -758,7 +755,7 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
     NS_LOG_FUNCTION(this << workloadId << task->GetTaskId());
 
     // Schedule the task
-    int32_t backendIdx = m_scheduler->ScheduleTask(task, m_cluster);
+    int32_t backendIdx = m_scheduler->ScheduleTask(task, m_cluster, m_clusterState);
     if (backendIdx < 0 || static_cast<uint32_t>(backendIdx) >= m_cluster.GetN())
     {
         NS_LOG_WARN("Scheduler returned invalid backend index " << backendIdx << " for task "
@@ -802,8 +799,9 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
     }
 
     m_taskDispatchedTrace(workloadId, originalTaskId, backendIdx);
-    NS_LOG_INFO("Dispatched task " << originalTaskId << " (wire " << wireId
-                                   << ") to backend " << backendIdx);
+    m_clusterState.NotifyTaskDispatched(backendIdx);
+    NS_LOG_INFO("Dispatched task " << originalTaskId << " (wire " << wireId << ") to backend "
+                                   << backendIdx);
 
     return backendIdx;
 }
@@ -831,40 +829,10 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
             break;
         }
 
-        // Peek first byte to check for DVFS control plane messages
-        uint8_t firstByte;
-        buffer->CopyData(&firstByte, 1);
-
-        // Route device metrics (type 4) to DeviceManager
-        if (firstByte == DeviceMetricsHeader::DEVICE_METRICS && m_deviceManager)
+        // Route device metrics to DeviceManager if present
+        if (m_deviceManager && m_deviceManager->TryConsumeMetrics(buffer, from, m_clusterState))
         {
-            if (buffer->GetSize() < DeviceMetricsHeader::SERIALIZED_SIZE)
-            {
-                break; // Not enough data
-            }
-
-            // Find backend index for this address
-            uint32_t backendIdx = 0;
-            for (uint32_t i = 0; i < m_cluster.GetN(); i++)
-            {
-                if (m_cluster.Get(i).address == from)
-                {
-                    backendIdx = i;
-                    break;
-                }
-            }
-
-            Ptr<Packet> metricsPacket =
-                buffer->CreateFragment(0, DeviceMetricsHeader::SERIALIZED_SIZE);
-            buffer->RemoveAtStart(DeviceMetricsHeader::SERIALIZED_SIZE);
-            m_deviceManager->HandleMetrics(metricsPacket, backendIdx);
             continue;
-        }
-
-        // Need at least messageType(1) + taskId(8) to peek wireId
-        if (buffer->GetSize() < 9)
-        {
-            break;
         }
 
         // Peek wireId from the common TaskHeader prefix (byte 0: messageType,
@@ -907,8 +875,8 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
         if (!task)
         {
             NS_LOG_ERROR("Deserializer consumed " << consumedBytes
-                                                   << " bytes but returned null task"
-                                                   << " - possible data corruption");
+                                                  << " bytes but returned null task"
+                                                  << " - possible data corruption");
             continue;
         }
 
@@ -940,9 +908,9 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
         auto backendIt = state.taskToBackend.find(originalTaskId);
         if (backendIt == state.taskToBackend.end())
         {
-            NS_LOG_ERROR("Backend index not found for task "
-                         << originalTaskId << " in workload " << workloadId
-                         << " - skipping completion");
+            NS_LOG_ERROR("Backend index not found for task " << originalTaskId << " in workload "
+                                                             << workloadId
+                                                             << " - skipping completion");
             continue;
         }
         uint32_t backendIdx = backendIt->second;
@@ -957,9 +925,7 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
 }
 
 void
-EdgeOrchestrator::OnTaskCompleted(uint64_t workloadId,
-                                   Ptr<Task> task,
-                                   uint32_t backendIdx)
+EdgeOrchestrator::OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t backendIdx)
 {
     NS_LOG_FUNCTION(this << workloadId << task->GetTaskId() << backendIdx);
 
@@ -973,13 +939,14 @@ EdgeOrchestrator::OnTaskCompleted(uint64_t workloadId,
     WorkloadState& state = it->second;
     uint64_t taskId = task->GetTaskId();
 
-    // Notify scheduler
+    // Notify scheduler and update cluster state
     m_scheduler->NotifyTaskCompleted(backendIdx, task);
+    m_clusterState.NotifyTaskCompleted(backendIdx);
 
     // Evaluate DVFS scaling when a task completes
     if (m_deviceManager)
     {
-        m_deviceManager->EvaluateScaling(m_workerConnMgr);
+        m_deviceManager->EvaluateScaling(m_clusterState);
     }
 
     // Fire trace
@@ -1048,9 +1015,8 @@ EdgeOrchestrator::ProcessDagReadyTasks(uint64_t workloadId)
         int32_t backendIdx = DispatchTask(workloadId, task);
         if (backendIdx < 0)
         {
-            NS_LOG_ERROR("Failed to dispatch DAG task " << task->GetTaskId()
-                                                        << " in workload " << workloadId
-                                                        << " - failing workload");
+            NS_LOG_ERROR("Failed to dispatch DAG task " << task->GetTaskId() << " in workload "
+                                                        << workloadId << " - failing workload");
             CancelWorkload(workloadId);
             return false;
         }
@@ -1074,6 +1040,7 @@ EdgeOrchestrator::CompleteWorkload(uint64_t workloadId)
 
     WorkloadState state = std::move(it->second);
     m_workloads.erase(it);
+    m_clusterState.SetActiveWorkloadCount(static_cast<uint32_t>(m_workloads.size()));
 
     // Update counters
     m_workloadCompletedTrace(workloadId);
@@ -1169,8 +1136,8 @@ EdgeOrchestrator::CleanupClient(const Address& clientAddr)
 
 void
 EdgeOrchestrator::HandleAdmissionRequest(uint64_t dagId,
-                                          Ptr<Packet> dagPacket,
-                                          const Address& clientAddr)
+                                         Ptr<Packet> dagPacket,
+                                         const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << dagId << clientAddr);
 
@@ -1220,8 +1187,7 @@ EdgeOrchestrator::HandleAdmissionTimeout(Address clientAddr, uint64_t id)
     }
 
     auto& queue = queueIt->second;
-    NS_ASSERT_MSG(queue.front().id == id,
-                  "Admission timeout for non-front id " << id);
+    NS_ASSERT_MSG(queue.front().id == id, "Admission timeout for non-front id " << id);
 
     NS_LOG_WARN("Admission timeout for id " << id << " from client " << clientAddr);
 
