@@ -38,7 +38,6 @@ class UtilizationScalingPolicy : public ScalingPolicy
     Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                 double minFrequency,
                                 double maxFrequency) override;
-    std::string GetName() const override;
 };
 
 } // namespace ns3

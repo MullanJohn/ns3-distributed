@@ -16,7 +16,6 @@
 #include "ns3/simple-ref-count.h"
 
 #include <cstdint>
-#include <string>
 
 namespace ns3
 {
@@ -85,12 +84,6 @@ class ScalingPolicy : public Object
     virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                         double minFrequency,
                                         double maxFrequency) = 0;
-
-    /**
-     * @brief Get the name of this scaling policy.
-     * @return A string identifying the policy.
-     */
-    virtual std::string GetName() const = 0;
 };
 
 } // namespace ns3
