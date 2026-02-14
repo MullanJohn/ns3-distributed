@@ -6,10 +6,14 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
+#include "ns3/always-admit-policy.h"
 #include "ns3/applications-module.h"
+#include "ns3/cluster.h"
 #include "ns3/core-module.h"
 #include "ns3/dvfs-energy-model.h"
+#include "ns3/edge-orchestrator.h"
 #include "ns3/fifo-queue-scheduler.h"
+#include "ns3/first-fit-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/internet-module.h"
@@ -19,16 +23,15 @@
 #include "ns3/offload-server-helper.h"
 #include "ns3/offload-server.h"
 #include "ns3/point-to-point-module.h"
-#include "ns3/simple-task-header.h"
 #include "ns3/task.h"
 
 // ===========================================================================
 //
 //  Multi-Client Distributed Computing Simulation Example
 //
-//  This example demonstrates multiple clients offloading tasks to a single
-//  server. Each client generates tasks with globally unique IDs, preventing
-//  ID collisions when the server processes tasks from different sources.
+//  This example demonstrates multiple clients offloading tasks through a
+//  single EdgeOrchestrator to a backend server. Each client generates tasks
+//  with globally unique IDs, preventing ID collisions.
 //
 //  Network topology:
 //
@@ -38,13 +41,21 @@
 //           |                 |                 |
 //           +-----------------+-----------------+
 //                             |
-//                      Server Node (n3)
-//                     +------------------+
-//                     |  OffloadServer   |
-//                     |        |         |
-//                     |        v         |
-//                     |  GpuAccelerator  |
-//                     +------------------+
+//                    Orchestrator (n3)
+//                   +------------------+
+//                   | EdgeOrchestrator |
+//                   | Admission ctrl   |
+//                   | + scheduling     |
+//                   +--------+---------+
+//                            |  10.1.4.0/24
+//                            |
+//                     Server Node (n4)
+//                   +------------------+
+//                   |  OffloadServer   |
+//                   |        |         |
+//                   |        v         |
+//                   |  GpuAccelerator  |
+//                   +------------------+
 //
 //  Task ID format: (clientId << 32) | sequenceNumber
 //    - Client 0: 0x0000000000000000, 0x0000000000000001, ...
@@ -72,43 +83,42 @@ GetClientIdFromTaskId(uint64_t taskId)
 /**
  * Callback for when a task is sent by a client.
  *
- * @param header The offload header that was sent.
+ * @param task The task that was submitted.
  */
 static void
-TaskSent(const SimpleTaskHeader& header)
+TaskSent(Ptr<const Task> task)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [Client " << GetClientIdFromTaskId(header.GetTaskId()) << "] "
-                  << "Task 0x" << std::hex << header.GetTaskId() << std::dec << " sent"
-                  << " (input=" << header.GetInputSize() / 1024.0 << " KB)");
+                  << " [Client " << GetClientIdFromTaskId(task->GetTaskId()) << "] "
+                  << "Task 0x" << std::hex << task->GetTaskId() << std::dec << " sent"
+                  << " (input=" << task->GetInputSize() / 1024.0 << " KB)");
 }
 
 /**
  * Callback for when a response is received by a client.
  *
- * @param header The offload header from the response.
- * @param rtt Round-trip time from task sent to response received.
+ * @param task The completed task from the response.
+ * @param rtt Round-trip time from submission to response.
  */
 static void
-ResponseReceived(const SimpleTaskHeader& header, Time rtt)
+ResponseReceived(Ptr<const Task> task, Time rtt)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [Client " << GetClientIdFromTaskId(header.GetTaskId()) << "] "
-                  << "Task 0x" << std::hex << header.GetTaskId() << std::dec
+                  << " [Client " << GetClientIdFromTaskId(task->GetTaskId()) << "] "
+                  << "Task 0x" << std::hex << task->GetTaskId() << std::dec
                   << " response (RTT=" << rtt.As(Time::MS) << ")");
 }
 
 /**
  * Callback for when a task is received by the server.
  *
- * @param header The offload header that was received.
+ * @param task The task that was received.
  */
 static void
-TaskReceived(const SimpleTaskHeader& header)
+TaskReceived(Ptr<const Task> task)
 {
-    NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [Server] Task 0x" << std::hex << header.GetTaskId() << std::dec
-                  << " received from client " << GetClientIdFromTaskId(header.GetTaskId()));
+    NS_LOG_UNCOND(Simulator::Now().As(Time::S) << " [Server] Task 0x" << std::hex
+                                               << task->GetTaskId() << std::dec << " received");
 }
 
 /**
@@ -156,12 +166,16 @@ main(int argc, char* argv[])
     cmd.Parse(argc, argv);
 
     NS_LOG_UNCOND("Multi-Client Distributed Computing Example");
+    NS_LOG_UNCOND("Topology: Clients → Orchestrator → Server");
     NS_LOG_UNCOND("Clients: " << numClients << ", Tasks per client: " << tasksPerClient);
     NS_LOG_UNCOND("");
 
-    // Create nodes: numClients client nodes + 1 server node
+    // Create nodes: numClients client nodes + 1 orchestrator + 1 server
     NodeContainer clientNodes;
     clientNodes.Create(numClients);
+
+    NodeContainer orchNode;
+    orchNode.Create(1);
 
     NodeContainer serverNode;
     serverNode.Create(1);
@@ -169,34 +183,38 @@ main(int argc, char* argv[])
     // Install internet stack on all nodes
     InternetStackHelper stack;
     stack.Install(clientNodes);
+    stack.Install(orchNode);
     stack.Install(serverNode);
 
-    // Create point-to-point links from each client to the server
+    // Create point-to-point links
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute("DataRate", StringValue(dataRate));
     pointToPoint.SetChannelAttribute("Delay", StringValue(delay));
 
+    // Client-to-orchestrator links
     Ipv4AddressHelper address;
-    std::vector<Ipv4Address> serverAddresses;
+    std::vector<Ipv4Address> orchAddresses;
 
     for (uint32_t i = 0; i < numClients; i++)
     {
-        // Create link between client i and server
-        NetDeviceContainer devices = pointToPoint.Install(clientNodes.Get(i), serverNode.Get(0));
-
-        // Assign IP addresses for this link
+        NetDeviceContainer devices = pointToPoint.Install(clientNodes.Get(i), orchNode.Get(0));
         std::ostringstream subnet;
         subnet << "10.1." << (i + 1) << ".0";
         address.SetBase(subnet.str().c_str(), "255.255.255.0");
         Ipv4InterfaceContainer interfaces = address.Assign(devices);
-
-        // Store server's address on this subnet for client to use
-        serverAddresses.push_back(interfaces.GetAddress(1));
+        orchAddresses.push_back(interfaces.GetAddress(1)); // Orchestrator's address
     }
+
+    // Orchestrator-to-server link
+    NetDeviceContainer devOrchServer = pointToPoint.Install(orchNode.Get(0), serverNode.Get(0));
+    std::ostringstream serverSubnet;
+    serverSubnet << "10.1." << (numClients + 1) << ".0";
+    address.SetBase(serverSubnet.str().c_str(), "255.255.255.0");
+    Ipv4InterfaceContainer ifOrchServer = address.Assign(devOrchServer);
 
     // Create processing model and queue scheduler
     Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
-    Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
+    Ptr<FifoQueueScheduler> queueScheduler = CreateObject<FifoQueueScheduler>();
 
     // Create energy model for GPU
     Ptr<DvfsEnergyModel> energyModel = CreateObject<DvfsEnergyModel>();
@@ -210,7 +228,7 @@ main(int argc, char* argv[])
     gpu->SetAttribute("Voltage", DoubleValue(1.0));
     gpu->SetAttribute("Frequency", DoubleValue(1.5e9));
     gpu->SetAttribute("ProcessingModel", PointerValue(model));
-    gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
+    gpu->SetAttribute("QueueScheduler", PointerValue(queueScheduler));
     gpu->SetAttribute("EnergyModel", PointerValue(energyModel));
     serverNode.Get(0)->AggregateObject(gpu);
 
@@ -218,8 +236,8 @@ main(int argc, char* argv[])
     gpu->TraceConnectWithoutContext("TaskCompleted", MakeCallback(&GpuTaskCompleted));
 
     // Install OffloadServer on server node
-    uint16_t port = 9000;
-    OffloadServerHelper serverHelper(port);
+    uint16_t serverPort = 9000;
+    OffloadServerHelper serverHelper(serverPort);
     ApplicationContainer serverApps = serverHelper.Install(serverNode.Get(0));
 
     Ptr<OffloadServer> server = DynamicCast<OffloadServer>(serverApps.Get(0));
@@ -228,12 +246,31 @@ main(int argc, char* argv[])
     serverApps.Start(Seconds(0.0));
     serverApps.Stop(Seconds(simTime + 1.0));
 
-    // Install OffloadClient on each client node
+    // Set up Cluster with one backend
+    Cluster cluster;
+    cluster.AddBackend(serverNode.Get(0),
+                       InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
+
+    // Set up EdgeOrchestrator
+    Ptr<FirstFitScheduler> scheduler = CreateObject<FirstFitScheduler>();
+    Ptr<AlwaysAdmitPolicy> policy = CreateObject<AlwaysAdmitPolicy>();
+
+    uint16_t orchPort = 8080;
+    Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();
+    orchestrator->SetAttribute("Port", UintegerValue(orchPort));
+    orchestrator->SetAttribute("Scheduler", PointerValue(scheduler));
+    orchestrator->SetAttribute("AdmissionPolicy", PointerValue(policy));
+    orchestrator->SetCluster(cluster);
+    orchNode.Get(0)->AddApplication(orchestrator);
+    orchestrator->SetStartTime(Seconds(0.0));
+    orchestrator->SetStopTime(Seconds(simTime + 1.0));
+
+    // Install OffloadClient on each client node — connect to orchestrator
     std::vector<Ptr<OffloadClient>> clients;
 
     for (uint32_t i = 0; i < numClients; i++)
     {
-        OffloadClientHelper clientHelper(InetSocketAddress(serverAddresses[i], port));
+        OffloadClientHelper clientHelper(InetSocketAddress(orchAddresses[i], orchPort));
         clientHelper.SetMeanInterArrival(meanInterArrival);
         clientHelper.SetMeanComputeDemand(meanComputeDemand);
         clientHelper.SetMeanInputSize(meanInputSize);
@@ -253,11 +290,9 @@ main(int argc, char* argv[])
         clientApps.Stop(Seconds(simTime));
     }
 
-    // Run simulation
     Simulator::Stop(Seconds(simTime + 2.0));
     Simulator::Run();
 
-    // Print summary
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("=== Summary ===");
 
@@ -279,14 +314,16 @@ main(int argc, char* argv[])
     }
 
     NS_LOG_UNCOND("");
-    NS_LOG_UNCOND("Total tasks sent:     " << totalTasksSent);
-    NS_LOG_UNCOND("Total responses:      " << totalResponsesReceived);
-    NS_LOG_UNCOND("Server tasks received:" << server->GetTasksReceived());
-    NS_LOG_UNCOND("Server tasks done:    " << server->GetTasksCompleted());
-    NS_LOG_UNCOND("Server RX bytes:      " << server->GetTotalRx());
+    NS_LOG_UNCOND("Total tasks sent:      " << totalTasksSent);
+    NS_LOG_UNCOND("Total responses:       " << totalResponsesReceived);
+    NS_LOG_UNCOND("Workloads admitted:    " << orchestrator->GetWorkloadsAdmitted());
+    NS_LOG_UNCOND("Workloads completed:   " << orchestrator->GetWorkloadsCompleted());
+    NS_LOG_UNCOND("Server tasks received: " << server->GetTasksReceived());
+    NS_LOG_UNCOND("Server tasks done:     " << server->GetTasksCompleted());
+    NS_LOG_UNCOND("Server RX bytes:       " << server->GetTotalRx());
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("=== Energy ===");
-    NS_LOG_UNCOND("Total energy:         " << gpu->GetTotalEnergy() << " J");
+    NS_LOG_UNCOND("Total energy:          " << gpu->GetTotalEnergy() << " J");
 
     Simulator::Destroy();
 
