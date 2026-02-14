@@ -27,6 +27,7 @@ TestCase* CreateSimpleTaskHeaderTestCase();
 TestCase* CreateSimpleTaskHeaderResponseTestCase();
 TestCase* CreateOffloadServerBasicTestCase();
 TestCase* CreateOffloadServerNoAcceleratorTestCase();
+TestCase* CreateOffloadClientAdmissionTestCase();
 TestCase* CreateOffloadClientMultiClientTestCase();
 TestCase* CreateClusterBasicTestCase();
 TestCase* CreateClusterIterationTestCase();
@@ -82,6 +83,7 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateSimpleTaskHeaderResponseTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadServerBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadServerNoAcceleratorTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateOffloadClientAdmissionTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateOffloadClientMultiClientTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterBasicTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterIterationTestCase(), TestCase::Duration::QUICK);

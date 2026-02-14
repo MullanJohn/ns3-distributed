@@ -11,7 +11,6 @@
 
 #include "accelerator.h"
 #include "connection-manager.h"
-#include "simple-task-header.h"
 #include "task.h"
 
 #include "ns3/address.h"
@@ -27,11 +26,11 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Server application for receiving and processing offloaded tasks.
+ * @brief Backend server application for processing offloaded tasks.
  *
- * OffloadServer listens for connections from OffloadClient applications,
- * receives task requests, submits them to the Accelerator aggregated to
- * the node, and sends responses back when tasks complete.
+ * OffloadServer receives tasks from an EdgeOrchestrator, submits them
+ * to the Accelerator aggregated to the node, and sends responses back
+ * when tasks complete.
  *
  * Transport is abstracted via ConnectionManager, defaulting to TCP.
  * Users can inject a custom ConnectionManager (e.g., UDP) via the
@@ -75,16 +74,16 @@ class OffloadServer : public Application
 
     /**
      * @brief TracedCallback signature for task received events.
-     * @param header The offload header that was received.
+     * @param task The task that was received.
      */
-    typedef void (*TaskReceivedTracedCallback)(const SimpleTaskHeader& header);
+    typedef void (*TaskReceivedTracedCallback)(Ptr<const Task> task);
 
     /**
      * @brief TracedCallback signature for task completed events.
-     * @param header The offload header for the response.
+     * @param task The completed task.
      * @param duration The processing duration.
      */
-    typedef void (*TaskCompletedTracedCallback)(const SimpleTaskHeader& header, Time duration);
+    typedef void (*TaskCompletedTracedCallback)(Ptr<const Task> task, Time duration);
 
   protected:
     void DoDispose() override;
@@ -113,11 +112,11 @@ class OffloadServer : public Application
     void ProcessBuffer(const Address& clientAddr);
 
     /**
-     * @brief Process a complete task request.
-     * @param header The offload header.
+     * @brief Process a deserialized task.
+     * @param task The deserialized task.
      * @param clientAddr The client address for response routing.
      */
-    void ProcessTask(const SimpleTaskHeader& header, const Address& clientAddr);
+    void ProcessTask(Ptr<Task> task, const Address& clientAddr);
 
     /**
      * @brief Called when a task completes on the accelerator.
@@ -133,6 +132,12 @@ class OffloadServer : public Application
      * @param duration The processing duration.
      */
     void SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration);
+
+    /**
+     * @brief Handle a scaling command received from the orchestrator.
+     * @param buffer The receive buffer containing the scaling command.
+     */
+    void HandleScalingCommand(Ptr<Packet> buffer);
 
     /**
      * @brief Clean up state for a disconnected client.
@@ -167,8 +172,8 @@ class OffloadServer : public Application
     uint64_t m_totalRx;        //!< Total bytes received
 
     // Trace sources
-    TracedCallback<const SimpleTaskHeader&> m_taskReceivedTrace;        //!< Task received
-    TracedCallback<const SimpleTaskHeader&, Time> m_taskCompletedTrace; //!< Task completed
+    TracedCallback<Ptr<const Task>> m_taskReceivedTrace;        //!< Task received
+    TracedCallback<Ptr<const Task>, Time> m_taskCompletedTrace; //!< Task completed
 };
 
 } // namespace ns3

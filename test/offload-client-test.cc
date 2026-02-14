@@ -6,8 +6,12 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
+#include "ns3/always-admit-policy.h"
+#include "ns3/cluster.h"
 #include "ns3/double.h"
+#include "ns3/edge-orchestrator.h"
 #include "ns3/fifo-queue-scheduler.h"
+#include "ns3/first-fit-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/inet-socket-address.h"
@@ -19,6 +23,7 @@
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/string.h"
+#include "ns3/task.h"
 #include "ns3/tcp-connection-manager.h"
 #include "ns3/test.h"
 
@@ -29,34 +34,37 @@ namespace
 
 /**
  * @ingroup distributed-tests
- * @brief Test that multiple OffloadClients can send tasks to the same server
- *        and receive correct responses (validates task ID uniqueness)
+ * @brief Test OffloadClient admission protocol through orchestrator
+ *
+ * Topology: Client (n0) → Orchestrator (n1) → Server (n2) + GPU
  */
-class OffloadClientMultiClientTestCase : public TestCase
+class OffloadClientAdmissionTestCase : public TestCase
 {
   public:
-    OffloadClientMultiClientTestCase()
-        : TestCase("Test multiple OffloadClients with unique task IDs")
+    OffloadClientAdmissionTestCase()
+        : TestCase("Test OffloadClient two-phase admission via orchestrator"),
+          m_tasksSent(0),
+          m_responsesReceived(0)
     {
     }
 
   private:
     void DoRun() override
     {
-        // Create 3 nodes: 1 server + 2 clients
+        // Create 3 nodes: client, orchestrator, server
         NodeContainer nodes;
         nodes.Create(3);
-        Ptr<Node> serverNode = nodes.Get(0);
-        Ptr<Node> client1Node = nodes.Get(1);
-        Ptr<Node> client2Node = nodes.Get(2);
+        Ptr<Node> clientNode = nodes.Get(0);
+        Ptr<Node> orchNode = nodes.Get(1);
+        Ptr<Node> serverNode = nodes.Get(2);
 
-        // Create point-to-point links (star topology)
+        // Create point-to-point links
         PointToPointHelper p2p;
         p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
         p2p.SetChannelAttribute("Delay", StringValue("1ms"));
 
-        NetDeviceContainer dev1 = p2p.Install(serverNode, client1Node);
-        NetDeviceContainer dev2 = p2p.Install(serverNode, client2Node);
+        NetDeviceContainer devClientOrch = p2p.Install(clientNode, orchNode);
+        NetDeviceContainer devOrchServer = p2p.Install(orchNode, serverNode);
 
         // Install internet stack
         InternetStackHelper internet;
@@ -65,124 +73,284 @@ class OffloadClientMultiClientTestCase : public TestCase
         // Assign IP addresses
         Ipv4AddressHelper ipv4;
         ipv4.SetBase("10.1.1.0", "255.255.255.0");
-        Ipv4InterfaceContainer if1 = ipv4.Assign(dev1);
+        Ipv4InterfaceContainer ifClientOrch = ipv4.Assign(devClientOrch);
 
         ipv4.SetBase("10.1.2.0", "255.255.255.0");
-        Ipv4InterfaceContainer if2 = ipv4.Assign(dev2);
+        Ipv4InterfaceContainer ifOrchServer = ipv4.Assign(devOrchServer);
 
-        // Create processing model and queue scheduler
+        // Set up GPU on server node
         Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
-        Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
+        Ptr<FifoQueueScheduler> queueSched = CreateObject<FifoQueueScheduler>();
 
-        // Create and configure GPU on server
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
-        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));     // 1 TFLOPS
-        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11)); // 100 GB/s
+        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
+        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11));
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
-        gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
+        gpu->SetAttribute("QueueScheduler", PointerValue(queueSched));
         serverNode->AggregateObject(gpu);
 
-        // Create ConnectionManager for server (TCP transport)
-        Ptr<TcpConnectionManager> serverConnMgr = CreateObject<TcpConnectionManager>();
-
-        // Install OffloadServer on server node with explicit ConnectionManager
-        uint16_t port = 9000;
+        // Install OffloadServer on server node
+        uint16_t serverPort = 9000;
         Ptr<OffloadServer> server = CreateObject<OffloadServer>();
-        server->SetAttribute("Port", UintegerValue(port));
-        server->SetAttribute("ConnectionManager", PointerValue(serverConnMgr));
+        server->SetAttribute("Port", UintegerValue(serverPort));
         serverNode->AddApplication(server);
         server->SetStartTime(Seconds(0.0));
         server->SetStopTime(Seconds(10.0));
 
-        // Create ConnectionManager for client1 (TCP transport)
-        Ptr<TcpConnectionManager> client1ConnMgr = CreateObject<TcpConnectionManager>();
+        // Set up Cluster with one backend
+        Cluster cluster;
+        cluster.AddBackend(serverNode, InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
 
-        // Install OffloadClient on client1 with explicit ConnectionManager
-        Ptr<OffloadClient> client1 = CreateObject<OffloadClient>();
-        client1->SetAttribute("Remote", AddressValue(InetSocketAddress(if1.GetAddress(0), port)));
-        client1->SetAttribute("ConnectionManager", PointerValue(client1ConnMgr));
-        client1->SetAttribute("MaxTasks", UintegerValue(3));
+        // Set up orchestrator
+        Ptr<FirstFitScheduler> scheduler = CreateObject<FirstFitScheduler>();
+        Ptr<AlwaysAdmitPolicy> policy = CreateObject<AlwaysAdmitPolicy>();
 
-        // Configure task generation distributions for client1
-        Ptr<ExponentialRandomVariable> interArrival1 = CreateObject<ExponentialRandomVariable>();
-        interArrival1->SetAttribute("Mean", DoubleValue(0.1)); // 100ms
-        client1->SetAttribute("InterArrivalTime", PointerValue(interArrival1));
+        uint16_t orchPort = 8080;
+        Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();
+        orchestrator->SetAttribute("Port", UintegerValue(orchPort));
+        orchestrator->SetAttribute("Scheduler", PointerValue(scheduler));
+        orchestrator->SetAttribute("AdmissionPolicy", PointerValue(policy));
+        orchestrator->SetCluster(cluster);
+        orchNode->AddApplication(orchestrator);
+        orchestrator->SetStartTime(Seconds(0.0));
+        orchestrator->SetStopTime(Seconds(10.0));
 
-        Ptr<ExponentialRandomVariable> compute1 = CreateObject<ExponentialRandomVariable>();
-        compute1->SetAttribute("Mean", DoubleValue(1e9)); // 1 GFLOP
-        client1->SetAttribute("ComputeDemand", PointerValue(compute1));
+        // Set up client connecting to orchestrator
+        Ptr<OffloadClient> client = CreateObject<OffloadClient>();
+        client->SetAttribute("Remote",
+                             AddressValue(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort)));
+        client->SetAttribute("MaxTasks", UintegerValue(3));
 
-        Ptr<ExponentialRandomVariable> input1 = CreateObject<ExponentialRandomVariable>();
-        input1->SetAttribute("Mean", DoubleValue(1000)); // 1 KB
-        client1->SetAttribute("InputSize", PointerValue(input1));
+        Ptr<ExponentialRandomVariable> interArrival = CreateObject<ExponentialRandomVariable>();
+        interArrival->SetAttribute("Mean", DoubleValue(0.1));
+        client->SetAttribute("InterArrivalTime", PointerValue(interArrival));
 
-        Ptr<ExponentialRandomVariable> output1 = CreateObject<ExponentialRandomVariable>();
-        output1->SetAttribute("Mean", DoubleValue(100)); // 100 bytes
-        client1->SetAttribute("OutputSize", PointerValue(output1));
+        Ptr<ExponentialRandomVariable> compute = CreateObject<ExponentialRandomVariable>();
+        compute->SetAttribute("Mean", DoubleValue(1e9));
+        client->SetAttribute("ComputeDemand", PointerValue(compute));
 
-        client1Node->AddApplication(client1);
-        client1->SetStartTime(Seconds(0.1));
-        client1->SetStopTime(Seconds(5.0));
+        Ptr<ExponentialRandomVariable> input = CreateObject<ExponentialRandomVariable>();
+        input->SetAttribute("Mean", DoubleValue(1000));
+        client->SetAttribute("InputSize", PointerValue(input));
 
-        // Create ConnectionManager for client2 (TCP transport)
-        Ptr<TcpConnectionManager> client2ConnMgr = CreateObject<TcpConnectionManager>();
+        Ptr<ExponentialRandomVariable> output = CreateObject<ExponentialRandomVariable>();
+        output->SetAttribute("Mean", DoubleValue(100));
+        client->SetAttribute("OutputSize", PointerValue(output));
 
-        // Install OffloadClient on client2 with explicit ConnectionManager
-        Ptr<OffloadClient> client2 = CreateObject<OffloadClient>();
-        client2->SetAttribute("Remote", AddressValue(InetSocketAddress(if2.GetAddress(0), port)));
-        client2->SetAttribute("ConnectionManager", PointerValue(client2ConnMgr));
-        client2->SetAttribute("MaxTasks", UintegerValue(3));
+        clientNode->AddApplication(client);
+        client->SetStartTime(Seconds(0.1));
+        client->SetStopTime(Seconds(5.0));
 
-        // Configure task generation distributions for client2
-        Ptr<ExponentialRandomVariable> interArrival2 = CreateObject<ExponentialRandomVariable>();
-        interArrival2->SetAttribute("Mean", DoubleValue(0.1)); // 100ms
-        client2->SetAttribute("InterArrivalTime", PointerValue(interArrival2));
-
-        Ptr<ExponentialRandomVariable> compute2 = CreateObject<ExponentialRandomVariable>();
-        compute2->SetAttribute("Mean", DoubleValue(1e9)); // 1 GFLOP
-        client2->SetAttribute("ComputeDemand", PointerValue(compute2));
-
-        Ptr<ExponentialRandomVariable> input2 = CreateObject<ExponentialRandomVariable>();
-        input2->SetAttribute("Mean", DoubleValue(1000)); // 1 KB
-        client2->SetAttribute("InputSize", PointerValue(input2));
-
-        Ptr<ExponentialRandomVariable> output2 = CreateObject<ExponentialRandomVariable>();
-        output2->SetAttribute("Mean", DoubleValue(100)); // 100 bytes
-        client2->SetAttribute("OutputSize", PointerValue(output2));
-
-        client2Node->AddApplication(client2);
-        client2->SetStartTime(Seconds(0.1));
-        client2->SetStopTime(Seconds(5.0));
+        // Connect traces
+        client->TraceConnectWithoutContext(
+            "TaskSent",
+            MakeCallback(&OffloadClientAdmissionTestCase::OnTaskSent, this));
+        client->TraceConnectWithoutContext(
+            "ResponseReceived",
+            MakeCallback(&OffloadClientAdmissionTestCase::OnResponseReceived, this));
 
         // Run simulation
         Simulator::Stop(Seconds(10.0));
         Simulator::Run();
         Simulator::Destroy();
 
-        // Verify both clients sent their tasks
-        NS_TEST_ASSERT_MSG_EQ(client1->GetTasksSent(), 3, "Client 1 should have sent 3 tasks");
-        NS_TEST_ASSERT_MSG_EQ(client2->GetTasksSent(), 3, "Client 2 should have sent 3 tasks");
+        // Verify client sent tasks and received responses
+        NS_TEST_ASSERT_MSG_EQ(client->GetTasksSent(), 3, "Client should have sent 3 tasks");
+        NS_TEST_ASSERT_MSG_EQ(client->GetResponsesReceived(),
+                              3,
+                              "Client should have received 3 responses");
+        NS_TEST_ASSERT_MSG_EQ(m_tasksSent, 3, "TaskSent trace should have fired 3 times");
+        NS_TEST_ASSERT_MSG_EQ(m_responsesReceived,
+                              3,
+                              "ResponseReceived trace should have fired 3 times");
 
-        // Verify both clients received all their responses
-        // This is the key test - if task IDs collided, responses would be misrouted
-        NS_TEST_ASSERT_MSG_EQ(client1->GetResponsesReceived(),
+        // Verify orchestrator processed all workloads
+        NS_TEST_ASSERT_MSG_EQ(orchestrator->GetWorkloadsAdmitted(),
                               3,
-                              "Client 1 should have received 3 responses");
-        NS_TEST_ASSERT_MSG_EQ(client2->GetResponsesReceived(),
+                              "Orchestrator should have admitted 3 workloads");
+        NS_TEST_ASSERT_MSG_EQ(orchestrator->GetWorkloadsCompleted(),
                               3,
-                              "Client 2 should have received 3 responses");
+                              "Orchestrator should have completed 3 workloads");
 
         // Verify server processed all tasks
-        NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(),
-                              6,
-                              "Server should have received 6 tasks total");
+        NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(), 3, "Server should have received 3 tasks");
         NS_TEST_ASSERT_MSG_EQ(server->GetTasksCompleted(),
-                              6,
-                              "Server should have completed 6 tasks total");
+                              3,
+                              "Server should have completed 3 tasks");
+    }
+
+    void OnTaskSent(Ptr<const Task> task)
+    {
+        m_tasksSent++;
+    }
+
+    void OnResponseReceived(Ptr<const Task> task, Time rtt)
+    {
+        m_responsesReceived++;
+    }
+
+    uint32_t m_tasksSent;
+    uint32_t m_responsesReceived;
+};
+
+/**
+ * @ingroup distributed-tests
+ * @brief Test multiple OffloadClients through orchestrator
+ *
+ * Topology: Client0 (n0) ─┐
+ *           Client1 (n1) ─┤→ Orchestrator (n3) → Server (n4) + GPU
+ *           Client2 (n2) ─┘
+ */
+class OffloadClientMultiClientTestCase : public TestCase
+{
+  public:
+    OffloadClientMultiClientTestCase()
+        : TestCase("Test multiple OffloadClients with unique task IDs via orchestrator")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        // Create 5 nodes: 3 clients + 1 orchestrator + 1 server
+        NodeContainer nodes;
+        nodes.Create(5);
+        Ptr<Node> orchNode = nodes.Get(3);
+        Ptr<Node> serverNode = nodes.Get(4);
+
+        // Create point-to-point links
+        PointToPointHelper p2p;
+        p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
+        p2p.SetChannelAttribute("Delay", StringValue("1ms"));
+
+        // Install internet stack on all nodes
+        InternetStackHelper internet;
+        internet.Install(nodes);
+
+        // Client-to-orchestrator links
+        Ipv4AddressHelper ipv4;
+        std::vector<Ipv4Address> orchAddresses;
+
+        for (uint32_t i = 0; i < 3; i++)
+        {
+            NetDeviceContainer dev = p2p.Install(nodes.Get(i), orchNode);
+            std::ostringstream subnet;
+            subnet << "10.1." << (i + 1) << ".0";
+            ipv4.SetBase(subnet.str().c_str(), "255.255.255.0");
+            Ipv4InterfaceContainer ifc = ipv4.Assign(dev);
+            orchAddresses.push_back(ifc.GetAddress(1)); // Orchestrator's address on this subnet
+        }
+
+        // Orchestrator-to-server link
+        NetDeviceContainer devOrchServer = p2p.Install(orchNode, serverNode);
+        ipv4.SetBase("10.1.4.0", "255.255.255.0");
+        Ipv4InterfaceContainer ifOrchServer = ipv4.Assign(devOrchServer);
+
+        // Set up GPU on server node
+        Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+        Ptr<FifoQueueScheduler> queueSched = CreateObject<FifoQueueScheduler>();
+
+        Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
+        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11));
+        gpu->SetAttribute("ProcessingModel", PointerValue(model));
+        gpu->SetAttribute("QueueScheduler", PointerValue(queueSched));
+        serverNode->AggregateObject(gpu);
+
+        // Install OffloadServer on server node
+        uint16_t serverPort = 9000;
+        Ptr<OffloadServer> server = CreateObject<OffloadServer>();
+        server->SetAttribute("Port", UintegerValue(serverPort));
+        serverNode->AddApplication(server);
+        server->SetStartTime(Seconds(0.0));
+        server->SetStopTime(Seconds(10.0));
+
+        // Set up Cluster with one backend
+        Cluster cluster;
+        cluster.AddBackend(serverNode, InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
+
+        // Set up orchestrator
+        Ptr<FirstFitScheduler> scheduler = CreateObject<FirstFitScheduler>();
+        Ptr<AlwaysAdmitPolicy> policy = CreateObject<AlwaysAdmitPolicy>();
+
+        uint16_t orchPort = 8080;
+        Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();
+        orchestrator->SetAttribute("Port", UintegerValue(orchPort));
+        orchestrator->SetAttribute("Scheduler", PointerValue(scheduler));
+        orchestrator->SetAttribute("AdmissionPolicy", PointerValue(policy));
+        orchestrator->SetCluster(cluster);
+        orchNode->AddApplication(orchestrator);
+        orchestrator->SetStartTime(Seconds(0.0));
+        orchestrator->SetStopTime(Seconds(10.0));
+
+        // Install 3 OffloadClients
+        std::vector<Ptr<OffloadClient>> clients;
+        for (uint32_t i = 0; i < 3; i++)
+        {
+            Ptr<OffloadClient> client = CreateObject<OffloadClient>();
+            client->SetAttribute("Remote",
+                                 AddressValue(InetSocketAddress(orchAddresses[i], orchPort)));
+            client->SetAttribute("MaxTasks", UintegerValue(3));
+
+            Ptr<ExponentialRandomVariable> interArrival = CreateObject<ExponentialRandomVariable>();
+            interArrival->SetAttribute("Mean", DoubleValue(0.1));
+            client->SetAttribute("InterArrivalTime", PointerValue(interArrival));
+
+            Ptr<ExponentialRandomVariable> compute = CreateObject<ExponentialRandomVariable>();
+            compute->SetAttribute("Mean", DoubleValue(1e9));
+            client->SetAttribute("ComputeDemand", PointerValue(compute));
+
+            Ptr<ExponentialRandomVariable> input = CreateObject<ExponentialRandomVariable>();
+            input->SetAttribute("Mean", DoubleValue(1000));
+            client->SetAttribute("InputSize", PointerValue(input));
+
+            Ptr<ExponentialRandomVariable> output = CreateObject<ExponentialRandomVariable>();
+            output->SetAttribute("Mean", DoubleValue(100));
+            client->SetAttribute("OutputSize", PointerValue(output));
+
+            nodes.Get(i)->AddApplication(client);
+            client->SetStartTime(Seconds(0.1));
+            client->SetStopTime(Seconds(5.0));
+            clients.push_back(client);
+        }
+
+        // Run simulation
+        Simulator::Stop(Seconds(10.0));
+        Simulator::Run();
+        Simulator::Destroy();
+
+        // Verify all clients sent and received their tasks
+        for (uint32_t i = 0; i < 3; i++)
+        {
+            NS_TEST_ASSERT_MSG_EQ(clients[i]->GetTasksSent(),
+                                  3,
+                                  "Client " << i << " should have sent 3 tasks");
+            NS_TEST_ASSERT_MSG_EQ(clients[i]->GetResponsesReceived(),
+                                  3,
+                                  "Client " << i << " should have received 3 responses");
+        }
+
+        // Verify orchestrator and server totals
+        NS_TEST_ASSERT_MSG_EQ(orchestrator->GetWorkloadsAdmitted(),
+                              9,
+                              "Orchestrator should have admitted 9 workloads");
+        NS_TEST_ASSERT_MSG_EQ(orchestrator->GetWorkloadsCompleted(),
+                              9,
+                              "Orchestrator should have completed 9 workloads");
+        NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(), 9, "Server should have received 9 tasks");
+        NS_TEST_ASSERT_MSG_EQ(server->GetTasksCompleted(),
+                              9,
+                              "Server should have completed 9 tasks");
     }
 };
 
 } // namespace
+
+TestCase*
+CreateOffloadClientAdmissionTestCase()
+{
+    return new OffloadClientAdmissionTestCase;
+}
 
 TestCase*
 CreateOffloadClientMultiClientTestCase()

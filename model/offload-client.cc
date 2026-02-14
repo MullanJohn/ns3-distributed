@@ -8,6 +8,7 @@
 
 #include "offload-client.h"
 
+#include "simple-task.h"
 #include "tcp-connection-manager.h"
 
 #include "ns3/log.h"
@@ -35,7 +36,7 @@ OffloadClient::GetTypeId()
             .SetGroupName("Distributed")
             .AddConstructor<OffloadClient>()
             .AddAttribute("Remote",
-                          "The address of the remote server",
+                          "The address of the remote orchestrator",
                           AddressValue(),
                           MakeAddressAccessor(&OffloadClient::m_peer),
                           MakeAddressChecker())
@@ -45,7 +46,7 @@ OffloadClient::GetTypeId()
                           MakePointerAccessor(&OffloadClient::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
             .AddAttribute("MaxTasks",
-                          "Maximum number of tasks to send (0 = unlimited)",
+                          "Maximum number of tasks to auto-generate (0 = programmatic only)",
                           UintegerValue(0),
                           MakeUintegerAccessor(&OffloadClient::m_maxTasks),
                           MakeUintegerChecker<uint64_t>())
@@ -70,13 +71,17 @@ OffloadClient::GetTypeId()
                           MakePointerAccessor(&OffloadClient::m_outputSize),
                           MakePointerChecker<RandomVariableStream>())
             .AddTraceSource("TaskSent",
-                            "Trace fired when a task is sent",
+                            "Trace fired when an admission request is sent",
                             MakeTraceSourceAccessor(&OffloadClient::m_taskSentTrace),
                             "ns3::OffloadClient::TaskSentTracedCallback")
             .AddTraceSource("ResponseReceived",
-                            "Trace fired when a response is received",
+                            "Trace fired when a task response is received",
                             MakeTraceSourceAccessor(&OffloadClient::m_responseReceivedTrace),
-                            "ns3::OffloadClient::ResponseReceivedTracedCallback");
+                            "ns3::OffloadClient::ResponseReceivedTracedCallback")
+            .AddTraceSource("TaskRejected",
+                            "Trace fired when an admission is rejected",
+                            MakeTraceSourceAccessor(&OffloadClient::m_taskRejectedTrace),
+                            "ns3::OffloadClient::TaskRejectedTracedCallback");
     return tid;
 }
 
@@ -87,6 +92,7 @@ OffloadClient::OffloadClient()
       m_taskCount(0),
       m_totalTx(0),
       m_totalRx(0),
+      m_nextDagId(1),
       m_rxBuffer(Create<Packet>()),
       m_responsesReceived(0)
 {
@@ -113,7 +119,8 @@ OffloadClient::DoDispose()
     }
 
     m_rxBuffer = nullptr;
-    m_sendTimes.clear();
+    m_pendingWorkloads.clear();
+    m_admittedQueue.clear();
     m_interArrivalTime = nullptr;
     m_computeDemand = nullptr;
     m_inputSize = nullptr;
@@ -185,11 +192,11 @@ OffloadClient::StartApplication()
             MakeCallback(&OffloadClient::HandleConnectionFailed, this));
     }
 
-    // Connect to server
+    // Connect to orchestrator
     m_connMgr->Connect(m_peer);
 
     // For connectionless transports (UDP), start sending immediately
-    if (!tcpConnMgr)
+    if (!tcpConnMgr && m_maxTasks > 0)
     {
         ScheduleNextTask();
     }
@@ -213,10 +220,13 @@ void
 OffloadClient::HandleConnected(const Address& serverAddr)
 {
     NS_LOG_FUNCTION(this << serverAddr);
-    NS_LOG_INFO("Client " << m_clientId << " connected to " << serverAddr);
+    NS_LOG_INFO("Client " << m_clientId << " connected to orchestrator " << serverAddr);
 
-    // Start sending tasks
-    ScheduleNextTask();
+    // Start auto-generating tasks if configured
+    if (m_maxTasks > 0)
+    {
+        ScheduleNextTask();
+    }
 }
 
 void
@@ -246,17 +256,68 @@ OffloadClient::HandleReceive(Ptr<Packet> packet, const Address& from)
 }
 
 void
-OffloadClient::SendTask()
+OffloadClient::SubmitTask(Ptr<Task> task)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(this << task->GetTaskId());
 
     if (!m_connMgr || !m_connMgr->IsConnected())
     {
-        NS_LOG_DEBUG("Not connected, cannot send task");
+        NS_LOG_DEBUG("Not connected, cannot submit task");
         return;
     }
 
-    // Generate task parameters
+    // Assign task ID if zero: (clientId << 32) | seqNum
+    if (task->GetTaskId() == 0)
+    {
+        uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_taskCount;
+        task->SetTaskId(taskId);
+    }
+
+    // Wrap as 1-node DagTask
+    Ptr<DagTask> dag = CreateObject<DagTask>();
+    dag->AddTask(task);
+
+    // Assign a dagId for tracking
+    uint64_t dagId = (static_cast<uint64_t>(m_clientId) << 32) | m_nextDagId++;
+
+    // Serialize DAG metadata for admission request
+    Ptr<Packet> metadata = dag->SerializeMetadata();
+
+    // Create OrchestratorHeader
+    OrchestratorHeader orchHeader;
+    orchHeader.SetMessageType(OrchestratorHeader::ADMISSION_REQUEST);
+    orchHeader.SetTaskId(dagId);
+    orchHeader.SetPayloadSize(metadata->GetSize());
+
+    // Build packet: OrchestratorHeader + metadata
+    Ptr<Packet> packet = Create<Packet>();
+    packet->AddAtEnd(metadata);
+    packet->AddHeader(orchHeader);
+
+    // Track the pending workload
+    PendingWorkload pw;
+    pw.dag = dag;
+    pw.submitTime = Simulator::Now();
+    m_pendingWorkloads[dagId] = pw;
+
+    // Send to orchestrator
+    m_connMgr->Send(packet);
+
+    m_taskCount++;
+    m_totalTx += packet->GetSize();
+
+    NS_LOG_INFO("Client " << m_clientId << " sent ADMISSION_REQUEST for dagId " << dagId
+                          << " (task " << task->GetTaskId() << ")");
+
+    m_taskSentTrace(task);
+}
+
+void
+OffloadClient::GenerateTask()
+{
+    NS_LOG_FUNCTION(this);
+
+    // Generate task parameters from random distributions
     uint64_t inputSize = static_cast<uint64_t>(m_inputSize->GetValue());
     uint64_t outputSize = static_cast<uint64_t>(m_outputSize->GetValue());
     double computeDemand = m_computeDemand->GetValue();
@@ -275,38 +336,14 @@ OffloadClient::SendTask()
         computeDemand = 1.0;
     }
 
-    // Create header with globally unique task ID
-    // Task ID format: upper 32 bits = client ID, lower 32 bits = sequence number
-    uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_taskCount;
+    // Create a SimpleTask
+    Ptr<SimpleTask> task = CreateObject<SimpleTask>();
+    task->SetComputeDemand(computeDemand);
+    task->SetInputSize(inputSize);
+    task->SetOutputSize(outputSize);
 
-    SimpleTaskHeader header;
-    header.SetMessageType(SimpleTaskHeader::TASK_REQUEST);
-    header.SetTaskId(taskId);
-    header.SetComputeDemand(computeDemand);
-    header.SetInputSize(inputSize);
-    header.SetOutputSize(outputSize);
-
-    // Create packet with payload matching input size
-    // inputSize represents the actual data payload (header size is separate)
-    Ptr<Packet> packet = Create<Packet>(inputSize);
-    packet->AddHeader(header);
-
-    // Track send time for RTT calculation
-    m_sendTimes[header.GetTaskId()] = Simulator::Now();
-
-    // Send packet via ConnectionManager
-    m_connMgr->Send(packet);
-
-    uint32_t sent = packet->GetSize();
-    m_taskCount++;
-    m_totalTx += sent;
-
-    NS_LOG_INFO("Sent task " << header.GetTaskId() << " with " << sent << " bytes"
-                             << " (compute=" << computeDemand << " FLOPS"
-                             << ", input=" << inputSize << " bytes"
-                             << ", output=" << outputSize << " bytes)");
-
-    m_taskSentTrace(header);
+    // Submit via the admission protocol
+    SubmitTask(task);
 
     // Schedule next task if not at limit
     if (m_maxTasks == 0 || m_taskCount < m_maxTasks)
@@ -326,7 +363,7 @@ OffloadClient::ScheduleNextTask()
     }
 
     Time nextTime = Seconds(m_interArrivalTime->GetValue());
-    m_sendEvent = Simulator::Schedule(nextTime, &OffloadClient::SendTask, this);
+    m_sendEvent = Simulator::Schedule(nextTime, &OffloadClient::GenerateTask, this);
 
     NS_LOG_DEBUG("Next task scheduled in " << nextTime.GetSeconds() << " seconds");
 }
@@ -336,68 +373,160 @@ OffloadClient::ProcessBuffer()
 {
     NS_LOG_FUNCTION(this);
 
-    // Header size is constant (33 bytes)
-    static const uint32_t headerSize = SimpleTaskHeader::SERIALIZED_SIZE;
-
-    while (m_rxBuffer->GetSize() >= headerSize)
+    while (m_rxBuffer->GetSize() > 0)
     {
-        // Peek header to determine message type
-        SimpleTaskHeader header;
-        m_rxBuffer->PeekHeader(header);
+        uint32_t sizeBefore = m_rxBuffer->GetSize();
 
-        // For responses, we only need the header (no additional payload)
-        if (header.GetMessageType() != SimpleTaskHeader::TASK_RESPONSE)
+        // Peek first byte for message type demux
+        uint8_t firstByte;
+        m_rxBuffer->CopyData(&firstByte, 1);
+
+        if (firstByte >= OrchestratorHeader::ADMISSION_REQUEST)
         {
-            NS_LOG_WARN("Received unexpected message type: " << header.GetMessageType());
-            // Remove the header and continue
-            m_rxBuffer->RemoveAtStart(headerSize);
-            continue;
+            // Admission response (OrchestratorHeader)
+            if (m_rxBuffer->GetSize() < OrchestratorHeader::SERIALIZED_SIZE)
+            {
+                break; // Not enough data
+            }
+
+            OrchestratorHeader orchHeader;
+            m_rxBuffer->PeekHeader(orchHeader);
+
+            uint64_t totalSize = OrchestratorHeader::SERIALIZED_SIZE + orchHeader.GetPayloadSize();
+            if (m_rxBuffer->GetSize() < totalSize)
+            {
+                break; // Not enough data
+            }
+
+            m_rxBuffer->RemoveAtStart(totalSize);
+            HandleAdmissionResponse(orchHeader);
+        }
+        else
+        {
+            // Task response (SimpleTaskHeader-framed)
+            HandleTaskResponse();
         }
 
-        // Calculate total message size (header + output payload from server)
-        uint64_t payloadSize = header.GetResponsePayloadSize();
-        uint64_t totalMessageSize = headerSize + payloadSize;
-
-        // Ensure we have the complete message
-        if (m_rxBuffer->GetSize() < totalMessageSize)
+        // If nothing was consumed, stop to avoid infinite loop
+        if (m_rxBuffer->GetSize() == sizeBefore)
         {
-            NS_LOG_DEBUG("Buffer has " << m_rxBuffer->GetSize() << " bytes, need "
-                                       << totalMessageSize << " for full response");
             break;
         }
-
-        // Remove header from buffer
-        m_rxBuffer->RemoveAtStart(headerSize);
-
-        // Remove output payload (we don't need the actual data, just consume it)
-        if (payloadSize > 0)
-        {
-            m_rxBuffer->RemoveAtStart(payloadSize);
-        }
-
-        // Validate that this response corresponds to a task we sent
-        auto it = m_sendTimes.find(header.GetTaskId());
-        if (it == m_sendTimes.end())
-        {
-            // Response for a task we didn't send - could be a malformed packet
-            // or a routing error. Log and skip to avoid corrupting statistics.
-            NS_LOG_WARN("Received response for unknown task " << header.GetTaskId()
-                                                              << " (not sent by this client)");
-            continue;
-        }
-
-        // Calculate RTT
-        Time rtt = Simulator::Now() - it->second;
-        m_sendTimes.erase(it);
-
-        m_responsesReceived++;
-
-        NS_LOG_INFO("Received response for task " << header.GetTaskId()
-                                                  << " (RTT=" << rtt.GetMilliSeconds() << "ms)");
-
-        // Fire trace
-        m_responseReceivedTrace(header, rtt);
     }
+}
+
+void
+OffloadClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
+{
+    NS_LOG_FUNCTION(this << orchHeader.GetTaskId() << orchHeader.IsAdmitted());
+
+    uint64_t dagId = orchHeader.GetTaskId();
+
+    auto it = m_pendingWorkloads.find(dagId);
+    if (it == m_pendingWorkloads.end())
+    {
+        NS_LOG_WARN("Received admission response for unknown dagId " << dagId);
+        return;
+    }
+
+    if (orchHeader.IsAdmitted())
+    {
+        NS_LOG_INFO("Client " << m_clientId << " admission ACCEPTED for dagId " << dagId);
+        m_admittedQueue.push_back(dagId);
+        SendFullData(dagId);
+    }
+    else
+    {
+        NS_LOG_INFO("Client " << m_clientId << " admission REJECTED for dagId " << dagId);
+
+        // Fire rejected trace for the task(s) in the DAG
+        Ptr<DagTask> dag = it->second.dag;
+        for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
+        {
+            Ptr<Task> task = dag->GetTask(i);
+            if (task)
+            {
+                m_taskRejectedTrace(task);
+            }
+        }
+
+        m_pendingWorkloads.erase(it);
+    }
+}
+
+void
+OffloadClient::HandleTaskResponse()
+{
+    NS_LOG_FUNCTION(this);
+
+    // Use SimpleTask::Deserialize to parse the response
+    uint64_t consumedBytes = 0;
+    Ptr<Task> task = SimpleTask::Deserialize(m_rxBuffer, consumedBytes);
+
+    if (consumedBytes == 0)
+    {
+        return; // Not enough data
+    }
+
+    m_rxBuffer->RemoveAtStart(consumedBytes);
+
+    if (!task)
+    {
+        NS_LOG_WARN("Deserializer consumed " << consumedBytes << " bytes but returned null task");
+        return;
+    }
+
+    uint64_t taskId = task->GetTaskId();
+
+    // Find the pending workload that contains this task
+    // The orchestrator restores original task IDs, so we match by task ID
+    for (auto it = m_pendingWorkloads.begin(); it != m_pendingWorkloads.end(); ++it)
+    {
+        Ptr<DagTask> dag = it->second.dag;
+        int32_t dagIdx = dag->GetTaskIndex(taskId);
+        if (dagIdx >= 0)
+        {
+            Time rtt = Simulator::Now() - it->second.submitTime;
+            m_responsesReceived++;
+
+            NS_LOG_INFO("Client " << m_clientId << " received response for task " << taskId
+                                  << " (RTT=" << rtt.GetMilliSeconds() << "ms)");
+
+            m_responseReceivedTrace(task, rtt);
+
+            // Mark completed and check if workload is done
+            dag->MarkCompleted(static_cast<uint32_t>(dagIdx));
+            if (dag->IsComplete())
+            {
+                m_pendingWorkloads.erase(it);
+            }
+            return;
+        }
+    }
+
+    NS_LOG_WARN("Received response for unknown task " << taskId);
+}
+
+void
+OffloadClient::SendFullData(uint64_t dagId)
+{
+    NS_LOG_FUNCTION(this << dagId);
+
+    auto it = m_pendingWorkloads.find(dagId);
+    if (it == m_pendingWorkloads.end())
+    {
+        NS_LOG_WARN("Cannot send full data for unknown dagId " << dagId);
+        return;
+    }
+
+    Ptr<DagTask> dag = it->second.dag;
+    Ptr<Packet> packet = dag->SerializeFullData();
+
+    m_connMgr->Send(packet);
+    m_totalTx += packet->GetSize();
+
+    NS_LOG_INFO("Client " << m_clientId << " sent full data for dagId " << dagId << " ("
+                          << packet->GetSize() << " bytes)");
 }
 
 } // namespace ns3

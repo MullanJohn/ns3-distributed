@@ -8,6 +8,7 @@
 
 #include "offload-server.h"
 
+#include "scaling-command-header.h"
 #include "simple-task.h"
 #include "tcp-connection-manager.h"
 
@@ -74,7 +75,6 @@ OffloadServer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
-    // Clean up ConnectionManager
     if (m_connMgr)
     {
         m_connMgr->Close();
@@ -131,13 +131,11 @@ OffloadServer::StartApplication()
             MakeCallback(&OffloadServer::OnTaskCompleted, this));
     }
 
-    // Create default ConnectionManager if not set
     if (!m_connMgr)
     {
         m_connMgr = CreateObject<TcpConnectionManager>();
     }
 
-    // Configure ConnectionManager
     m_connMgr->SetNode(GetNode());
     m_connMgr->SetReceiveCallback(MakeCallback(&OffloadServer::HandleReceive, this));
 
@@ -148,7 +146,6 @@ OffloadServer::StartApplication()
         tcpConnMgr->SetCloseCallback(MakeCallback(&OffloadServer::HandleClientClose, this));
     }
 
-    // Bind to port
     m_connMgr->Bind(m_port);
 
     NS_LOG_INFO("OffloadServer listening on port " << m_port);
@@ -159,7 +156,6 @@ OffloadServer::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
-    // Disconnect from accelerator
     if (m_accelerator)
     {
         m_accelerator->TraceDisconnectWithoutContext(
@@ -167,7 +163,6 @@ OffloadServer::StopApplication()
             MakeCallback(&OffloadServer::OnTaskCompleted, this));
     }
 
-    // Close ConnectionManager
     if (m_connMgr)
     {
         m_connMgr->Close();
@@ -224,46 +219,45 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
     }
 
     Ptr<Packet> buffer = it->second;
-    static const uint32_t headerSize = SimpleTaskHeader::SERIALIZED_SIZE;
 
     // Process all complete messages in the buffer
     while (buffer->GetSize() > 0)
     {
-        // Check if we have enough for the header
-        if (buffer->GetSize() < headerSize)
+        // Peek first byte to determine message type
+        uint8_t firstByte;
+        buffer->CopyData(&firstByte, 1);
+
+        if (firstByte == ScalingCommandHeader::SCALING_COMMAND)
         {
-            NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << headerSize
-                                       << " for header");
+            if (buffer->GetSize() < ScalingCommandHeader::SERIALIZED_SIZE)
+            {
+                break;
+            }
+            HandleScalingCommand(buffer);
+            continue;
+        }
+
+        // Task message — deserialize via SimpleTask
+        uint64_t consumedBytes = 0;
+        Ptr<Task> task = SimpleTask::Deserialize(buffer, consumedBytes);
+
+        if (consumedBytes == 0)
+        {
+            // Not enough data for a complete message
             break;
         }
 
-        // Peek at the header to get input size
-        SimpleTaskHeader header;
-        buffer->PeekHeader(header);
+        buffer->RemoveAtStart(consumedBytes);
 
-        // Calculate total message size (header + payload)
-        uint64_t payloadSize = header.GetRequestPayloadSize();
-        uint64_t totalMessageSize = headerSize + payloadSize;
-
-        // Ensure we have the complete message
-        if (totalMessageSize > buffer->GetSize())
+        if (task)
         {
-            NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << totalMessageSize
-                                       << " for full message");
-            break;
+            ProcessTask(task, clientAddr);
         }
-
-        // Remove the header from the buffer
-        buffer->RemoveHeader(header);
-
-        // Remove the payload (we don't need the actual data, just consume it)
-        if (payloadSize > 0)
+        else
         {
-            buffer->RemoveAtStart(payloadSize);
+            NS_LOG_WARN("Deserializer consumed " << consumedBytes
+                                                 << " bytes but returned null task");
         }
-
-        // Process the task
-        ProcessTask(header, clientAddr);
     }
 
     // Update or remove the buffer entry
@@ -274,48 +268,35 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
 }
 
 void
-OffloadServer::ProcessTask(const SimpleTaskHeader& header, const Address& clientAddr)
+OffloadServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
 {
-    NS_LOG_FUNCTION(this << header.GetTaskId() << clientAddr);
-
-    if (header.GetMessageType() != SimpleTaskHeader::TASK_REQUEST)
-    {
-        NS_LOG_WARN("Received non-request message type, ignoring");
-        return;
-    }
+    NS_LOG_FUNCTION(this << task->GetTaskId() << clientAddr);
 
     m_tasksReceived++;
-    m_taskReceivedTrace(header);
+    m_taskReceivedTrace(task);
 
-    NS_LOG_INFO("Received task " << header.GetTaskId() << " (compute=" << header.GetComputeDemand()
-                                 << ", input=" << header.GetInputSize()
-                                 << ", output=" << header.GetOutputSize() << ")");
+    NS_LOG_INFO("Received task " << task->GetTaskId() << " (compute=" << task->GetComputeDemand()
+                                 << ", input=" << task->GetInputSize()
+                                 << ", output=" << task->GetOutputSize() << ")");
 
     if (!m_accelerator)
     {
-        NS_LOG_ERROR("No accelerator available, dropping task " << header.GetTaskId());
+        NS_LOG_ERROR("No accelerator available, dropping task " << task->GetTaskId());
         return;
     }
 
-    // Create a Task from the header
-    Ptr<Task> task = CreateObject<SimpleTask>();
-    task->SetTaskId(header.GetTaskId());
-    task->SetComputeDemand(header.GetComputeDemand());
-    task->SetInputSize(header.GetInputSize());
-    task->SetOutputSize(header.GetOutputSize());
     task->SetArrivalTime(Simulator::Now());
-    task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
 
     // Track the pending task for response routing
     PendingTask pending;
     pending.clientAddr = clientAddr;
     pending.task = task;
-    m_pendingTasks[header.GetTaskId()] = pending;
+    m_pendingTasks[task->GetTaskId()] = pending;
 
     // Submit to the accelerator
     m_accelerator->SubmitTask(task);
 
-    NS_LOG_DEBUG("Submitted task " << header.GetTaskId() << " to accelerator");
+    NS_LOG_DEBUG("Submitted task " << task->GetTaskId() << " to accelerator");
 }
 
 void
@@ -326,8 +307,6 @@ OffloadServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
     auto it = m_pendingTasks.find(task->GetTaskId());
     if (it == m_pendingTasks.end())
     {
-        // Task not found in our pending map - it may have been submitted by
-        // another source directly to the accelerator
         NS_LOG_DEBUG("Task " << task->GetTaskId() << " not found in pending tasks (not ours)");
         return;
     }
@@ -344,28 +323,36 @@ OffloadServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Tim
 {
     NS_LOG_FUNCTION(this << clientAddr << task->GetTaskId() << duration);
 
-    // Create response header
-    SimpleTaskHeader response;
-    response.SetMessageType(SimpleTaskHeader::TASK_RESPONSE);
-    response.SetTaskId(task->GetTaskId());
-    response.SetComputeDemand(task->GetComputeDemand());
-    response.SetInputSize(task->GetInputSize());
-    response.SetOutputSize(task->GetOutputSize());
+    Ptr<Packet> packet = task->Serialize(true);
 
-    // Create packet with output payload to simulate result data transfer
-    uint64_t outputSize = task->GetOutputSize();
-    Ptr<Packet> packet = Create<Packet>(outputSize);
-    packet->AddHeader(response);
-
-    // Send response via ConnectionManager
     m_connMgr->Send(packet, clientAddr);
 
     m_tasksCompleted++;
-    m_taskCompletedTrace(response, duration);
+    m_taskCompletedTrace(task, duration);
 
-    NS_LOG_INFO("Sent response for task " << task->GetTaskId() << " (output=" << outputSize
-                                          << " bytes, duration=" << duration.GetMilliSeconds()
-                                          << "ms)");
+    NS_LOG_INFO("Sent response for task "
+                << task->GetTaskId() << " (output=" << task->GetOutputSize()
+                << " bytes, duration=" << duration.GetMilliSeconds() << "ms)");
+}
+
+void
+OffloadServer::HandleScalingCommand(Ptr<Packet> buffer)
+{
+    NS_LOG_FUNCTION(this);
+
+    Ptr<Packet> fragment = buffer->CreateFragment(0, ScalingCommandHeader::SERIALIZED_SIZE);
+    buffer->RemoveAtStart(ScalingCommandHeader::SERIALIZED_SIZE);
+
+    ScalingCommandHeader header;
+    fragment->RemoveHeader(header);
+
+    if (m_accelerator)
+    {
+        m_accelerator->SetFrequency(header.GetTargetFrequency());
+        m_accelerator->SetVoltage(header.GetTargetVoltage());
+        NS_LOG_INFO("Applied scaling command: freq=" << header.GetTargetFrequency()
+                                                     << " volt=" << header.GetTargetVoltage());
+    }
 }
 
 void
