@@ -35,9 +35,11 @@ class UtilizationScalingPolicy : public ScalingPolicy
     UtilizationScalingPolicy();
     ~UtilizationScalingPolicy() override;
 
-    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
-                                double minFrequency,
-                                double maxFrequency) override;
+    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend) override;
+
+  private:
+    double m_minFrequency; //!< Lower frequency bound in Hz
+    double m_maxFrequency; //!< Upper frequency bound in Hz
 };
 
 } // namespace ns3

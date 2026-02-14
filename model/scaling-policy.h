@@ -77,13 +77,9 @@ class ScalingPolicy : public Object
      * @brief Decide on a scaling action based on backend state.
      *
      * @param backend Per-backend state including device metrics and load counters.
-     * @param minFrequency Lower frequency bound in Hz.
-     * @param maxFrequency Upper frequency bound in Hz.
      * @return A scaling decision, or nullptr if no change needed.
      */
-    virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
-                                        double minFrequency,
-                                        double maxFrequency) = 0;
+    virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend) = 0;
 };
 
 } // namespace ns3

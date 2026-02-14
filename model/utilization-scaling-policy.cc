@@ -8,6 +8,7 @@
 
 #include "utilization-scaling-policy.h"
 
+#include "ns3/double.h"
 #include "ns3/log.h"
 
 namespace ns3
@@ -20,14 +21,27 @@ NS_OBJECT_ENSURE_REGISTERED(UtilizationScalingPolicy);
 TypeId
 UtilizationScalingPolicy::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::UtilizationScalingPolicy")
-                            .SetParent<ScalingPolicy>()
-                            .SetGroupName("Distributed")
-                            .AddConstructor<UtilizationScalingPolicy>();
+    static TypeId tid =
+        TypeId("ns3::UtilizationScalingPolicy")
+            .SetParent<ScalingPolicy>()
+            .SetGroupName("Distributed")
+            .AddConstructor<UtilizationScalingPolicy>()
+            .AddAttribute("MinFrequency",
+                          "Lower frequency bound in Hz",
+                          DoubleValue(500e6),
+                          MakeDoubleAccessor(&UtilizationScalingPolicy::m_minFrequency),
+                          MakeDoubleChecker<double>(0.0))
+            .AddAttribute("MaxFrequency",
+                          "Upper frequency bound in Hz",
+                          DoubleValue(1.5e9),
+                          MakeDoubleAccessor(&UtilizationScalingPolicy::m_maxFrequency),
+                          MakeDoubleChecker<double>(0.0));
     return tid;
 }
 
 UtilizationScalingPolicy::UtilizationScalingPolicy()
+    : m_minFrequency(500e6),
+      m_maxFrequency(1.5e9)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -38,9 +52,7 @@ UtilizationScalingPolicy::~UtilizationScalingPolicy()
 }
 
 Ptr<ScalingDecision>
-UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
-                                 double minFrequency,
-                                 double maxFrequency)
+UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend)
 {
     NS_LOG_FUNCTION(this);
 
@@ -62,7 +74,7 @@ UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
         currentVoltage = 0.0;
     }
 
-    double targetFreq = busy ? maxFrequency : minFrequency;
+    double targetFreq = busy ? m_maxFrequency : m_minFrequency;
 
     if (targetFreq == currentFreq)
     {

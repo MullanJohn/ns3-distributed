@@ -111,8 +111,6 @@ class DeviceManager : public Object
   private:
     Ptr<ScalingPolicy> m_scalingPolicy;   //!< Pluggable scaling strategy
     Ptr<DeviceProtocol> m_deviceProtocol; //!< Protocol for metrics/command serialization
-    double m_minFrequency;                //!< Lower frequency bound in Hz
-    double m_maxFrequency;                //!< Upper frequency bound in Hz
 
     Ptr<ConnectionManager> m_workerConnMgr; //!< Worker connection for sending commands
     Cluster m_cluster;                      //!< Backend cluster reference

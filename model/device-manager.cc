@@ -10,7 +10,6 @@
 
 #include "device-metrics-header.h"
 
-#include "ns3/double.h"
 #include "ns3/log.h"
 #include "ns3/pointer.h"
 
@@ -39,16 +38,6 @@ DeviceManager::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&DeviceManager::m_deviceProtocol),
                           MakePointerChecker<DeviceProtocol>())
-            .AddAttribute("MinFrequency",
-                          "Lower frequency bound in Hz",
-                          DoubleValue(500e6),
-                          MakeDoubleAccessor(&DeviceManager::m_minFrequency),
-                          MakeDoubleChecker<double>(0.0))
-            .AddAttribute("MaxFrequency",
-                          "Upper frequency bound in Hz",
-                          DoubleValue(1.5e9),
-                          MakeDoubleAccessor(&DeviceManager::m_maxFrequency),
-                          MakeDoubleChecker<double>(0.0))
             .AddTraceSource("FrequencyChanged",
                             "Trace fired when a backend frequency is changed",
                             MakeTraceSourceAccessor(&DeviceManager::m_frequencyChangedTrace),
@@ -58,9 +47,7 @@ DeviceManager::GetTypeId()
 
 DeviceManager::DeviceManager()
     : m_scalingPolicy(nullptr),
-      m_deviceProtocol(nullptr),
-      m_minFrequency(500e6),
-      m_maxFrequency(1.5e9)
+      m_deviceProtocol(nullptr)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -138,8 +125,7 @@ DeviceManager::EvaluateScaling(const ClusterState& state)
     {
         const ClusterState::BackendState& backend = state.Get(i);
 
-        Ptr<ScalingDecision> decision =
-            m_scalingPolicy->Decide(backend, m_minFrequency, m_maxFrequency);
+        Ptr<ScalingDecision> decision = m_scalingPolicy->Decide(backend);
 
         if (!decision)
         {
