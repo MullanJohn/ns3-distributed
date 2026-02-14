@@ -15,7 +15,6 @@
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
 
-
 namespace ns3
 {
 

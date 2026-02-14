@@ -20,9 +20,8 @@ NS_OBJECT_ENSURE_REGISTERED(ScalingPolicy);
 TypeId
 ScalingPolicy::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::ScalingPolicy")
-                            .SetParent<Object>()
-                            .SetGroupName("Distributed");
+    static TypeId tid =
+        TypeId("ns3::ScalingPolicy").SetParent<Object>().SetGroupName("Distributed");
     return tid;
 }
 

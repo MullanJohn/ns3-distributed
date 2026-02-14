@@ -178,10 +178,9 @@ DeviceMetricsHeader::Deserialize(Buffer::Iterator start)
 void
 DeviceMetricsHeader::Print(std::ostream& os) const
 {
-    os << "DeviceMetricsHeader(type=" << static_cast<int>(m_messageType)
-       << ", freq=" << m_frequency << ", volt=" << m_voltage
-       << ", busy=" << (m_busy ? "true" : "false") << ", qLen=" << m_queueLength
-       << ", power=" << m_currentPower << ")";
+    os << "DeviceMetricsHeader(type=" << static_cast<int>(m_messageType) << ", freq=" << m_frequency
+       << ", volt=" << m_voltage << ", busy=" << (m_busy ? "true" : "false")
+       << ", qLen=" << m_queueLength << ", power=" << m_currentPower << ")";
 }
 
 } // namespace ns3

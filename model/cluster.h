@@ -168,8 +168,8 @@ class Cluster
   private:
     std::vector<Backend> m_backends; //!< The collection of backend servers
     std::map<std::string, std::vector<uint32_t>>
-        m_typeIndex;                          //!< accelerator type → backend indices
-    std::map<Address, uint32_t> m_addrIndex;  //!< address → backend index
+        m_typeIndex;                         //!< accelerator type → backend indices
+    std::map<Address, uint32_t> m_addrIndex; //!< address → backend index
 };
 
 } // namespace ns3

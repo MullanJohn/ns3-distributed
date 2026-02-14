@@ -20,9 +20,8 @@ NS_OBJECT_ENSURE_REGISTERED(DeviceProtocol);
 TypeId
 DeviceProtocol::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::DeviceProtocol")
-                            .SetParent<Object>()
-                            .SetGroupName("Distributed");
+    static TypeId tid =
+        TypeId("ns3::DeviceProtocol").SetParent<Object>().SetGroupName("Distributed");
     return tid;
 }
 

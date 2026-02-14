@@ -194,13 +194,17 @@ class GpuAcceleratorFrequencyScalingTestCase : public TestCase
         // Scale frequency down by half
         gpu->SetFrequency(0.75e9);
         NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetFrequency(), 0.75e9, 1e-9, "Frequency after scale down");
-        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(), 0.5e12, 1e-9,
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(),
+                                  0.5e12,
+                                  1e-9,
                                   "Compute rate should halve when frequency halves");
 
         // Scale frequency back up
         gpu->SetFrequency(1.5e9);
         NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetFrequency(), 1.5e9, 1e-9, "Frequency after scale up");
-        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(), 1e12, 1e-9,
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(),
+                                  1e12,
+                                  1e-9,
                                   "Compute rate should restore when frequency restores");
 
         // SetVoltage should just update voltage
@@ -210,7 +214,9 @@ class GpuAcceleratorFrequencyScalingTestCase : public TestCase
         // Same frequency should be no-op
         double rateBefore = gpu->GetComputeRate();
         gpu->SetFrequency(1.5e9);
-        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(), rateBefore, 1e-9,
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(),
+                                  rateBefore,
+                                  1e-9,
                                   "Same frequency should not change compute rate");
 
         Simulator::Destroy();

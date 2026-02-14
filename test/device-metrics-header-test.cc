@@ -54,13 +54,16 @@ class DeviceMetricsHeaderTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetMessageType(),
                               DeviceMetricsHeader::DEVICE_METRICS,
                               "Message type should be DEVICE_METRICS");
-        NS_TEST_ASSERT_MSG_EQ_TOL(deserialized.GetFrequency(), 1.5e9, 1e-9,
+        NS_TEST_ASSERT_MSG_EQ_TOL(deserialized.GetFrequency(),
+                                  1.5e9,
+                                  1e-9,
                                   "Frequency should match");
-        NS_TEST_ASSERT_MSG_EQ_TOL(deserialized.GetVoltage(), 0.85, 1e-9,
-                                  "Voltage should match");
+        NS_TEST_ASSERT_MSG_EQ_TOL(deserialized.GetVoltage(), 0.85, 1e-9, "Voltage should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetBusy(), true, "Busy should be true");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetQueueLength(), 3, "Queue length should match");
-        NS_TEST_ASSERT_MSG_EQ_TOL(deserialized.GetCurrentPower(), 150.5, 1e-9,
+        NS_TEST_ASSERT_MSG_EQ_TOL(deserialized.GetCurrentPower(),
+                                  150.5,
+                                  1e-9,
                                   "Current power should match");
     }
 };
