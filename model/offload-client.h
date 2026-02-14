@@ -210,7 +210,7 @@ class OffloadClient : public Application
     };
 
     std::map<uint64_t, PendingWorkload> m_pendingWorkloads; //!< dagId → pending state
-    std::deque<uint64_t> m_admittedQueue; //!< dagIds admitted, awaiting data send
+    std::deque<uint64_t> m_admittedQueue;                   //!< dagIds admitted, awaiting data send
 
     // Response handling
     Ptr<Packet> m_rxBuffer;       //!< Receive buffer for stream reassembly

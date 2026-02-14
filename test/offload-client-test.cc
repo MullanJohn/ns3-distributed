@@ -173,9 +173,7 @@ class OffloadClientAdmissionTestCase : public TestCase
                               "Orchestrator should have completed 3 workloads");
 
         // Verify server processed all tasks
-        NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(),
-                              3,
-                              "Server should have received 3 tasks");
+        NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(), 3, "Server should have received 3 tasks");
         NS_TEST_ASSERT_MSG_EQ(server->GetTasksCompleted(),
                               3,
                               "Server should have completed 3 tasks");
@@ -290,9 +288,8 @@ class OffloadClientMultiClientTestCase : public TestCase
         for (uint32_t i = 0; i < 3; i++)
         {
             Ptr<OffloadClient> client = CreateObject<OffloadClient>();
-            client->SetAttribute(
-                "Remote",
-                AddressValue(InetSocketAddress(orchAddresses[i], orchPort)));
+            client->SetAttribute("Remote",
+                                 AddressValue(InetSocketAddress(orchAddresses[i], orchPort)));
             client->SetAttribute("MaxTasks", UintegerValue(3));
 
             Ptr<ExponentialRandomVariable> interArrival = CreateObject<ExponentialRandomVariable>();
@@ -340,9 +337,7 @@ class OffloadClientMultiClientTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(orchestrator->GetWorkloadsCompleted(),
                               9,
                               "Orchestrator should have completed 9 workloads");
-        NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(),
-                              9,
-                              "Server should have received 9 tasks");
+        NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(), 9, "Server should have received 9 tasks");
         NS_TEST_ASSERT_MSG_EQ(server->GetTasksCompleted(),
                               9,
                               "Server should have completed 9 tasks");

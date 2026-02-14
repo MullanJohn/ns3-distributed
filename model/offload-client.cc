@@ -307,7 +307,7 @@ OffloadClient::SubmitTask(Ptr<Task> task)
     m_totalTx += packet->GetSize();
 
     NS_LOG_INFO("Client " << m_clientId << " sent ADMISSION_REQUEST for dagId " << dagId
-                           << " (task " << task->GetTaskId() << ")");
+                          << " (task " << task->GetTaskId() << ")");
 
     m_taskSentTrace(task);
 }
@@ -490,7 +490,7 @@ OffloadClient::HandleTaskResponse()
             m_responsesReceived++;
 
             NS_LOG_INFO("Client " << m_clientId << " received response for task " << taskId
-                                   << " (RTT=" << rtt.GetMilliSeconds() << "ms)");
+                                  << " (RTT=" << rtt.GetMilliSeconds() << "ms)");
 
             m_responseReceivedTrace(task, rtt);
 
@@ -526,7 +526,7 @@ OffloadClient::SendFullData(uint64_t dagId)
     m_totalTx += packet->GetSize();
 
     NS_LOG_INFO("Client " << m_clientId << " sent full data for dagId " << dagId << " ("
-                           << packet->GetSize() << " bytes)");
+                          << packet->GetSize() << " bytes)");
 }
 
 } // namespace ns3
