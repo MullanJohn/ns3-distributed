@@ -18,6 +18,8 @@
 namespace ns3
 {
 
+class ClusterState;
+
 /**
  * @ingroup distributed
  * @brief Abstract base class for task scheduling policies.
@@ -61,9 +63,12 @@ class ClusterScheduler : public Object
      *
      * @param task The task to schedule.
      * @param cluster The cluster of available backends.
+     * @param state Per-backend load and device metrics.
      * @return Index into cluster (0 to GetN()-1), or -1 if no suitable backend found.
      */
-    virtual int32_t ScheduleTask(Ptr<Task> task, const Cluster& cluster) = 0;
+    virtual int32_t ScheduleTask(Ptr<Task> task,
+                                 const Cluster& cluster,
+                                 const ClusterState& state) = 0;
 
     /**
      * @brief Notify scheduler that a task completed on a backend.

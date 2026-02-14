@@ -168,7 +168,68 @@ class GpuAcceleratorNoSchedulerTestCase : public TestCase
     std::string m_lastFailReason;
 };
 
+/**
+ * @ingroup distributed-tests
+ * @brief Test GpuAccelerator SetFrequency scales compute rate proportionally
+ */
+class GpuAcceleratorFrequencyScalingTestCase : public TestCase
+{
+  public:
+    GpuAcceleratorFrequencyScalingTestCase()
+        : TestCase("Test GpuAccelerator SetFrequency scales ComputeRate proportionally")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
+        gpu->SetAttribute("Frequency", DoubleValue(1.5e9));
+
+        // Verify initial state
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(), 1e12, 1e-9, "Initial compute rate");
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetFrequency(), 1.5e9, 1e-9, "Initial frequency");
+
+        // Scale frequency down by half
+        gpu->SetFrequency(0.75e9);
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetFrequency(), 0.75e9, 1e-9, "Frequency after scale down");
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(),
+                                  0.5e12,
+                                  1e-9,
+                                  "Compute rate should halve when frequency halves");
+
+        // Scale frequency back up
+        gpu->SetFrequency(1.5e9);
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetFrequency(), 1.5e9, 1e-9, "Frequency after scale up");
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(),
+                                  1e12,
+                                  1e-9,
+                                  "Compute rate should restore when frequency restores");
+
+        // SetVoltage should just update voltage
+        gpu->SetVoltage(0.8);
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetVoltage(), 0.8, 1e-9, "Voltage after SetVoltage");
+
+        // Same frequency should be no-op
+        double rateBefore = gpu->GetComputeRate();
+        gpu->SetFrequency(1.5e9);
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetComputeRate(),
+                                  rateBefore,
+                                  1e-9,
+                                  "Same frequency should not change compute rate");
+
+        Simulator::Destroy();
+    }
+};
+
 } // namespace
+
+TestCase*
+CreateGpuAcceleratorFrequencyScalingTestCase()
+{
+    return new GpuAcceleratorFrequencyScalingTestCase;
+}
 
 TestCase*
 CreateGpuAcceleratorTestCase()

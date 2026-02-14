@@ -35,6 +35,8 @@
 
 // Accelerator
 #include "ns3/accelerator.h"
+#include "ns3/dvfs-energy-model.h"
+#include "ns3/energy-model.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/processing-model.h"
@@ -50,12 +52,31 @@
 #include "ns3/udp-connection-manager.h"
 
 // Orchestration
+#include "ns3/admission-policy.h"
+#include "ns3/always-admit-policy.h"
 #include "ns3/cluster-scheduler.h"
+#include "ns3/cluster-state.h"
 #include "ns3/cluster.h"
+#include "ns3/edge-orchestrator.h"
 #include "ns3/first-fit-scheduler.h"
+#include "ns3/orchestrator-header.h"
+
+// Device management
+#include "ns3/device-manager.h"
+#include "ns3/device-metrics-header.h"
+#include "ns3/device-protocol.h"
+#include "ns3/gpu-device-protocol.h"
+#include "ns3/scaling-command-header.h"
+#include "ns3/scaling-policy.h"
+#include "ns3/utilization-scaling-policy.h"
 
 // Applications
 #include "ns3/offload-client.h"
 #include "ns3/offload-server.h"
+
+// Helpers
+#include "ns3/distributed-helper.h"
+#include "ns3/offload-client-helper.h"
+#include "ns3/offload-server-helper.h"
 
 #endif // DISTRIBUTED_H

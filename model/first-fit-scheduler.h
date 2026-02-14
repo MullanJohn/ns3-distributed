@@ -10,6 +10,7 @@
 #define FIRST_FIT_SCHEDULER_H
 
 #include "cluster-scheduler.h"
+#include "cluster-state.h"
 
 #include <map>
 #include <string>
@@ -51,7 +52,9 @@ class FirstFitScheduler : public ClusterScheduler
      * @param cluster The cluster of backends.
      * @return Backend index, or -1 if no suitable backend.
      */
-    int32_t ScheduleTask(Ptr<Task> task, const Cluster& cluster) override;
+    int32_t ScheduleTask(Ptr<Task> task,
+                         const Cluster& cluster,
+                         const ClusterState& state) override;
 
     /**
      * @brief Get the scheduler name.

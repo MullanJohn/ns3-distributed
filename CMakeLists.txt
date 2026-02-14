@@ -35,10 +35,18 @@ build_lib(
                  model/batching-queue-scheduler.cc
                  model/simple-task-header.cc
                  model/orchestrator-header.cc
+                 model/device-metrics-header.cc
+                 model/scaling-command-header.cc
+                 model/scaling-policy.cc
+                 model/utilization-scaling-policy.cc
+                 model/device-protocol.cc
+                 model/gpu-device-protocol.cc
+                 model/device-manager.cc
                  model/offload-client.cc
                  model/offload-server.cc
                  model/edge-orchestrator.cc
                  model/cluster.cc
+                 model/cluster-state.cc
                  helper/distributed-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
@@ -65,10 +73,18 @@ build_lib(
                  model/batching-queue-scheduler.h
                  model/simple-task-header.h
                  model/orchestrator-header.h
+                 model/device-metrics-header.h
+                 model/scaling-command-header.h
+                 model/scaling-policy.h
+                 model/utilization-scaling-policy.h
+                 model/device-protocol.h
+                 model/gpu-device-protocol.h
+                 model/device-manager.h
                  model/offload-client.h
                  model/offload-server.h
                  model/edge-orchestrator.h
                  model/cluster.h
+                 model/cluster-state.h
                  helper/distributed-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
@@ -92,5 +108,7 @@ build_lib(
                  test/connection-manager-test.cc
                  test/dag-task-test.cc
                  test/dag-task-serialization-test.cc
+                 test/device-metrics-header-test.cc
+                 test/scaling-command-header-test.cc
                  ${examples_as_tests_sources}
 )

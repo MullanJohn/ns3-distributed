@@ -8,6 +8,7 @@
 
 #include "always-admit-policy.h"
 
+#include "cluster-state.h"
 #include "dag-task.h"
 
 #include "ns3/log.h"
@@ -39,11 +40,9 @@ AlwaysAdmitPolicy::~AlwaysAdmitPolicy()
 }
 
 bool
-AlwaysAdmitPolicy::ShouldAdmit(Ptr<DagTask> dag,
-                               const Cluster& cluster,
-                               uint32_t activeWorkloadCount)
+AlwaysAdmitPolicy::ShouldAdmit(Ptr<DagTask> dag, const Cluster& cluster, const ClusterState& state)
 {
-    NS_LOG_FUNCTION(this << dag->GetTaskCount() << activeWorkloadCount);
+    NS_LOG_FUNCTION(this << dag->GetTaskCount() << state.GetActiveWorkloadCount());
     NS_LOG_DEBUG("AlwaysAdmit: admitting workload with " << dag->GetTaskCount() << " tasks");
     return true;
 }

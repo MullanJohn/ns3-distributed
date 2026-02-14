@@ -50,6 +50,8 @@ class GpuAccelerator : public Accelerator
     bool IsBusy() const override;
     double GetVoltage() const override;
     double GetFrequency() const override;
+    void SetFrequency(double frequency) override;
+    void SetVoltage(double voltage) override;
 
     /**
      * @brief Get compute rate in FLOPS.

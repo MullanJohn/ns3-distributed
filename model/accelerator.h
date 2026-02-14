@@ -127,6 +127,26 @@ class Accelerator : public Object
     virtual double GetFrequency() const;
 
     /**
+     * @brief Set the operating frequency.
+     *
+     * Default implementation is a no-op. Override in subclasses that
+     * support DVFS.
+     *
+     * @param frequency The new frequency in Hz.
+     */
+    virtual void SetFrequency(double frequency);
+
+    /**
+     * @brief Set the operating voltage.
+     *
+     * Default implementation is a no-op. Override in subclasses that
+     * support DVFS.
+     *
+     * @param voltage The new voltage in Volts.
+     */
+    virtual void SetVoltage(double voltage);
+
+    /**
      * @brief Get the node this accelerator is aggregated to.
      * @return Pointer to the node, or nullptr if not aggregated.
      */

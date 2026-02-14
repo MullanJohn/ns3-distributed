@@ -102,6 +102,18 @@ Accelerator::GetFrequency() const
     return 1.0;
 }
 
+void
+Accelerator::SetFrequency(double frequency)
+{
+    NS_LOG_FUNCTION(this << frequency);
+}
+
+void
+Accelerator::SetVoltage(double voltage)
+{
+    NS_LOG_FUNCTION(this << voltage);
+}
+
 Ptr<Node>
 Accelerator::GetNode() const
 {

@@ -38,12 +38,10 @@ class AlwaysAdmitPolicy : public AdmissionPolicy
      *
      * @param dag The workload DAG (ignored)
      * @param cluster Current cluster state (ignored)
-     * @param activeWorkloadCount Number of active workloads (ignored)
+     * @param state Per-backend load and device metrics (ignored)
      * @return Always returns true
      */
-    bool ShouldAdmit(Ptr<DagTask> dag,
-                     const Cluster& cluster,
-                     uint32_t activeWorkloadCount) override;
+    bool ShouldAdmit(Ptr<DagTask> dag, const Cluster& cluster, const ClusterState& state) override;
 
     /**
      * @brief Get the policy name.
