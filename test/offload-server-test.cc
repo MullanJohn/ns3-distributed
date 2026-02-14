@@ -20,8 +20,8 @@
 #include "ns3/pointer.h"
 #include "ns3/simple-channel.h"
 #include "ns3/simple-net-device.h"
-#include "ns3/simple-task-header.h"
 #include "ns3/simulator.h"
+#include "ns3/task.h"
 #include "ns3/tcp-connection-manager.h"
 #include "ns3/test.h"
 
@@ -107,12 +107,12 @@ class OffloadServerBasicTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(server->GetTasksReceived(), 0, "No tasks should be received yet");
     }
 
-    void OnTaskReceived(const SimpleTaskHeader& header)
+    void OnTaskReceived(Ptr<const Task> task)
     {
         m_taskReceived = true;
     }
 
-    void OnTaskCompleted(const SimpleTaskHeader& header, Time duration)
+    void OnTaskCompleted(Ptr<const Task> task, Time duration)
     {
         m_taskCompleted = true;
     }
