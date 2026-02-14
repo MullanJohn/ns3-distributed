@@ -20,7 +20,8 @@ namespace ns3
  * @brief Helper to create and configure OffloadClient applications.
  *
  * This helper simplifies the creation and configuration of OffloadClient
- * applications for distributed computing simulations.
+ * applications that communicate with an EdgeOrchestrator via the two-phase
+ * admission protocol.
  */
 class OffloadClientHelper : public ApplicationHelper
 {

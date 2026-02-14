@@ -10,7 +10,9 @@
 #define OFFLOAD_CLIENT_H
 
 #include "connection-manager.h"
-#include "simple-task-header.h"
+#include "dag-task.h"
+#include "orchestrator-header.h"
+#include "task.h"
 
 #include "ns3/application.h"
 #include "ns3/event-id.h"
@@ -18,6 +20,7 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/traced-callback.h"
 
+#include <deque>
 #include <map>
 
 namespace ns3
@@ -27,19 +30,20 @@ class Packet;
 
 /**
  * @ingroup distributed
- * @brief Client application for offloading computational tasks.
+ * @brief Client application for offloading computational tasks via two-phase admission.
  *
- * OffloadClient generates computational tasks and sends them to a remote
- * server. Tasks are generated with configurable random distributions
- * for inter-arrival time, compute demand, and input/output sizes.
+ * OffloadClient communicates with an EdgeOrchestrator using the two-phase
+ * admission protocol:
+ * 1. Client sends ADMISSION_REQUEST with task/DAG metadata
+ * 2. Orchestrator responds with ADMISSION_RESPONSE (admit/reject)
+ * 3. If admitted, client sends full task data
+ * 4. Orchestrator dispatches to backends, collects results
+ * 5. Orchestrator sends sink task responses back to client
  *
- * Each task is sent as a packet with an SimpleTaskHeader followed by payload
- * data sized to match the task's input size, simulating realistic data
- * transfer for computation offloading scenarios.
+ * Tasks can be submitted programmatically via SubmitTask(), or auto-generated
+ * when MaxTasks > 0.
  *
  * Transport is abstracted via ConnectionManager, defaulting to TCP.
- * Users can inject a custom ConnectionManager (e.g., UDP) via the
- * "ConnectionManager" attribute.
  */
 class OffloadClient : public Application
 {
@@ -54,16 +58,26 @@ class OffloadClient : public Application
     ~OffloadClient() override;
 
     /**
-     * @brief Set the remote server address.
-     * @param addr Server address (InetSocketAddress or Inet6SocketAddress).
+     * @brief Set the remote orchestrator address.
+     * @param addr Orchestrator address (InetSocketAddress or Inet6SocketAddress).
      */
     void SetRemote(const Address& addr);
 
     /**
-     * @brief Get the remote server address.
-     * @return The server address.
+     * @brief Get the remote orchestrator address.
+     * @return The orchestrator address.
      */
     Address GetRemote() const;
+
+    /**
+     * @brief Submit a task for offloading.
+     *
+     * Wraps the task as a 1-node DagTask, sends an ADMISSION_REQUEST
+     * to the orchestrator, and tracks the pending workload.
+     *
+     * @param task The task to submit.
+     */
+    void SubmitTask(Ptr<Task> task);
 
     /**
      * @brief Get the number of tasks sent.
@@ -91,16 +105,22 @@ class OffloadClient : public Application
 
     /**
      * @brief TracedCallback signature for task sent events.
-     * @param header The offload header that was sent.
+     * @param task The task that was submitted.
      */
-    typedef void (*TaskSentTracedCallback)(const SimpleTaskHeader& header);
+    typedef void (*TaskSentTracedCallback)(Ptr<const Task> task);
 
     /**
      * @brief TracedCallback signature for response received events.
-     * @param header The offload header from the response.
-     * @param rtt Round-trip time from task sent to response received.
+     * @param task The completed task from the response.
+     * @param rtt Round-trip time from submission to response.
      */
-    typedef void (*ResponseReceivedTracedCallback)(const SimpleTaskHeader& header, Time rtt);
+    typedef void (*ResponseReceivedTracedCallback)(Ptr<const Task> task, Time rtt);
+
+    /**
+     * @brief TracedCallback signature for task rejected events.
+     * @param task The task that was rejected.
+     */
+    typedef void (*TaskRejectedTracedCallback)(Ptr<const Task> task);
 
   protected:
     void DoDispose() override;
@@ -122,16 +142,16 @@ class OffloadClient : public Application
     void HandleConnectionFailed(const Address& serverAddr);
 
     /**
-     * @brief Handle data received from the server.
+     * @brief Handle data received from the orchestrator.
      * @param packet The received packet.
-     * @param from The server address.
+     * @param from The orchestrator address.
      */
     void HandleReceive(Ptr<Packet> packet, const Address& from);
 
     /**
-     * @brief Generate and send a task.
+     * @brief Generate and submit a task (auto-generation mode).
      */
-    void SendTask();
+    void GenerateTask();
 
     /**
      * @brief Schedule the next task generation.
@@ -143,36 +163,63 @@ class OffloadClient : public Application
      */
     void ProcessBuffer();
 
+    /**
+     * @brief Handle an admission response from the orchestrator.
+     * @param orchHeader The parsed OrchestratorHeader.
+     */
+    void HandleAdmissionResponse(const OrchestratorHeader& orchHeader);
+
+    /**
+     * @brief Handle a task response (sink task result) from the orchestrator.
+     */
+    void HandleTaskResponse();
+
+    /**
+     * @brief Send full DAG data for an admitted workload.
+     * @param dagId The DAG ID.
+     */
+    void SendFullData(uint64_t dagId);
+
     // Transport
     Ptr<ConnectionManager> m_connMgr; //!< Connection manager for transport
-    Address m_peer;                   //!< Remote server address
+    Address m_peer;                   //!< Remote orchestrator address
 
-    // Random variable streams
+    // Random variable streams (for auto-generation mode)
     Ptr<RandomVariableStream> m_interArrivalTime; //!< Inter-arrival time RNG
     Ptr<RandomVariableStream> m_computeDemand;    //!< Compute demand RNG
     Ptr<RandomVariableStream> m_inputSize;        //!< Input size RNG
     Ptr<RandomVariableStream> m_outputSize;       //!< Output size RNG
 
     // Configuration
-    uint64_t m_maxTasks; //!< Maximum tasks to send (0 = unlimited)
+    uint64_t m_maxTasks; //!< Maximum tasks to send (0 = programmatic only)
 
     // State
     static uint32_t s_nextClientId; //!< Counter for assigning unique client IDs
     uint32_t m_clientId;            //!< Unique ID for this client instance
     EventId m_sendEvent;            //!< Next send event
-    uint64_t m_taskCount;           //!< Number of tasks sent
+    uint64_t m_taskCount;           //!< Number of tasks sent (sequence counter)
     uint64_t m_totalTx;             //!< Total bytes transmitted
     uint64_t m_totalRx;             //!< Total bytes received
+    uint64_t m_nextDagId;           //!< Next DAG ID for workload tracking
+
+    // Pending workload state
+    struct PendingWorkload
+    {
+        Ptr<DagTask> dag; //!< The DAG wrapping the task
+        Time submitTime;  //!< When the admission request was sent
+    };
+
+    std::map<uint64_t, PendingWorkload> m_pendingWorkloads; //!< dagId → pending state
+    std::deque<uint64_t> m_admittedQueue; //!< dagIds admitted, awaiting data send
 
     // Response handling
-    Ptr<Packet> m_rxBuffer;               //!< Receive buffer for stream reassembly
-    uint64_t m_responsesReceived;         //!< Number of responses received
-    std::map<uint64_t, Time> m_sendTimes; //!< Map of task ID to send time
+    Ptr<Packet> m_rxBuffer;       //!< Receive buffer for stream reassembly
+    uint64_t m_responsesReceived; //!< Number of responses received
 
     // Trace sources
-    TracedCallback<const SimpleTaskHeader&> m_taskSentTrace; //!< Task sent trace
-    TracedCallback<const SimpleTaskHeader&, Time>
-        m_responseReceivedTrace; //!< Response received trace
+    TracedCallback<Ptr<const Task>> m_taskSentTrace;               //!< Task sent trace
+    TracedCallback<Ptr<const Task>, Time> m_responseReceivedTrace; //!< Response received trace
+    TracedCallback<Ptr<const Task>> m_taskRejectedTrace;           //!< Task rejected trace
 };
 
 } // namespace ns3
