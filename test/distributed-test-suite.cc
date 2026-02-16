@@ -58,6 +58,8 @@ TestCase* CreateDagTaskSerializeFullDataTestCase();
 TestCase* CreateDagTaskDeserializeFailureTestCase();
 TestCase* CreateDeviceMetricsHeaderTestCase();
 TestCase* CreateScalingCommandHeaderTestCase();
+TestCase* CreateLeastLoadedSchedulerTestCase();
+TestCase* CreateLeastLoadedSchedulerTypeFilterTestCase();
 TestCase* CreateSingleTaskEndToEndTestCase();
 TestCase* CreateMultiBackendTestCase();
 
@@ -116,6 +118,8 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateDagTaskDeserializeFailureTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDeviceMetricsHeaderTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateScalingCommandHeaderTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateLeastLoadedSchedulerTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateLeastLoadedSchedulerTypeFilterTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateSingleTaskEndToEndTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateMultiBackendTestCase(), TestCase::Duration::QUICK);
 }
