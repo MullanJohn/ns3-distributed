@@ -114,5 +114,6 @@ build_lib(
                  test/dag-task-serialization-test.cc
                  test/device-metrics-header-test.cc
                  test/scaling-command-header-test.cc
+                 test/edge-orchestrator-test.cc
                  ${examples_as_tests_sources}
 )
