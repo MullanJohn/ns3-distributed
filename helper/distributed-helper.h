@@ -18,6 +18,7 @@
  */
 
 // Helper headers
+#include "ns3/edge-orchestrator-helper.h"
 #include "ns3/offload-client-helper.h"
 #include "ns3/offload-server-helper.h"
 
