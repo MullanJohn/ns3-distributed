@@ -21,6 +21,7 @@ build_lib(
                  model/always-admit-policy.cc
                  model/cluster-scheduler.cc
                  model/first-fit-scheduler.cc
+                 model/least-loaded-scheduler.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
                  model/udp-connection-manager.cc
@@ -48,6 +49,7 @@ build_lib(
                  model/cluster.cc
                  model/cluster-state.cc
                  helper/distributed-helper.cc
+                 helper/edge-orchestrator-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
@@ -59,6 +61,7 @@ build_lib(
                  model/always-admit-policy.h
                  model/cluster-scheduler.h
                  model/first-fit-scheduler.h
+                 model/least-loaded-scheduler.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
                  model/udp-connection-manager.h
@@ -86,6 +89,7 @@ build_lib(
                  model/cluster.h
                  model/cluster-state.h
                  helper/distributed-helper.h
+                 helper/edge-orchestrator-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
