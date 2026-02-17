@@ -62,6 +62,13 @@ TestCase* CreateLeastLoadedSchedulerTestCase();
 TestCase* CreateLeastLoadedSchedulerTypeFilterTestCase();
 TestCase* CreateSingleTaskEndToEndTestCase();
 TestCase* CreateMultiBackendTestCase();
+TestCase* CreateFeasibleDeadlineTestCase();
+TestCase* CreateInfeasibleDeadlineTestCase();
+TestCase* CreateNoDeadlineTestCase();
+TestCase* CreateDagDependencyDeadlineTestCase();
+TestCase* CreateConservativeStepUpTestCase();
+TestCase* CreateConservativeStepDownTestCase();
+TestCase* CreateConservativeVoltageScalingTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -122,6 +129,13 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateLeastLoadedSchedulerTypeFilterTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateSingleTaskEndToEndTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateMultiBackendTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateFeasibleDeadlineTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateInfeasibleDeadlineTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateNoDeadlineTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDagDependencyDeadlineTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateConservativeStepUpTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateConservativeStepDownTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateConservativeVoltageScalingTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
