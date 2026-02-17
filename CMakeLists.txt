@@ -19,6 +19,7 @@ build_lib(
                  model/dag-task.cc
                  model/admission-policy.cc
                  model/always-admit-policy.cc
+                 model/deadline-aware-admission-policy.cc
                  model/cluster-scheduler.cc
                  model/first-fit-scheduler.cc
                  model/least-loaded-scheduler.cc
@@ -60,6 +61,7 @@ build_lib(
                  model/dag-task.h
                  model/admission-policy.h
                  model/always-admit-policy.h
+                 model/deadline-aware-admission-policy.h
                  model/cluster-scheduler.h
                  model/first-fit-scheduler.h
                  model/least-loaded-scheduler.h
