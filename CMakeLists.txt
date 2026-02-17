@@ -118,5 +118,6 @@ build_lib(
                  test/scaling-command-header-test.cc
                  test/least-loaded-scheduler-test.cc
                  test/edge-orchestrator-test.cc
+                 test/conservative-scaling-policy-test.cc
                  ${examples_as_tests_sources}
 )
