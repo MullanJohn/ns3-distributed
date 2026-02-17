@@ -40,6 +40,7 @@ build_lib(
                  model/scaling-command-header.cc
                  model/scaling-policy.cc
                  model/utilization-scaling-policy.cc
+                 model/conservative-scaling-policy.cc
                  model/device-protocol.cc
                  model/gpu-device-protocol.cc
                  model/device-manager.cc
@@ -80,6 +81,7 @@ build_lib(
                  model/scaling-command-header.h
                  model/scaling-policy.h
                  model/utilization-scaling-policy.h
+                 model/conservative-scaling-policy.h
                  model/device-protocol.h
                  model/gpu-device-protocol.h
                  model/device-manager.h
