@@ -75,6 +75,13 @@ OffloadServer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
+    if (m_accelerator)
+    {
+        m_accelerator->TraceDisconnectWithoutContext(
+            "TaskCompleted",
+            MakeCallback(&OffloadServer::OnTaskCompleted, this));
+    }
+
     if (m_connMgr)
     {
         m_connMgr->Close();
