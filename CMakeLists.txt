@@ -48,6 +48,8 @@ build_lib(
                  model/offload-client.cc
                  model/offload-server.cc
                  model/edge-orchestrator.cc
+                 model/ar-client.cc
+                 model/ar-server.cc
                  model/cluster.cc
                  model/cluster-state.cc
                  helper/distributed-helper.cc
@@ -90,6 +92,8 @@ build_lib(
                  model/offload-client.h
                  model/offload-server.h
                  model/edge-orchestrator.h
+                 model/ar-client.h
+                 model/ar-server.h
                  model/cluster.h
                  model/cluster-state.h
                  helper/distributed-helper.h
