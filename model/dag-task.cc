@@ -10,6 +10,7 @@
 
 #include "ns3/log.h"
 
+#include <deque>
 #include <set>
 
 namespace ns3
@@ -238,6 +239,55 @@ DagTask::SetTask(uint32_t idx, Ptr<Task> task)
 
     m_nodes[idx].task = task;
     return true;
+}
+
+const std::vector<uint32_t>&
+DagTask::GetSuccessors(uint32_t idx) const
+{
+    return m_nodes[idx].successors;
+}
+
+std::vector<uint32_t>
+DagTask::GetTopologicalOrder() const
+{
+    NS_LOG_FUNCTION(this);
+
+    uint32_t n = static_cast<uint32_t>(m_nodes.size());
+    std::vector<uint32_t> inDegree(n);
+    for (uint32_t i = 0; i < n; ++i)
+    {
+        inDegree[i] = m_nodes[i].inDegree;
+    }
+
+    std::vector<uint32_t> order;
+    order.reserve(n);
+
+    std::deque<uint32_t> queue;
+    for (uint32_t i = 0; i < n; ++i)
+    {
+        if (inDegree[i] == 0)
+        {
+            queue.push_back(i);
+        }
+    }
+
+    while (!queue.empty())
+    {
+        uint32_t curr = queue.front();
+        queue.pop_front();
+        order.push_back(curr);
+
+        for (uint32_t s : m_nodes[curr].successors)
+        {
+            inDegree[s]--;
+            if (inDegree[s] == 0)
+            {
+                queue.push_back(s);
+            }
+        }
+    }
+
+    return order;
 }
 
 uint32_t

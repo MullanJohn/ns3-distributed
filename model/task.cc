@@ -41,6 +41,11 @@ Task::GetTypeId()
                           DoubleValue(0.0),
                           MakeDoubleAccessor(&Task::m_computeDemand),
                           MakeDoubleChecker<double>(0))
+            .AddAttribute("Priority",
+                          "Task priority (higher value = higher priority)",
+                          UintegerValue(0),
+                          MakeUintegerAccessor(&Task::m_priority),
+                          MakeUintegerChecker<uint32_t>())
             .AddAttribute("RequiredAcceleratorType",
                           "Required accelerator type (e.g., GPU, TPU). Empty means any.",
                           StringValue(""),
@@ -70,6 +75,7 @@ Task::DoDispose()
     m_computeDemand = 0.0;
     m_arrivalTime = Seconds(0);
     m_deadline = Time(-1);
+    m_priority = 0;
     m_requiredAcceleratorType.clear();
     Object::DoDispose();
 }
@@ -163,6 +169,19 @@ Task::ClearDeadline()
 {
     NS_LOG_FUNCTION(this);
     m_deadline = Time(-1);
+}
+
+uint32_t
+Task::GetPriority() const
+{
+    return m_priority;
+}
+
+void
+Task::SetPriority(uint32_t priority)
+{
+    NS_LOG_FUNCTION(this << priority);
+    m_priority = priority;
 }
 
 std::string

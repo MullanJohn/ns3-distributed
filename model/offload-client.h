@@ -20,7 +20,6 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/traced-callback.h"
 
-#include <deque>
 #include <map>
 
 namespace ns3
@@ -102,6 +101,14 @@ class OffloadClient : public Application
      * @return Number of responses received.
      */
     uint64_t GetResponsesReceived() const;
+
+    /**
+     * @brief Assign a fixed random variable stream number to the random variables used by this
+     * application.
+     * @param stream First stream index to use.
+     * @return The number of stream indices assigned.
+     */
+    int64_t AssignStreams(int64_t stream) override;
 
     /**
      * @brief TracedCallback signature for task sent events.
@@ -210,7 +217,6 @@ class OffloadClient : public Application
     };
 
     std::map<uint64_t, PendingWorkload> m_pendingWorkloads; //!< dagId → pending state
-    std::deque<uint64_t> m_admittedQueue;                   //!< dagIds admitted, awaiting data send
 
     // Response handling
     Ptr<Packet> m_rxBuffer;       //!< Receive buffer for stream reassembly

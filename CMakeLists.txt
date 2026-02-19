@@ -19,8 +19,10 @@ build_lib(
                  model/dag-task.cc
                  model/admission-policy.cc
                  model/always-admit-policy.cc
+                 model/deadline-aware-admission-policy.cc
                  model/cluster-scheduler.cc
                  model/first-fit-scheduler.cc
+                 model/least-loaded-scheduler.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
                  model/udp-connection-manager.cc
@@ -39,15 +41,19 @@ build_lib(
                  model/scaling-command-header.cc
                  model/scaling-policy.cc
                  model/utilization-scaling-policy.cc
+                 model/conservative-scaling-policy.cc
                  model/device-protocol.cc
                  model/gpu-device-protocol.cc
                  model/device-manager.cc
                  model/offload-client.cc
                  model/offload-server.cc
                  model/edge-orchestrator.cc
+                 model/ar-client.cc
+                 model/ar-server.cc
                  model/cluster.cc
                  model/cluster-state.cc
                  helper/distributed-helper.cc
+                 helper/edge-orchestrator-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
@@ -57,8 +63,10 @@ build_lib(
                  model/dag-task.h
                  model/admission-policy.h
                  model/always-admit-policy.h
+                 model/deadline-aware-admission-policy.h
                  model/cluster-scheduler.h
                  model/first-fit-scheduler.h
+                 model/least-loaded-scheduler.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
                  model/udp-connection-manager.h
@@ -77,15 +85,19 @@ build_lib(
                  model/scaling-command-header.h
                  model/scaling-policy.h
                  model/utilization-scaling-policy.h
+                 model/conservative-scaling-policy.h
                  model/device-protocol.h
                  model/gpu-device-protocol.h
                  model/device-manager.h
                  model/offload-client.h
                  model/offload-server.h
                  model/edge-orchestrator.h
+                 model/ar-client.h
+                 model/ar-server.h
                  model/cluster.h
                  model/cluster-state.h
                  helper/distributed-helper.h
+                 helper/edge-orchestrator-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
@@ -110,5 +122,9 @@ build_lib(
                  test/dag-task-serialization-test.cc
                  test/device-metrics-header-test.cc
                  test/scaling-command-header-test.cc
+                 test/least-loaded-scheduler-test.cc
+                 test/edge-orchestrator-test.cc
+                 test/deadline-aware-admission-policy-test.cc
+                 test/conservative-scaling-policy-test.cc
                  ${examples_as_tests_sources}
 )

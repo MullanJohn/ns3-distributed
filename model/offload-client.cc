@@ -120,7 +120,6 @@ OffloadClient::DoDispose()
 
     m_rxBuffer = nullptr;
     m_pendingWorkloads.clear();
-    m_admittedQueue.clear();
     m_interArrivalTime = nullptr;
     m_computeDemand = nullptr;
     m_inputSize = nullptr;
@@ -322,20 +321,6 @@ OffloadClient::GenerateTask()
     uint64_t outputSize = static_cast<uint64_t>(m_outputSize->GetValue());
     double computeDemand = m_computeDemand->GetValue();
 
-    // Ensure minimum sizes
-    if (inputSize < 1)
-    {
-        inputSize = 1;
-    }
-    if (outputSize < 1)
-    {
-        outputSize = 1;
-    }
-    if (computeDemand < 1.0)
-    {
-        computeDemand = 1.0;
-    }
-
     // Create a SimpleTask
     Ptr<SimpleTask> task = CreateObject<SimpleTask>();
     task->SetComputeDemand(computeDemand);
@@ -432,7 +417,6 @@ OffloadClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
     if (orchHeader.IsAdmitted())
     {
         NS_LOG_INFO("Client " << m_clientId << " admission ACCEPTED for dagId " << dagId);
-        m_admittedQueue.push_back(dagId);
         SendFullData(dagId);
     }
     else
@@ -527,6 +511,19 @@ OffloadClient::SendFullData(uint64_t dagId)
 
     NS_LOG_INFO("Client " << m_clientId << " sent full data for dagId " << dagId << " ("
                           << packet->GetSize() << " bytes)");
+}
+
+int64_t
+OffloadClient::AssignStreams(int64_t stream)
+{
+    NS_LOG_FUNCTION(this << stream);
+    auto currentStream = stream;
+    m_interArrivalTime->SetStream(currentStream++);
+    m_computeDemand->SetStream(currentStream++);
+    m_inputSize->SetStream(currentStream++);
+    m_outputSize->SetStream(currentStream++);
+    currentStream += Application::AssignStreams(currentStream);
+    return (currentStream - stream);
 }
 
 } // namespace ns3

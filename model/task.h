@@ -132,6 +132,18 @@ class Task : public Object
     void ClearDeadline();
 
     /**
+     * @brief Get the task priority.
+     * @return The priority value. Higher value = higher priority.
+     */
+    uint32_t GetPriority() const;
+
+    /**
+     * @brief Set the task priority.
+     * @param priority The priority value. Higher value = higher priority.
+     */
+    void SetPriority(uint32_t priority);
+
+    /**
      * @brief Get the required accelerator type.
      * @return The accelerator type string (e.g., "GPU", "TPU"). Empty string means any accelerator.
      */
@@ -184,6 +196,7 @@ class Task : public Object
     double m_computeDemand{0.0};               //!< Compute demand in FLOPS
     Time m_arrivalTime{Seconds(0)};            //!< Time when task arrived
     Time m_deadline{Time(-1)};                 //!< Task deadline (-1 = no deadline)
+    uint32_t m_priority{0};                    //!< Task priority (higher = higher priority)
     std::string m_requiredAcceleratorType{""}; //!< Required accelerator type (empty = any)
 };
 

@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "offload-server.h"
+#include "ar-server.h"
 
 #include "scaling-command-header.h"
 #include "simple-task.h"
@@ -21,57 +21,57 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("OffloadServer");
+NS_LOG_COMPONENT_DEFINE("ArServer");
 
-NS_OBJECT_ENSURE_REGISTERED(OffloadServer);
+NS_OBJECT_ENSURE_REGISTERED(ArServer);
 
 TypeId
-OffloadServer::GetTypeId()
+ArServer::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::OffloadServer")
+        TypeId("ns3::ArServer")
             .SetParent<Application>()
             .SetGroupName("Distributed")
-            .AddConstructor<OffloadServer>()
+            .AddConstructor<ArServer>()
             .AddAttribute("Port",
                           "Port on which to listen for incoming connections",
                           UintegerValue(9000),
-                          MakeUintegerAccessor(&OffloadServer::m_port),
+                          MakeUintegerAccessor(&ArServer::m_port),
                           MakeUintegerChecker<uint16_t>())
             .AddAttribute("ConnectionManager",
                           "Connection manager for transport (defaults to TCP)",
                           PointerValue(),
-                          MakePointerAccessor(&OffloadServer::m_connMgr),
+                          MakePointerAccessor(&ArServer::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
-            .AddTraceSource("TaskReceived",
-                            "A task request has been received",
-                            MakeTraceSourceAccessor(&OffloadServer::m_taskReceivedTrace),
-                            "ns3::OffloadServer::TaskReceivedTracedCallback")
-            .AddTraceSource("TaskCompleted",
-                            "A task has been completed and response sent",
-                            MakeTraceSourceAccessor(&OffloadServer::m_taskCompletedTrace),
-                            "ns3::OffloadServer::TaskCompletedTracedCallback");
+            .AddTraceSource("FrameReceived",
+                            "A frame has been received for processing",
+                            MakeTraceSourceAccessor(&ArServer::m_frameReceivedTrace),
+                            "ns3::ArServer::FrameReceivedTracedCallback")
+            .AddTraceSource("FrameProcessed",
+                            "A frame has been processed and response sent",
+                            MakeTraceSourceAccessor(&ArServer::m_frameProcessedTrace),
+                            "ns3::ArServer::FrameProcessedTracedCallback");
     return tid;
 }
 
-OffloadServer::OffloadServer()
+ArServer::ArServer()
     : m_port(9000),
       m_connMgr(nullptr),
       m_accelerator(nullptr),
-      m_tasksReceived(0),
-      m_tasksCompleted(0),
+      m_framesReceived(0),
+      m_framesProcessed(0),
       m_totalRx(0)
 {
     NS_LOG_FUNCTION(this);
 }
 
-OffloadServer::~OffloadServer()
+ArServer::~ArServer()
 {
     NS_LOG_FUNCTION(this);
 }
 
 void
-OffloadServer::DoDispose()
+ArServer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
@@ -79,7 +79,7 @@ OffloadServer::DoDispose()
     {
         m_accelerator->TraceDisconnectWithoutContext(
             "TaskCompleted",
-            MakeCallback(&OffloadServer::OnTaskCompleted, this));
+            MakeCallback(&ArServer::OnTaskCompleted, this));
     }
 
     if (m_connMgr)
@@ -96,46 +96,43 @@ OffloadServer::DoDispose()
 }
 
 uint64_t
-OffloadServer::GetTasksReceived() const
+ArServer::GetFramesReceived() const
 {
-    return m_tasksReceived;
+    return m_framesReceived;
 }
 
 uint64_t
-OffloadServer::GetTasksCompleted() const
+ArServer::GetFramesProcessed() const
 {
-    return m_tasksCompleted;
+    return m_framesProcessed;
 }
 
 uint64_t
-OffloadServer::GetTotalRx() const
+ArServer::GetTotalRx() const
 {
     return m_totalRx;
 }
 
 uint16_t
-OffloadServer::GetPort() const
+ArServer::GetPort() const
 {
     return m_port;
 }
 
 void
-OffloadServer::StartApplication()
+ArServer::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
-    // Get the Accelerator aggregated to this node
     m_accelerator = GetNode()->GetObject<Accelerator>();
     if (!m_accelerator)
     {
-        NS_LOG_WARN("No Accelerator aggregated to this node. Tasks will be rejected.");
+        NS_LOG_WARN("No Accelerator aggregated to this node. Frames will be dropped.");
     }
     else
     {
-        // Subscribe to task completion events
-        m_accelerator->TraceConnectWithoutContext(
-            "TaskCompleted",
-            MakeCallback(&OffloadServer::OnTaskCompleted, this));
+        m_accelerator->TraceConnectWithoutContext("TaskCompleted",
+                                                  MakeCallback(&ArServer::OnTaskCompleted, this));
     }
 
     if (!m_connMgr)
@@ -144,22 +141,21 @@ OffloadServer::StartApplication()
     }
 
     m_connMgr->SetNode(GetNode());
-    m_connMgr->SetReceiveCallback(MakeCallback(&OffloadServer::HandleReceive, this));
+    m_connMgr->SetReceiveCallback(MakeCallback(&ArServer::HandleReceive, this));
 
-    // Set close callback for TCP to handle client disconnections
     Ptr<TcpConnectionManager> tcpConnMgr = DynamicCast<TcpConnectionManager>(m_connMgr);
     if (tcpConnMgr)
     {
-        tcpConnMgr->SetCloseCallback(MakeCallback(&OffloadServer::HandleClientClose, this));
+        tcpConnMgr->SetCloseCallback(MakeCallback(&ArServer::HandleClientClose, this));
     }
 
     m_connMgr->Bind(m_port);
 
-    NS_LOG_INFO("OffloadServer listening on port " << m_port);
+    NS_LOG_INFO("ArServer listening on port " << m_port);
 }
 
 void
-OffloadServer::StopApplication()
+ArServer::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -167,7 +163,7 @@ OffloadServer::StopApplication()
     {
         m_accelerator->TraceDisconnectWithoutContext(
             "TaskCompleted",
-            MakeCallback(&OffloadServer::OnTaskCompleted, this));
+            MakeCallback(&ArServer::OnTaskCompleted, this));
     }
 
     if (m_connMgr)
@@ -179,7 +175,7 @@ OffloadServer::StopApplication()
 }
 
 void
-OffloadServer::HandleReceive(Ptr<Packet> packet, const Address& from)
+ArServer::HandleReceive(Ptr<Packet> packet, const Address& from)
 {
     NS_LOG_FUNCTION(this << packet << from);
 
@@ -191,7 +187,6 @@ OffloadServer::HandleReceive(Ptr<Packet> packet, const Address& from)
     m_totalRx += packet->GetSize();
     NS_LOG_DEBUG("Received " << packet->GetSize() << " bytes from " << from);
 
-    // Add to buffer for this client
     auto it = m_rxBuffer.find(from);
     if (it == m_rxBuffer.end())
     {
@@ -202,12 +197,11 @@ OffloadServer::HandleReceive(Ptr<Packet> packet, const Address& from)
         it->second->AddAtEnd(packet);
     }
 
-    // Try to process complete messages from the buffer
     ProcessBuffer(from);
 }
 
 void
-OffloadServer::HandleClientClose(const Address& clientAddr)
+ArServer::HandleClientClose(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
     NS_LOG_INFO("Client disconnected: " << clientAddr);
@@ -215,7 +209,7 @@ OffloadServer::HandleClientClose(const Address& clientAddr)
 }
 
 void
-OffloadServer::ProcessBuffer(const Address& clientAddr)
+ArServer::ProcessBuffer(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 
@@ -227,10 +221,8 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
 
     Ptr<Packet> buffer = it->second;
 
-    // Process all complete messages in the buffer
     while (buffer->GetSize() > 0)
     {
-        // Peek first byte to determine message type
         uint8_t firstByte;
         buffer->CopyData(&firstByte, 1);
 
@@ -244,13 +236,11 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
             continue;
         }
 
-        // Task message — deserialize via SimpleTask
         uint64_t consumedBytes = 0;
         Ptr<Task> task = SimpleTask::Deserialize(buffer, consumedBytes);
 
         if (consumedBytes == 0)
         {
-            // Not enough data for a complete message
             break;
         }
 
@@ -267,7 +257,6 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
         }
     }
 
-    // Update or remove the buffer entry
     if (buffer->GetSize() == 0)
     {
         m_rxBuffer.erase(it);
@@ -275,39 +264,36 @@ OffloadServer::ProcessBuffer(const Address& clientAddr)
 }
 
 void
-OffloadServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
+ArServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << task->GetTaskId() << clientAddr);
 
-    m_tasksReceived++;
-    m_taskReceivedTrace(task);
+    m_framesReceived++;
+    m_frameReceivedTrace(task);
 
-    NS_LOG_INFO("Received task " << task->GetTaskId() << " (compute=" << task->GetComputeDemand()
-                                 << ", input=" << task->GetInputSize()
-                                 << ", output=" << task->GetOutputSize() << ")");
+    NS_LOG_INFO("Received frame (task " << task->GetTaskId()
+                                        << ", compute=" << task->GetComputeDemand()
+                                        << ", input=" << task->GetInputSize() << ")");
 
     if (!m_accelerator)
     {
-        NS_LOG_ERROR("No accelerator available, dropping task " << task->GetTaskId());
+        NS_LOG_ERROR("No accelerator available, dropping frame " << task->GetTaskId());
         return;
     }
 
     task->SetArrivalTime(Simulator::Now());
 
-    // Track the pending task for response routing
     PendingTask pending;
     pending.clientAddr = clientAddr;
     pending.task = task;
     m_pendingTasks[task->GetTaskId()] = pending;
 
-    // Submit to the accelerator
     m_accelerator->SubmitTask(task);
-
     NS_LOG_DEBUG("Submitted task " << task->GetTaskId() << " to accelerator");
 }
 
 void
-OffloadServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
+ArServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
 {
     NS_LOG_FUNCTION(this << task->GetTaskId() << duration);
 
@@ -326,7 +312,7 @@ OffloadServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
 }
 
 void
-OffloadServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration)
+ArServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration)
 {
     NS_LOG_FUNCTION(this << clientAddr << task->GetTaskId() << duration);
 
@@ -334,16 +320,16 @@ OffloadServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Tim
 
     m_connMgr->Send(packet, clientAddr);
 
-    m_tasksCompleted++;
-    m_taskCompletedTrace(task, duration);
+    m_framesProcessed++;
+    m_frameProcessedTrace(task, duration);
 
-    NS_LOG_INFO("Sent response for task "
-                << task->GetTaskId() << " (output=" << task->GetOutputSize()
+    NS_LOG_INFO("Sent result for frame (task "
+                << task->GetTaskId() << ", output=" << task->GetOutputSize()
                 << " bytes, duration=" << duration.GetMilliSeconds() << "ms)");
 }
 
 void
-OffloadServer::HandleScalingCommand(Ptr<Packet> buffer)
+ArServer::HandleScalingCommand(Ptr<Packet> buffer)
 {
     NS_LOG_FUNCTION(this);
 
@@ -363,11 +349,10 @@ OffloadServer::HandleScalingCommand(Ptr<Packet> buffer)
 }
 
 void
-OffloadServer::CleanupClient(const Address& clientAddr)
+ArServer::CleanupClient(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 
-    // Clear pending tasks for this client
     for (auto it = m_pendingTasks.begin(); it != m_pendingTasks.end();)
     {
         if (it->second.clientAddr == clientAddr)
@@ -381,7 +366,6 @@ OffloadServer::CleanupClient(const Address& clientAddr)
         }
     }
 
-    // Clean up receive buffer for this client
     auto bufferIt = m_rxBuffer.find(clientAddr);
     if (bufferIt != m_rxBuffer.end())
     {

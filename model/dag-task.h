@@ -153,6 +153,26 @@ class DagTask : public Object
     bool SetTask(uint32_t idx, Ptr<Task> task);
 
     /**
+     * @brief Get the successor indices for a task.
+     *
+     * Returns the indices of tasks that depend on the given task.
+     *
+     * @param idx The task index.
+     * @return Vector of successor task indices.
+     */
+    const std::vector<uint32_t>& GetSuccessors(uint32_t idx) const;
+
+    /**
+     * @brief Get a topological ordering of the DAG.
+     *
+     * Returns task indices in an order where every task appears before
+     * its successors. Uses Kahn's algorithm.
+     *
+     * @return Vector of task indices in topological order.
+     */
+    std::vector<uint32_t> GetTopologicalOrder() const;
+
+    /**
      * @brief Get the number of tasks in the DAG.
      * @return The task count.
      */
