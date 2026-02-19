@@ -106,9 +106,9 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend)
         return nullptr; // No change needed
     }
 
-    double targetVoltage =
-        m_minVoltage +
-        (targetFreq - m_minFrequency) / (m_maxFrequency - m_minFrequency) * (m_maxVoltage - m_minVoltage);
+    double targetVoltage = m_minVoltage + (targetFreq - m_minFrequency) /
+                                              (m_maxFrequency - m_minFrequency) *
+                                              (m_maxVoltage - m_minVoltage);
 
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();
     decision->targetFrequency = targetFreq;

@@ -114,10 +114,7 @@ class ConservativeVoltageScalingTestCase : public TestCase
 
         Ptr<ScalingDecision> decision = policy->Decide(backend);
         NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should produce a scaling decision");
-        NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetFrequency,
-                                  550e6,
-                                  1e-3,
-                                  "Should step to 550 MHz");
+        NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetFrequency, 550e6, 1e-3, "Should step to 550 MHz");
         // V = 0.8 + (550e6 - 500e6) / (1.5e9 - 500e6) * (1.1 - 0.8) = 0.815
         NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetVoltage,
                                   0.815,

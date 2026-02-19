@@ -8,9 +8,9 @@
 
 #include "ns3/cluster-state.h"
 #include "ns3/cluster.h"
-#include "ns3/scaling-policy.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/least-loaded-scheduler.h"
+#include "ns3/scaling-policy.h"
 #include "ns3/simple-task.h"
 #include "ns3/test.h"
 
@@ -40,10 +40,8 @@ class LeastLoadedSchedulerTestCase : public TestCase
         internet.Install(nodes);
 
         Cluster cluster;
-        cluster.AddBackend(nodes.Get(0),
-                           InetSocketAddress(Ipv4Address("10.0.0.1"), 9000));
-        cluster.AddBackend(nodes.Get(1),
-                           InetSocketAddress(Ipv4Address("10.0.0.2"), 9000));
+        cluster.AddBackend(nodes.Get(0), InetSocketAddress(Ipv4Address("10.0.0.1"), 9000));
+        cluster.AddBackend(nodes.Get(1), InetSocketAddress(Ipv4Address("10.0.0.2"), 9000));
 
         ClusterState state;
         state.Resize(2);
@@ -100,15 +98,9 @@ class LeastLoadedSchedulerTypeFilterTestCase : public TestCase
         internet.Install(nodes);
 
         Cluster cluster;
-        cluster.AddBackend(nodes.Get(0),
-                           InetSocketAddress(Ipv4Address("10.0.0.1"), 9000),
-                           "GPU");
-        cluster.AddBackend(nodes.Get(1),
-                           InetSocketAddress(Ipv4Address("10.0.0.2"), 9000),
-                           "TPU");
-        cluster.AddBackend(nodes.Get(2),
-                           InetSocketAddress(Ipv4Address("10.0.0.3"), 9000),
-                           "GPU");
+        cluster.AddBackend(nodes.Get(0), InetSocketAddress(Ipv4Address("10.0.0.1"), 9000), "GPU");
+        cluster.AddBackend(nodes.Get(1), InetSocketAddress(Ipv4Address("10.0.0.2"), 9000), "TPU");
+        cluster.AddBackend(nodes.Get(2), InetSocketAddress(Ipv4Address("10.0.0.3"), 9000), "GPU");
 
         ClusterState state;
         state.Resize(3);
