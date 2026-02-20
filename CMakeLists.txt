@@ -55,6 +55,8 @@ build_lib(
                  model/cluster-state.cc
                  helper/distributed-helper.cc
                  helper/edge-orchestrator-helper.cc
+                 helper/ar-client-helper.cc
+                 helper/ar-server-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
@@ -100,6 +102,8 @@ build_lib(
                  model/cluster-state.h
                  helper/distributed-helper.h
                  helper/edge-orchestrator-helper.h
+                 helper/ar-client-helper.h
+                 helper/ar-server-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
