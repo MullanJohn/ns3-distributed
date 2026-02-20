@@ -12,3 +12,13 @@ build_lib_example(
                       ${libpoint-to-point}
 )
 
+build_lib_example(
+    NAME distributed-ar-evaluation
+    SOURCE_FILES distributed-ar-evaluation.cc
+    LIBRARIES_TO_LINK ${libdistributed}
+                      ${libpoint-to-point}
+                      ${libwifi}
+                      ${libspectrum}
+                      ${libmobility}
+)
+
