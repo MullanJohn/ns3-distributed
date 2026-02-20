@@ -128,5 +128,6 @@ build_lib(
                  test/edge-orchestrator-test.cc
                  test/deadline-aware-admission-policy-test.cc
                  test/conservative-scaling-policy-test.cc
+                 test/max-active-tasks-policy-test.cc
                  ${examples_as_tests_sources}
 )

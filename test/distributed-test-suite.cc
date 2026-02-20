@@ -69,6 +69,9 @@ TestCase* CreateDagDependencyDeadlineTestCase();
 TestCase* CreateConservativeStepUpTestCase();
 TestCase* CreateConservativeStepDownTestCase();
 TestCase* CreateConservativeVoltageScalingTestCase();
+TestCase* CreateMaxActiveTasksAdmitCapacityTestCase();
+TestCase* CreateMaxActiveTasksRejectFullTestCase();
+TestCase* CreateMaxActiveTasksAdmitEmptyTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -136,6 +139,9 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateConservativeStepUpTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConservativeStepDownTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConservativeVoltageScalingTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateMaxActiveTasksAdmitCapacityTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateMaxActiveTasksRejectFullTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateMaxActiveTasksAdmitEmptyTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;
