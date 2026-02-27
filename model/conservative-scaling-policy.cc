@@ -8,10 +8,10 @@
 
 #include "conservative-scaling-policy.h"
 
-#include "ns3/double.h"
 #include "ns3/log.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace ns3
 {
@@ -23,45 +23,14 @@ NS_OBJECT_ENSURE_REGISTERED(ConservativeScalingPolicy);
 TypeId
 ConservativeScalingPolicy::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::ConservativeScalingPolicy")
-            .SetParent<ScalingPolicy>()
-            .SetGroupName("Distributed")
-            .AddConstructor<ConservativeScalingPolicy>()
-            .AddAttribute("MinFrequency",
-                          "Lower frequency bound in Hz",
-                          DoubleValue(500e6),
-                          MakeDoubleAccessor(&ConservativeScalingPolicy::m_minFrequency),
-                          MakeDoubleChecker<double>(0.0))
-            .AddAttribute("MaxFrequency",
-                          "Upper frequency bound in Hz",
-                          DoubleValue(1.5e9),
-                          MakeDoubleAccessor(&ConservativeScalingPolicy::m_maxFrequency),
-                          MakeDoubleChecker<double>(0.0))
-            .AddAttribute("MinVoltage",
-                          "Lower voltage bound in V",
-                          DoubleValue(0.8),
-                          MakeDoubleAccessor(&ConservativeScalingPolicy::m_minVoltage),
-                          MakeDoubleChecker<double>(0.0))
-            .AddAttribute("MaxVoltage",
-                          "Upper voltage bound in V",
-                          DoubleValue(1.1),
-                          MakeDoubleAccessor(&ConservativeScalingPolicy::m_maxVoltage),
-                          MakeDoubleChecker<double>(0.0))
-            .AddAttribute("FrequencyStep",
-                          "Frequency step size per scaling decision in Hz",
-                          DoubleValue(50e6),
-                          MakeDoubleAccessor(&ConservativeScalingPolicy::m_frequencyStep),
-                          MakeDoubleChecker<double>(0.0));
+    static TypeId tid = TypeId("ns3::ConservativeScalingPolicy")
+                            .SetParent<ScalingPolicy>()
+                            .SetGroupName("Distributed")
+                            .AddConstructor<ConservativeScalingPolicy>();
     return tid;
 }
 
 ConservativeScalingPolicy::ConservativeScalingPolicy()
-    : m_minFrequency(500e6),
-      m_maxFrequency(1.5e9),
-      m_minVoltage(0.8),
-      m_maxVoltage(1.1),
-      m_frequencyStep(50e6)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -72,9 +41,15 @@ ConservativeScalingPolicy::~ConservativeScalingPolicy()
 }
 
 Ptr<ScalingDecision>
-ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend)
+ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
+                                  const std::vector<OperatingPoint>& opps)
 {
     NS_LOG_FUNCTION(this);
+
+    if (opps.size() < 2)
+    {
+        return nullptr;
+    }
 
     bool busy;
     double currentFreq;
@@ -88,31 +63,39 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend)
     else
     {
         busy = backend.activeTasks > 0;
-        currentFreq = m_minFrequency;
+        currentFreq = opps.front().frequency;
     }
 
-    double targetFreq;
-
-    if (busy && currentFreq < m_maxFrequency)
+    size_t currentIdx = 0;
+    double minDist = std::abs(opps[0].frequency - currentFreq);
+    for (size_t i = 1; i < opps.size(); i++)
     {
-        targetFreq = std::min(currentFreq + m_frequencyStep, m_maxFrequency);
+        double dist = std::abs(opps[i].frequency - currentFreq);
+        if (dist < minDist)
+        {
+            minDist = dist;
+            currentIdx = i;
+        }
     }
-    else if (!busy && currentFreq > m_minFrequency)
+
+    size_t targetIdx;
+
+    if (busy && currentIdx < opps.size() - 1)
     {
-        targetFreq = std::max(currentFreq - m_frequencyStep, m_minFrequency);
+        targetIdx = currentIdx + 1;
+    }
+    else if (!busy && currentIdx > 0)
+    {
+        targetIdx = currentIdx - 1;
     }
     else
     {
-        return nullptr; // No change needed
+        return nullptr;
     }
 
-    double targetVoltage = m_minVoltage + (targetFreq - m_minFrequency) /
-                                              (m_maxFrequency - m_minFrequency) *
-                                              (m_maxVoltage - m_minVoltage);
-
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();
-    decision->targetFrequency = targetFreq;
-    decision->targetVoltage = targetVoltage;
+    decision->targetFrequency = opps[targetIdx].frequency;
+    decision->targetVoltage = opps[targetIdx].voltage;
     return decision;
 }
 

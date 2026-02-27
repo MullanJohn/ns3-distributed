@@ -8,7 +8,6 @@
 
 #include "utilization-scaling-policy.h"
 
-#include "ns3/double.h"
 #include "ns3/log.h"
 
 namespace ns3
@@ -21,27 +20,14 @@ NS_OBJECT_ENSURE_REGISTERED(UtilizationScalingPolicy);
 TypeId
 UtilizationScalingPolicy::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::UtilizationScalingPolicy")
-            .SetParent<ScalingPolicy>()
-            .SetGroupName("Distributed")
-            .AddConstructor<UtilizationScalingPolicy>()
-            .AddAttribute("MinFrequency",
-                          "Lower frequency bound in Hz",
-                          DoubleValue(500e6),
-                          MakeDoubleAccessor(&UtilizationScalingPolicy::m_minFrequency),
-                          MakeDoubleChecker<double>(0.0))
-            .AddAttribute("MaxFrequency",
-                          "Upper frequency bound in Hz",
-                          DoubleValue(1.5e9),
-                          MakeDoubleAccessor(&UtilizationScalingPolicy::m_maxFrequency),
-                          MakeDoubleChecker<double>(0.0));
+    static TypeId tid = TypeId("ns3::UtilizationScalingPolicy")
+                            .SetParent<ScalingPolicy>()
+                            .SetGroupName("Distributed")
+                            .AddConstructor<UtilizationScalingPolicy>();
     return tid;
 }
 
 UtilizationScalingPolicy::UtilizationScalingPolicy()
-    : m_minFrequency(500e6),
-      m_maxFrequency(1.5e9)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -52,38 +38,41 @@ UtilizationScalingPolicy::~UtilizationScalingPolicy()
 }
 
 Ptr<ScalingDecision>
-UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend)
+UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
+                                 const std::vector<OperatingPoint>& opps)
 {
     NS_LOG_FUNCTION(this);
 
+    if (opps.size() < 2)
+    {
+        return nullptr; // No scaling possible
+    }
+
     bool busy;
     double currentFreq;
-    double currentVoltage;
 
     Ptr<DeviceMetrics> metrics = backend.deviceMetrics;
     if (metrics)
     {
         busy = metrics->busy || metrics->queueLength > 0;
         currentFreq = metrics->frequency;
-        currentVoltage = metrics->voltage;
     }
     else
     {
         busy = backend.activeTasks > 0;
         currentFreq = 0.0;
-        currentVoltage = 0.0;
     }
 
-    double targetFreq = busy ? m_maxFrequency : m_minFrequency;
+    const OperatingPoint& target = busy ? opps.back() : opps.front();
 
-    if (targetFreq == currentFreq)
+    if (target.frequency == currentFreq)
     {
         return nullptr; // No change needed
     }
 
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();
-    decision->targetFrequency = targetFreq;
-    decision->targetVoltage = currentVoltage;
+    decision->targetFrequency = target.frequency;
+    decision->targetVoltage = target.voltage;
     return decision;
 }
 

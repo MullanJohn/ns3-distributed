@@ -18,10 +18,9 @@ namespace ns3
  * @ingroup distributed
  * @brief Utilization-based DVFS scaling policy inspired by Linux ondemand governor.
  *
- * Simple binary policy:
- * - Busy or queued tasks → maxFrequency (aggressive scale-up for latency)
- * - Idle → minFrequency (energy savings)
- * - Voltage is passed through unchanged.
+ * Simple binary policy using the accelerator's OPP table:
+ * - Busy or queued tasks -> highest OPP (aggressive scale-up for latency)
+ * - Idle -> lowest OPP (energy savings)
  */
 class UtilizationScalingPolicy : public ScalingPolicy
 {
@@ -35,11 +34,8 @@ class UtilizationScalingPolicy : public ScalingPolicy
     UtilizationScalingPolicy();
     ~UtilizationScalingPolicy() override;
 
-    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend) override;
-
-  private:
-    double m_minFrequency; //!< Lower frequency bound in Hz
-    double m_maxFrequency; //!< Upper frequency bound in Hz
+    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
+                                const std::vector<OperatingPoint>& opps) override;
 };
 
 } // namespace ns3

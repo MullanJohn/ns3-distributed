@@ -64,6 +64,16 @@ DeviceManager::Start(const Cluster& cluster, Ptr<ConnectionManager> workerCm)
     m_cluster = cluster;
     m_workerConnMgr = workerCm;
     m_commandedFrequency.resize(cluster.GetN(), 0.0);
+
+    m_operatingPoints.resize(cluster.GetN());
+    for (uint32_t i = 0; i < cluster.GetN(); i++)
+    {
+        Ptr<Accelerator> accel = cluster.Get(i).node->GetObject<Accelerator>();
+        if (accel)
+        {
+            m_operatingPoints[i] = accel->GetOperatingPoints();
+        }
+    }
 }
 
 bool
@@ -84,7 +94,6 @@ DeviceManager::TryConsumeMetrics(Ptr<Packet> buffer, const Address& from, Cluste
         return false;
     }
 
-    // Resolve backend index from address
     int32_t idx = m_cluster.GetBackendIndex(from);
     if (idx < 0)
     {
@@ -125,11 +134,11 @@ DeviceManager::EvaluateScaling(const ClusterState& state)
     {
         const ClusterState::BackendState& backend = state.Get(i);
 
-        Ptr<ScalingDecision> decision = m_scalingPolicy->Decide(backend);
+        Ptr<ScalingDecision> decision = m_scalingPolicy->Decide(backend, m_operatingPoints[i]);
 
         if (!decision)
         {
-            continue; // No change needed
+            continue;
         }
 
         double oldFreq = m_commandedFrequency[i];
@@ -153,6 +162,7 @@ DeviceManager::DoDispose()
     m_deviceProtocol = nullptr;
     m_workerConnMgr = nullptr;
     m_commandedFrequency.clear();
+    m_operatingPoints.clear();
     m_cluster.Clear();
     Object::DoDispose();
 }

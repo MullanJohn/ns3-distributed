@@ -16,11 +16,26 @@
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 
+#include <vector>
+
 namespace ns3
 {
 
 class Node;
 class EnergyModel;
+
+/**
+ * @ingroup distributed
+ * @brief A discrete frequency-voltage operating point for an accelerator.
+ *
+ * Represents a single entry in the OPP (Operating Performance Point) table.
+ * Sorted by frequency ascending when stored on an Accelerator.
+ */
+struct OperatingPoint
+{
+    double frequency; //!< Operating frequency in Hz
+    double voltage;   //!< Operating voltage in Volts
+};
 
 /**
  * @ingroup distributed
@@ -147,6 +162,24 @@ class Accelerator : public Object
     virtual void SetVoltage(double voltage);
 
     /**
+     * @brief Add a discrete operating point (frequency-voltage pair).
+     *
+     * Points are kept sorted by frequency ascending. This defines the
+     * hardware's OPP table, used by scaling policies to select valid
+     * frequency/voltage pairs.
+     *
+     * @param frequency Operating frequency in Hz.
+     * @param voltage Operating voltage in Volts.
+     */
+    void AddOperatingPoint(double frequency, double voltage);
+
+    /**
+     * @brief Get the operating point table.
+     * @return Const reference to the OPP table, sorted by frequency ascending.
+     */
+    const std::vector<OperatingPoint>& GetOperatingPoints() const;
+
+    /**
      * @brief Get the node this accelerator is aggregated to.
      * @return Pointer to the node, or nullptr if not aggregated.
      */
@@ -247,11 +280,12 @@ class Accelerator : public Object
     TracedCallback<Ptr<const Task>, double> m_taskEnergyTrace;      //!< Per-task energy
 
   private:
-    Ptr<EnergyModel> m_energyModel; //!< Energy model for power calculation
-    Time m_lastEnergyUpdateTime;    //!< Time of last energy state update
-    double m_totalEnergy;           //!< Total energy consumed in Joules
-    double m_currentPower;          //!< Current power consumption in Watts
-    double m_taskStartEnergy;       //!< Energy at task start for per-task tracking
+    Ptr<EnergyModel> m_energyModel;                //!< Energy model for power calculation
+    Time m_lastEnergyUpdateTime;                   //!< Time of last energy state update
+    double m_totalEnergy;                          //!< Total energy consumed in Joules
+    double m_currentPower;                         //!< Current power consumption in Watts
+    double m_taskStartEnergy;                      //!< Energy at task start for per-task tracking
+    std::vector<OperatingPoint> m_operatingPoints; //!< OPP table sorted by frequency
 };
 
 } // namespace ns3

@@ -16,6 +16,8 @@
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
 
+#include <algorithm>
+
 namespace ns3
 {
 
@@ -112,6 +114,25 @@ void
 Accelerator::SetVoltage(double voltage)
 {
     NS_LOG_FUNCTION(this << voltage);
+}
+
+void
+Accelerator::AddOperatingPoint(double frequency, double voltage)
+{
+    NS_LOG_FUNCTION(this << frequency << voltage);
+    OperatingPoint opp{frequency, voltage};
+    auto it = std::lower_bound(
+        m_operatingPoints.begin(),
+        m_operatingPoints.end(),
+        opp,
+        [](const OperatingPoint& a, const OperatingPoint& b) { return a.frequency < b.frequency; });
+    m_operatingPoints.insert(it, opp);
+}
+
+const std::vector<OperatingPoint>&
+Accelerator::GetOperatingPoints() const
+{
+    return m_operatingPoints;
 }
 
 Ptr<Node>
