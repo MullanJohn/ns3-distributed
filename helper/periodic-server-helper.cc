@@ -6,26 +6,26 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ar-server-helper.h"
+#include "periodic-server-helper.h"
 
 #include "ns3/uinteger.h"
 
 namespace ns3
 {
 
-ArServerHelper::ArServerHelper()
-    : ApplicationHelper("ns3::ArServer")
+PeriodicServerHelper::PeriodicServerHelper()
+    : ApplicationHelper("ns3::PeriodicServer")
 {
 }
 
-ArServerHelper::ArServerHelper(uint16_t port)
-    : ApplicationHelper("ns3::ArServer")
+PeriodicServerHelper::PeriodicServerHelper(uint16_t port)
+    : ApplicationHelper("ns3::PeriodicServer")
 {
     m_factory.Set("Port", UintegerValue(port));
 }
 
 void
-ArServerHelper::SetPort(uint16_t port)
+PeriodicServerHelper::SetPort(uint16_t port)
 {
     m_factory.Set("Port", UintegerValue(port));
 }

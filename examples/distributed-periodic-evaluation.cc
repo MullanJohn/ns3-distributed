@@ -6,10 +6,10 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/ar-client-helper.h"
-#include "ns3/ar-client.h"
-#include "ns3/ar-server-helper.h"
-#include "ns3/ar-server.h"
+#include "ns3/periodic-client-helper.h"
+#include "ns3/periodic-client.h"
+#include "ns3/periodic-server-helper.h"
+#include "ns3/periodic-server.h"
 #include "ns3/cluster.h"
 #include "ns3/conservative-scaling-policy.h"
 #include "ns3/core-module.h"
@@ -36,14 +36,14 @@
 
 // ===========================================================================
 //
-//  AR Edge Computing Evaluation
+//  Periodic Edge Computing Evaluation
 //
-//  Benchmarks three scheduling/admission/scaling schemes for AR frame
+//  Benchmarks three scheduling/admission/scaling schemes for periodic frame
 //  offloading over WiFi 7 (802.11be) to GPU backends.
 //
 //  Network topology:
 //
-//       AR Client 0 (STA)   AR Client 1 (STA)   ...   AR Client N (STA)
+//       Periodic Client 0 (STA)   Periodic Client 1 (STA)   ...   Periodic Client N (STA)
 //           |                    |                         |
 //           |  WiFi 7 (802.11be) 10.0.1.0/24               |
 //           |                    |                         |
@@ -59,7 +59,7 @@
 //                         |               |
 //                  Server 0 (n_S0)  Server 1 (n_S1)  ...
 //                 +--------------+ +--------------+
-//                 |  ArServer    | |  ArServer    |
+//                 | PeriodicServer   | | PeriodicServer   |
 //                 |      |       | |      |       |
 //                 |      v       | |      v       |
 //                 |GpuAccelerator| |GpuAccelerator|
@@ -74,7 +74,7 @@
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("DistributedArEvaluation");
+NS_LOG_COMPONENT_DEFINE("DistributedPeriodicEvaluation");
 
 struct ClientStats
 {
@@ -140,7 +140,7 @@ main(int argc, char* argv[])
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("scheme", "Scheduling scheme: RR-NS, LU-NS, LU-SG", scheme);
-    cmd.AddValue("nClients", "Number of AR clients", nClients);
+    cmd.AddValue("nClients", "Number of periodic clients", nClients);
     cmd.AddValue("nBackends", "Number of GPU backend servers", nBackends);
     cmd.AddValue("frameRate", "Frames per second", frameRate);
     cmd.AddValue("meanFrameSize", "Mean frame size in bytes", meanFrameSize);
@@ -171,7 +171,7 @@ main(int argc, char* argv[])
     g_clientStats.resize(nClients);
     g_backendEnergyJ.resize(nBackends, 0.0);
 
-    NS_LOG_UNCOND("=== AR Edge Computing Evaluation ===");
+    NS_LOG_UNCOND("=== Periodic Edge Computing Evaluation ===");
     NS_LOG_UNCOND("Scheme:      " << scheme);
     NS_LOG_UNCOND("Clients:     " << nClients);
     NS_LOG_UNCOND("Backends:    " << nBackends);
@@ -200,7 +200,7 @@ main(int argc, char* argv[])
                                  StringValue("EhtMcs0"));
 
     WifiMacHelper wifiMac;
-    Ssid ssid = Ssid("ar-edge");
+    Ssid ssid = Ssid("periodic-edge");
 
     SpectrumWifiPhyHelper wifiPhy;
     wifiPhy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
@@ -281,7 +281,7 @@ main(int argc, char* argv[])
         serverNodes.Get(i)->AggregateObject(gpu);
         gpus[i] = gpu;
 
-        ArServerHelper serverHelper(serverPort);
+        PeriodicServerHelper serverHelper(serverPort);
         ApplicationContainer serverApps = serverHelper.Install(serverNodes.Get(i));
         serverApps.Start(Seconds(0.0));
         serverApps.Stop(Seconds(simTime + 1.0));
@@ -345,18 +345,18 @@ main(int argc, char* argv[])
     orchestrator->SetStartTime(Seconds(0.0));
     orchestrator->SetStopTime(Seconds(simTime + 1.0));
 
-    std::vector<Ptr<ArClient>> clients(nClients);
+    std::vector<Ptr<PeriodicClient>> clients(nClients);
 
     for (uint32_t i = 0; i < nClients; i++)
     {
-        ArClientHelper clientHelper(InetSocketAddress(apWifiInterface.GetAddress(0), orchPort));
+        PeriodicClientHelper clientHelper(InetSocketAddress(apWifiInterface.GetAddress(0), orchPort));
         clientHelper.SetFrameRate(frameRate);
         clientHelper.SetMeanFrameSize(meanFrameSize);
         clientHelper.SetComputeDemand(computeDemand);
         clientHelper.SetOutputSize(outputSize);
 
         ApplicationContainer clientApps = clientHelper.Install(clientNodes.Get(i));
-        Ptr<ArClient> client = DynamicCast<ArClient>(clientApps.Get(0));
+        Ptr<PeriodicClient> client = DynamicCast<PeriodicClient>(clientApps.Get(0));
         clients[i] = client;
 
         client->TraceConnectWithoutContext("FrameSent", MakeBoundCallback(&FrameSent, i));

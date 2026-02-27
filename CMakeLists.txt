@@ -49,14 +49,14 @@ build_lib(
                  model/offload-client.cc
                  model/offload-server.cc
                  model/edge-orchestrator.cc
-                 model/ar-client.cc
-                 model/ar-server.cc
+                 model/periodic-client.cc
+                 model/periodic-server.cc
                  model/cluster.cc
                  model/cluster-state.cc
                  helper/distributed-helper.cc
                  helper/edge-orchestrator-helper.cc
-                 helper/ar-client-helper.cc
-                 helper/ar-server-helper.cc
+                 helper/periodic-client-helper.cc
+                 helper/periodic-server-helper.cc
                  helper/offload-client-helper.cc
                  helper/offload-server-helper.cc
     HEADER_FILES model/distributed.h
@@ -96,14 +96,14 @@ build_lib(
                  model/offload-client.h
                  model/offload-server.h
                  model/edge-orchestrator.h
-                 model/ar-client.h
-                 model/ar-server.h
+                 model/periodic-client.h
+                 model/periodic-server.h
                  model/cluster.h
                  model/cluster-state.h
                  helper/distributed-helper.h
                  helper/edge-orchestrator-helper.h
-                 helper/ar-client-helper.h
-                 helper/ar-server-helper.h
+                 helper/periodic-client-helper.h
+                 helper/periodic-server-helper.h
                  helper/offload-client-helper.h
                  helper/offload-server-helper.h
     LIBRARIES_TO_LINK ${libcore}

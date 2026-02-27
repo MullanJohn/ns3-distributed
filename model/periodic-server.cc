@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ar-server.h"
+#include "periodic-server.h"
 
 #include "scaling-command-header.h"
 #include "simple-task.h"
@@ -21,40 +21,40 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("ArServer");
+NS_LOG_COMPONENT_DEFINE("PeriodicServer");
 
-NS_OBJECT_ENSURE_REGISTERED(ArServer);
+NS_OBJECT_ENSURE_REGISTERED(PeriodicServer);
 
 TypeId
-ArServer::GetTypeId()
+PeriodicServer::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::ArServer")
+        TypeId("ns3::PeriodicServer")
             .SetParent<Application>()
             .SetGroupName("Distributed")
-            .AddConstructor<ArServer>()
+            .AddConstructor<PeriodicServer>()
             .AddAttribute("Port",
                           "Port on which to listen for incoming connections",
                           UintegerValue(9000),
-                          MakeUintegerAccessor(&ArServer::m_port),
+                          MakeUintegerAccessor(&PeriodicServer::m_port),
                           MakeUintegerChecker<uint16_t>())
             .AddAttribute("ConnectionManager",
                           "Connection manager for transport (defaults to TCP)",
                           PointerValue(),
-                          MakePointerAccessor(&ArServer::m_connMgr),
+                          MakePointerAccessor(&PeriodicServer::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
             .AddTraceSource("FrameReceived",
                             "A frame has been received for processing",
-                            MakeTraceSourceAccessor(&ArServer::m_frameReceivedTrace),
-                            "ns3::ArServer::FrameReceivedTracedCallback")
+                            MakeTraceSourceAccessor(&PeriodicServer::m_frameReceivedTrace),
+                            "ns3::PeriodicServer::FrameReceivedTracedCallback")
             .AddTraceSource("FrameProcessed",
                             "A frame has been processed and response sent",
-                            MakeTraceSourceAccessor(&ArServer::m_frameProcessedTrace),
-                            "ns3::ArServer::FrameProcessedTracedCallback");
+                            MakeTraceSourceAccessor(&PeriodicServer::m_frameProcessedTrace),
+                            "ns3::PeriodicServer::FrameProcessedTracedCallback");
     return tid;
 }
 
-ArServer::ArServer()
+PeriodicServer::PeriodicServer()
     : m_port(9000),
       m_connMgr(nullptr),
       m_accelerator(nullptr),
@@ -65,13 +65,13 @@ ArServer::ArServer()
     NS_LOG_FUNCTION(this);
 }
 
-ArServer::~ArServer()
+PeriodicServer::~PeriodicServer()
 {
     NS_LOG_FUNCTION(this);
 }
 
 void
-ArServer::DoDispose()
+PeriodicServer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
@@ -79,7 +79,7 @@ ArServer::DoDispose()
     {
         m_accelerator->TraceDisconnectWithoutContext(
             "TaskCompleted",
-            MakeCallback(&ArServer::OnTaskCompleted, this));
+            MakeCallback(&PeriodicServer::OnTaskCompleted, this));
     }
 
     if (m_connMgr)
@@ -96,31 +96,31 @@ ArServer::DoDispose()
 }
 
 uint64_t
-ArServer::GetFramesReceived() const
+PeriodicServer::GetFramesReceived() const
 {
     return m_framesReceived;
 }
 
 uint64_t
-ArServer::GetFramesProcessed() const
+PeriodicServer::GetFramesProcessed() const
 {
     return m_framesProcessed;
 }
 
 uint64_t
-ArServer::GetTotalRx() const
+PeriodicServer::GetTotalRx() const
 {
     return m_totalRx;
 }
 
 uint16_t
-ArServer::GetPort() const
+PeriodicServer::GetPort() const
 {
     return m_port;
 }
 
 void
-ArServer::StartApplication()
+PeriodicServer::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -132,7 +132,7 @@ ArServer::StartApplication()
     else
     {
         m_accelerator->TraceConnectWithoutContext("TaskCompleted",
-                                                  MakeCallback(&ArServer::OnTaskCompleted, this));
+                                                  MakeCallback(&PeriodicServer::OnTaskCompleted, this));
     }
 
     if (!m_connMgr)
@@ -141,21 +141,21 @@ ArServer::StartApplication()
     }
 
     m_connMgr->SetNode(GetNode());
-    m_connMgr->SetReceiveCallback(MakeCallback(&ArServer::HandleReceive, this));
+    m_connMgr->SetReceiveCallback(MakeCallback(&PeriodicServer::HandleReceive, this));
 
     Ptr<TcpConnectionManager> tcpConnMgr = DynamicCast<TcpConnectionManager>(m_connMgr);
     if (tcpConnMgr)
     {
-        tcpConnMgr->SetCloseCallback(MakeCallback(&ArServer::HandleClientClose, this));
+        tcpConnMgr->SetCloseCallback(MakeCallback(&PeriodicServer::HandleClientClose, this));
     }
 
     m_connMgr->Bind(m_port);
 
-    NS_LOG_INFO("ArServer listening on port " << m_port);
+    NS_LOG_INFO("PeriodicServer listening on port " << m_port);
 }
 
 void
-ArServer::StopApplication()
+PeriodicServer::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -163,7 +163,7 @@ ArServer::StopApplication()
     {
         m_accelerator->TraceDisconnectWithoutContext(
             "TaskCompleted",
-            MakeCallback(&ArServer::OnTaskCompleted, this));
+            MakeCallback(&PeriodicServer::OnTaskCompleted, this));
     }
 
     if (m_connMgr)
@@ -175,7 +175,7 @@ ArServer::StopApplication()
 }
 
 void
-ArServer::HandleReceive(Ptr<Packet> packet, const Address& from)
+PeriodicServer::HandleReceive(Ptr<Packet> packet, const Address& from)
 {
     NS_LOG_FUNCTION(this << packet << from);
 
@@ -201,7 +201,7 @@ ArServer::HandleReceive(Ptr<Packet> packet, const Address& from)
 }
 
 void
-ArServer::HandleClientClose(const Address& clientAddr)
+PeriodicServer::HandleClientClose(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
     NS_LOG_INFO("Client disconnected: " << clientAddr);
@@ -209,7 +209,7 @@ ArServer::HandleClientClose(const Address& clientAddr)
 }
 
 void
-ArServer::ProcessBuffer(const Address& clientAddr)
+PeriodicServer::ProcessBuffer(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 
@@ -264,7 +264,7 @@ ArServer::ProcessBuffer(const Address& clientAddr)
 }
 
 void
-ArServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
+PeriodicServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << task->GetTaskId() << clientAddr);
 
@@ -293,7 +293,7 @@ ArServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
 }
 
 void
-ArServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
+PeriodicServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
 {
     NS_LOG_FUNCTION(this << task->GetTaskId() << duration);
 
@@ -312,7 +312,7 @@ ArServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
 }
 
 void
-ArServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration)
+PeriodicServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration)
 {
     NS_LOG_FUNCTION(this << clientAddr << task->GetTaskId() << duration);
 
@@ -329,7 +329,7 @@ ArServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Time dur
 }
 
 void
-ArServer::HandleScalingCommand(Ptr<Packet> buffer)
+PeriodicServer::HandleScalingCommand(Ptr<Packet> buffer)
 {
     NS_LOG_FUNCTION(this);
 
@@ -349,7 +349,7 @@ ArServer::HandleScalingCommand(Ptr<Packet> buffer)
 }
 
 void
-ArServer::CleanupClient(const Address& clientAddr)
+PeriodicServer::CleanupClient(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 

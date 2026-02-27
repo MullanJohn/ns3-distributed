@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef AR_SERVER_H
-#define AR_SERVER_H
+#ifndef PERIODIC_SERVER_H
+#define PERIODIC_SERVER_H
 
 #include "accelerator.h"
 #include "connection-manager.h"
@@ -26,20 +26,20 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief AR backend server that processes frames on an accelerator.
+ * @brief Periodic backend server that processes frames on an accelerator.
  *
- * ArServer receives image frames from an EdgeOrchestrator, submits them
+ * PeriodicServer receives frames from an EdgeOrchestrator, submits them
  * to the Accelerator aggregated on the node and sends processing results back when frames complete.
  *
  * Example usage:
  * @code
- * Ptr<ArServer> server = CreateObject<ArServer>();
+ * Ptr<PeriodicServer> server = CreateObject<PeriodicServer>();
  * server->SetAttribute("Port", UintegerValue(9000));
  * serverNode->AddApplication(server);
  * // Requires a GpuAccelerator aggregated on serverNode
  * @endcode
  */
-class ArServer : public Application
+class PeriodicServer : public Application
 {
   public:
     /**
@@ -48,8 +48,8 @@ class ArServer : public Application
      */
     static TypeId GetTypeId();
 
-    ArServer();
-    ~ArServer() override;
+    PeriodicServer();
+    ~PeriodicServer() override;
 
     /**
      * @brief Get the number of frames received.
@@ -137,4 +137,4 @@ class ArServer : public Application
 
 } // namespace ns3
 
-#endif // AR_SERVER_H
+#endif // PERIODIC_SERVER_H

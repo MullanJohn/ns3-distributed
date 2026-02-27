@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef AR_CLIENT_H
-#define AR_CLIENT_H
+#ifndef PERIODIC_CLIENT_H
+#define PERIODIC_CLIENT_H
 
 #include "connection-manager.h"
 #include "dag-task.h"
@@ -29,14 +29,14 @@ class Packet;
 
 /**
  * @ingroup distributed
- * @brief AR client that generates image frames for remote processing.
+ * @brief Periodic client that generates frames at a fixed rate for remote processing.
  *
- * ArClient models an augmented reality headset that captures image frames
+ * PeriodicClient models a device that captures frames
  * at a fixed frame rate and offloads them to an edge server for processing.
  *
  * Example usage:
  * @code
- * Ptr<ArClient> client = CreateObject<ArClient>();
+ * Ptr<PeriodicClient> client = CreateObject<PeriodicClient>();
  * client->SetAttribute("Remote", AddressValue(orchAddress));
  * client->SetAttribute("FrameRate", DoubleValue(30.0));
  *
@@ -51,7 +51,7 @@ class Packet;
  * node->AddApplication(client);
  * @endcode
  */
-class ArClient : public Application
+class PeriodicClient : public Application
 {
   public:
     /**
@@ -60,8 +60,8 @@ class ArClient : public Application
      */
     static TypeId GetTypeId();
 
-    ArClient();
-    ~ArClient() override;
+    PeriodicClient();
+    ~PeriodicClient() override;
 
     /**
      * @brief Set the remote orchestrator address.
@@ -207,4 +207,4 @@ class ArClient : public Application
 
 } // namespace ns3
 
-#endif // AR_CLIENT_H
+#endif // PERIODIC_CLIENT_H

@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef AR_CLIENT_HELPER_H
-#define AR_CLIENT_HELPER_H
+#ifndef PERIODIC_CLIENT_HELPER_H
+#define PERIODIC_CLIENT_HELPER_H
 
 #include "ns3/address.h"
 #include "ns3/application-helper.h"
@@ -17,25 +17,25 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Helper to create and configure ArClient applications.
+ * @brief Helper to create and configure PeriodicClient applications.
  *
- * This helper simplifies the creation and configuration of ArClient
- * applications that offload AR frames to an EdgeOrchestrator via the
+ * This helper simplifies the creation and configuration of PeriodicClient
+ * applications that offload frames to an EdgeOrchestrator via the
  * two-phase admission protocol.
  */
-class ArClientHelper : public ApplicationHelper
+class PeriodicClientHelper : public ApplicationHelper
 {
   public:
     /**
-     * @brief Construct helper with default ArClient type.
+     * @brief Construct helper with default PeriodicClient type.
      */
-    ArClientHelper();
+    PeriodicClientHelper();
 
     /**
      * @brief Construct helper with target orchestrator address.
      * @param orchestratorAddress Address of the EdgeOrchestrator.
      */
-    explicit ArClientHelper(const Address& orchestratorAddress);
+    explicit PeriodicClientHelper(const Address& orchestratorAddress);
 
     /**
      * @brief Set the remote orchestrator address.
@@ -75,4 +75,4 @@ class ArClientHelper : public ApplicationHelper
 
 } // namespace ns3
 
-#endif // AR_CLIENT_HELPER_H
+#endif // PERIODIC_CLIENT_HELPER_H

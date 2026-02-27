@@ -13,8 +13,8 @@ build_lib_example(
 )
 
 build_lib_example(
-    NAME distributed-ar-evaluation
-    SOURCE_FILES distributed-ar-evaluation.cc
+    NAME distributed-periodic-evaluation
+    SOURCE_FILES distributed-periodic-evaluation.cc
     LIBRARIES_TO_LINK ${libdistributed}
                       ${libpoint-to-point}
                       ${libwifi}
