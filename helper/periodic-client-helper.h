@@ -11,6 +11,7 @@
 
 #include "ns3/address.h"
 #include "ns3/application-helper.h"
+#include "ns3/nstime.h"
 
 namespace ns3
 {
@@ -71,6 +72,25 @@ class PeriodicClientHelper : public ApplicationHelper
      * @param size Output size in bytes.
      */
     void SetOutputSize(double size);
+
+    /**
+     * @brief Set the end-to-end delay budget per frame.
+     *
+     * When zero (the default), the budget is derived from 1/FrameRate.
+     *
+     * @param budget Delay budget.
+     */
+    void SetDeadlineBudget(Time budget);
+
+    /**
+     * @brief Set the estimated round-trip communication delay.
+     *
+     * This is subtracted from the deadline budget to compute the
+     * compute-only deadline set on each task.
+     *
+     * @param budget Communication budget (T_ul + T_dl estimate).
+     */
+    void SetCommunicationBudget(Time budget);
 };
 
 } // namespace ns3

@@ -133,6 +133,8 @@ main(int argc, char* argv[])
     double staticPower = 36.0;
     double effectiveCapacitance = 1.94e-8;
     double outputSize = 1000;
+    double deadlineBudgetMs = 0;
+    double commBudgetMs = 0;
     std::string backboneRate = "1Gbps";
     std::string backboneDelay = "1ms";
     uint32_t seed = 1;
@@ -156,6 +158,12 @@ main(int argc, char* argv[])
     cmd.AddValue("staticPower", "GPU static/idle power in W", staticPower);
     cmd.AddValue("effectiveCapacitance", "DVFS effective capacitance", effectiveCapacitance);
     cmd.AddValue("outputSize", "Output size per frame in bytes", outputSize);
+    cmd.AddValue("deadlineBudgetMs",
+                 "End-to-end delay budget per frame in ms (0 = use 1/frameRate)",
+                 deadlineBudgetMs);
+    cmd.AddValue("commBudgetMs",
+                 "Communication budget (T_ul + T_dl) in ms subtracted from deadline",
+                 commBudgetMs);
     cmd.AddValue("backboneRate", "AP-to-server link data rate", backboneRate);
     cmd.AddValue("backboneDelay", "AP-to-server link delay", backboneDelay);
     cmd.AddValue("seed", "RNG seed for reproducibility", seed);
@@ -177,6 +185,10 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND("Backends:    " << nBackends);
     NS_LOG_UNCOND("Frame rate:  " << frameRate << " fps");
     NS_LOG_UNCOND("Frame size:  " << meanFrameSize / 1000.0 << " KB");
+    NS_LOG_UNCOND("Deadline:    " << (deadlineBudgetMs > 0 ? std::to_string(deadlineBudgetMs)
+                                                           : std::to_string(1000.0 / frameRate))
+                                  << " ms");
+    NS_LOG_UNCOND("Comm budget: " << commBudgetMs << " ms");
     NS_LOG_UNCOND("Sim time:    " << simTime << " s");
     NS_LOG_UNCOND("Seed:        " << seed);
     NS_LOG_UNCOND("Run:         " << runNumber);
@@ -351,6 +363,14 @@ main(int argc, char* argv[])
         clientHelper.SetMeanFrameSize(meanFrameSize);
         clientHelper.SetComputeDemand(computeDemand);
         clientHelper.SetOutputSize(outputSize);
+        if (deadlineBudgetMs > 0)
+        {
+            clientHelper.SetDeadlineBudget(MilliSeconds(deadlineBudgetMs));
+        }
+        if (commBudgetMs > 0)
+        {
+            clientHelper.SetCommunicationBudget(MilliSeconds(commBudgetMs));
+        }
 
         ApplicationContainer clientApps = clientHelper.Install(clientNodes.Get(i));
         Ptr<PeriodicClient> client = DynamicCast<PeriodicClient>(clientApps.Get(0));

@@ -13,6 +13,7 @@
 
 #include "ns3/double.h"
 #include "ns3/log.h"
+#include "ns3/nstime.h"
 #include "ns3/packet.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
@@ -50,6 +51,18 @@ PeriodicClient::GetTypeId()
                           DoubleValue(30.0),
                           MakeDoubleAccessor(&PeriodicClient::m_frameRate),
                           MakeDoubleChecker<double>(0.0))
+            .AddAttribute("DeadlineBudget",
+                          "End-to-end delay budget per frame. "
+                          "When zero, defaults to 1/FrameRate.",
+                          TimeValue(Seconds(0)),
+                          MakeTimeAccessor(&PeriodicClient::m_deadlineBudget),
+                          MakeTimeChecker())
+            .AddAttribute("CommunicationBudget",
+                          "Estimated round-trip communication delay (T_ul + T_dl). "
+                          "Subtracted from the deadline budget to yield the compute budget.",
+                          TimeValue(Seconds(0)),
+                          MakeTimeAccessor(&PeriodicClient::m_commBudget),
+                          MakeTimeChecker())
             .AddAttribute("FrameSize",
                           "Random variable for input frame size in bytes",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
@@ -88,6 +101,8 @@ PeriodicClient::GetTypeId()
 PeriodicClient::PeriodicClient()
     : m_connMgr(nullptr),
       m_frameRate(30.0),
+      m_deadlineBudget(Seconds(0)),
+      m_commBudget(Seconds(0)),
       m_clientId(s_nextClientId++),
       m_framesSent(0),
       m_frameCount(0),
@@ -278,6 +293,11 @@ PeriodicClient::GenerateFrame()
     task->SetComputeDemand(computeDemand);
     task->SetInputSize(frameSize);
     task->SetOutputSize(outputSize);
+
+    Time budget = m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget
+                                                        : Seconds(1.0 / m_frameRate);
+    Time computeBudget = budget - m_commBudget;
+    task->SetDeadline(Simulator::Now() + computeBudget);
 
     uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_framesSent;
     task->SetTaskId(taskId);

@@ -170,6 +170,8 @@ class PeriodicClient : public Application
 
     // Configuration
     double m_frameRate;                        //!< Frames per second
+    Time m_deadlineBudget;                     //!< End-to-end delay budget (0 = use 1/FrameRate)
+    Time m_commBudget;                         //!< Communication budget (T_ul + T_dl estimate)
     Ptr<RandomVariableStream> m_frameSize;     //!< Input image size in bytes
     Ptr<RandomVariableStream> m_computeDemand; //!< FLOPS per frame
     Ptr<RandomVariableStream> m_outputSize;    //!< Result size in bytes

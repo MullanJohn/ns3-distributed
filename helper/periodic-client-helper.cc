@@ -10,6 +10,7 @@
 
 #include "ns3/address.h"
 #include "ns3/double.h"
+#include "ns3/nstime.h"
 #include "ns3/string.h"
 
 #include <sstream>
@@ -70,6 +71,18 @@ PeriodicClientHelper::SetOutputSize(double size)
     std::ostringstream oss;
     oss << "ns3::ConstantRandomVariable[Constant=" << size << "]";
     m_factory.Set("OutputSize", StringValue(oss.str()));
+}
+
+void
+PeriodicClientHelper::SetDeadlineBudget(Time budget)
+{
+    m_factory.Set("DeadlineBudget", TimeValue(budget));
+}
+
+void
+PeriodicClientHelper::SetCommunicationBudget(Time budget)
+{
+    m_factory.Set("CommunicationBudget", TimeValue(budget));
 }
 
 } // namespace ns3
