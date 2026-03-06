@@ -6,10 +6,6 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/periodic-client-helper.h"
-#include "ns3/periodic-client.h"
-#include "ns3/periodic-server-helper.h"
-#include "ns3/periodic-server.h"
 #include "ns3/cluster.h"
 #include "ns3/conservative-scaling-policy.h"
 #include "ns3/core-module.h"
@@ -27,6 +23,10 @@
 #include "ns3/mobility-helper.h"
 #include "ns3/multi-model-spectrum-channel.h"
 #include "ns3/network-module.h"
+#include "ns3/periodic-client-helper.h"
+#include "ns3/periodic-client.h"
+#include "ns3/periodic-server-helper.h"
+#include "ns3/periodic-server.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/spectrum-wifi-helper.h"
 #include "ns3/ssid.h"
@@ -278,6 +278,16 @@ main(int argc, char* argv[])
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
         gpu->SetAttribute("QueueScheduler", PointerValue(queueScheduler));
         gpu->SetAttribute("EnergyModel", PointerValue(energyModel));
+
+        uint32_t numOpps = 5;
+        for (uint32_t j = 0; j < numOpps; j++)
+        {
+            double frac = static_cast<double>(j) / (numOpps - 1);
+            double freq = gpuMinFreq + frac * (gpuMaxFreq - gpuMinFreq);
+            double volt = gpuMinVoltage + frac * (gpuMaxVoltage - gpuMinVoltage);
+            gpu->AddOperatingPoint(freq, volt);
+        }
+
         serverNodes.Get(i)->AggregateObject(gpu);
         gpus[i] = gpu;
 
@@ -303,31 +313,17 @@ main(int argc, char* argv[])
     if (scheme == "RR-NS")
     {
         scheduler = CreateObject<FirstFitScheduler>();
-
-        Ptr<UtilizationScalingPolicy> usp = CreateObject<UtilizationScalingPolicy>();
-        usp->SetAttribute("MinFrequency", DoubleValue(gpuMinFreq));
-        usp->SetAttribute("MaxFrequency", DoubleValue(gpuMaxFreq));
-        scalingPolicy = usp;
+        scalingPolicy = CreateObject<UtilizationScalingPolicy>();
     }
     else if (scheme == "LU-NS")
     {
         scheduler = CreateObject<LeastLoadedScheduler>();
-
-        Ptr<UtilizationScalingPolicy> usp = CreateObject<UtilizationScalingPolicy>();
-        usp->SetAttribute("MinFrequency", DoubleValue(gpuMinFreq));
-        usp->SetAttribute("MaxFrequency", DoubleValue(gpuMaxFreq));
-        scalingPolicy = usp;
+        scalingPolicy = CreateObject<UtilizationScalingPolicy>();
     }
     else
     {
         scheduler = CreateObject<LeastLoadedScheduler>();
-
-        Ptr<ConservativeScalingPolicy> csp = CreateObject<ConservativeScalingPolicy>();
-        csp->SetAttribute("MinFrequency", DoubleValue(gpuMinFreq));
-        csp->SetAttribute("MaxFrequency", DoubleValue(gpuMaxFreq));
-        csp->SetAttribute("MinVoltage", DoubleValue(gpuMinVoltage));
-        csp->SetAttribute("MaxVoltage", DoubleValue(gpuMaxVoltage));
-        scalingPolicy = csp;
+        scalingPolicy = CreateObject<ConservativeScalingPolicy>();
     }
 
     Ptr<DeviceManager> deviceManager = CreateObject<DeviceManager>();
@@ -349,7 +345,8 @@ main(int argc, char* argv[])
 
     for (uint32_t i = 0; i < nClients; i++)
     {
-        PeriodicClientHelper clientHelper(InetSocketAddress(apWifiInterface.GetAddress(0), orchPort));
+        PeriodicClientHelper clientHelper(
+            InetSocketAddress(apWifiInterface.GetAddress(0), orchPort));
         clientHelper.SetFrameRate(frameRate);
         clientHelper.SetMeanFrameSize(meanFrameSize);
         clientHelper.SetComputeDemand(computeDemand);
