@@ -318,12 +318,20 @@ PeriodicClient::GenerateFrame()
     packet->AddAtEnd(metadata);
     packet->AddHeader(orchHeader);
 
+    if (!m_connMgr->Send(packet))
+    {
+        NS_LOG_WARN("PeriodicClient " << m_clientId << " failed to send admission request for dagId "
+                                      << dagId);
+        m_framesDropped++;
+        m_frameDroppedTrace(m_frameCount);
+        ScheduleNextFrame();
+        return;
+    }
+
     PendingWorkload pw;
     pw.dag = dag;
     pw.submitTime = Simulator::Now();
     m_pendingWorkloads[dagId] = pw;
-
-    m_connMgr->Send(packet);
 
     m_framesSent++;
     m_totalTx += packet->GetSize();
@@ -496,7 +504,22 @@ PeriodicClient::SendFullData(uint64_t dagId)
     Ptr<DagTask> dag = it->second.dag;
     Ptr<Packet> packet = dag->SerializeFullData();
 
-    m_connMgr->Send(packet);
+    if (!m_connMgr->Send(packet))
+    {
+        NS_LOG_WARN("PeriodicClient " << m_clientId
+                                      << " failed to send full data for dagId " << dagId);
+        for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
+        {
+            Ptr<Task> task = dag->GetTask(i);
+            if (task)
+            {
+                m_frameRejectedTrace(task);
+            }
+        }
+        m_pendingWorkloads.erase(it);
+        return;
+    }
+
     m_totalTx += packet->GetSize();
 
     NS_LOG_INFO("PeriodicClient " << m_clientId << " sent full frame data for dagId " << dagId << " ("

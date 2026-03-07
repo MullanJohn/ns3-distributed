@@ -293,14 +293,18 @@ OffloadClient::SubmitTask(Ptr<Task> task)
     packet->AddAtEnd(metadata);
     packet->AddHeader(orchHeader);
 
-    // Track the pending workload
+    if (!m_connMgr->Send(packet))
+    {
+        NS_LOG_WARN("Client " << m_clientId << " failed to send admission request for dagId "
+                              << dagId);
+        m_taskRejectedTrace(task);
+        return;
+    }
+
     PendingWorkload pw;
     pw.dag = dag;
     pw.submitTime = Simulator::Now();
     m_pendingWorkloads[dagId] = pw;
-
-    // Send to orchestrator
-    m_connMgr->Send(packet);
 
     m_taskCount++;
     m_totalTx += packet->GetSize();
@@ -506,7 +510,21 @@ OffloadClient::SendFullData(uint64_t dagId)
     Ptr<DagTask> dag = it->second.dag;
     Ptr<Packet> packet = dag->SerializeFullData();
 
-    m_connMgr->Send(packet);
+    if (!m_connMgr->Send(packet))
+    {
+        NS_LOG_WARN("Client " << m_clientId << " failed to send full data for dagId " << dagId);
+        for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
+        {
+            Ptr<Task> task = dag->GetTask(i);
+            if (task)
+            {
+                m_taskRejectedTrace(task);
+            }
+        }
+        m_pendingWorkloads.erase(it);
+        return;
+    }
+
     m_totalTx += packet->GetSize();
 
     NS_LOG_INFO("Client " << m_clientId << " sent full data for dagId " << dagId << " ("

@@ -143,14 +143,18 @@ DeviceManager::EvaluateScaling(const ClusterState& state)
 
         double oldFreq = m_commandedFrequency[i];
 
+        Ptr<Packet> cmdPacket = m_deviceProtocol->CreateCommandPacket(decision);
+        if (!m_workerConnMgr->Send(cmdPacket, m_cluster.Get(i).address))
+        {
+            NS_LOG_WARN("Failed to send scaling command to backend " << i);
+            continue;
+        }
+
         NS_LOG_INFO("Scaling backend " << i << ": freq " << oldFreq << " -> "
                                        << decision->targetFrequency);
 
         m_frequencyChangedTrace(i, oldFreq, decision->targetFrequency);
         m_commandedFrequency[i] = decision->targetFrequency;
-
-        Ptr<Packet> cmdPacket = m_deviceProtocol->CreateCommandPacket(decision);
-        m_workerConnMgr->Send(cmdPacket, m_cluster.Get(i).address);
     }
 }
 

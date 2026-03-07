@@ -318,7 +318,12 @@ PeriodicServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Ti
 
     Ptr<Packet> packet = task->Serialize(true);
 
-    m_connMgr->Send(packet, clientAddr);
+    if (!m_connMgr->Send(packet, clientAddr))
+    {
+        NS_LOG_WARN("Failed to send response for task " << task->GetTaskId() << " to "
+                                                        << clientAddr);
+        return;
+    }
 
     m_framesProcessed++;
     m_frameProcessedTrace(task, duration);
