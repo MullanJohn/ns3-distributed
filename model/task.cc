@@ -11,12 +11,47 @@
 #include "ns3/double.h"
 #include "ns3/log.h"
 #include "ns3/string.h"
+#include "ns3/trace-source-accessor.h"
 #include "ns3/uinteger.h"
 
 namespace ns3
 {
 
 NS_LOG_COMPONENT_DEFINE("Task");
+
+std::ostream&
+operator<<(std::ostream& os, TaskState state)
+{
+    switch (state)
+    {
+    case TASK_CREATED:
+        os << "CREATED";
+        break;
+    case TASK_SUBMITTED:
+        os << "SUBMITTED";
+        break;
+    case TASK_ADMITTED:
+        os << "ADMITTED";
+        break;
+    case TASK_DISPATCHED:
+        os << "DISPATCHED";
+        break;
+    case TASK_RUNNING:
+        os << "RUNNING";
+        break;
+    case TASK_COMPLETED:
+        os << "COMPLETED";
+        break;
+    case TASK_FAILED:
+        os << "FAILED";
+        break;
+    case TASK_REJECTED:
+        os << "REJECTED";
+        break;
+    }
+    return os;
+}
+
 NS_OBJECT_ENSURE_REGISTERED(Task);
 
 TypeId
@@ -50,7 +85,11 @@ Task::GetTypeId()
                           "Required accelerator type (e.g., GPU, TPU). Empty means any.",
                           StringValue(""),
                           MakeStringAccessor(&Task::m_requiredAcceleratorType),
-                          MakeStringChecker());
+                          MakeStringChecker())
+            .AddTraceSource("State",
+                            "Task lifecycle state transitions",
+                            MakeTraceSourceAccessor(&Task::m_state),
+                            "ns3::TaskStateTracedCallback");
     // Note: No AddConstructor because this is an abstract class
     return tid;
 }
@@ -195,6 +234,53 @@ Task::SetRequiredAcceleratorType(const std::string& type)
 {
     NS_LOG_FUNCTION(this << type);
     m_requiredAcceleratorType = type;
+}
+
+TaskState
+Task::GetState() const
+{
+    return m_state;
+}
+
+void
+Task::SetState(TaskState newState)
+{
+    NS_LOG_FUNCTION(this << newState);
+
+    TaskState current = m_state;
+
+    bool valid = false;
+    switch (current)
+    {
+    case TASK_CREATED:
+        valid = (newState == TASK_SUBMITTED || newState == TASK_REJECTED);
+        break;
+    case TASK_SUBMITTED:
+        valid = (newState == TASK_ADMITTED || newState == TASK_REJECTED);
+        break;
+    case TASK_ADMITTED:
+        valid = (newState == TASK_DISPATCHED || newState == TASK_FAILED);
+        break;
+    case TASK_DISPATCHED:
+        valid = (newState == TASK_RUNNING || newState == TASK_FAILED);
+        break;
+    case TASK_RUNNING:
+        valid = (newState == TASK_COMPLETED || newState == TASK_FAILED);
+        break;
+    case TASK_COMPLETED:
+    case TASK_FAILED:
+    case TASK_REJECTED:
+        break;
+    }
+
+    if (!valid)
+    {
+        NS_LOG_WARN("Invalid task state transition: " << current << " -> " << newState
+                                                      << " for task " << m_taskId);
+        return;
+    }
+
+    m_state = newState;
 }
 
 } // namespace ns3

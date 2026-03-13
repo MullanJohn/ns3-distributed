@@ -340,6 +340,7 @@ PeriodicClient::GenerateFrame()
                                   << dagId << ", " << frameSize << " bytes, " << computeDemand
                                   << " FLOPS)");
 
+    task->SetState(TASK_SUBMITTED);
     m_frameSentTrace(task);
 
     ScheduleNextFrame();
@@ -433,6 +434,7 @@ PeriodicClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
             Ptr<Task> task = dag->GetTask(i);
             if (task)
             {
+                task->SetState(TASK_REJECTED);
                 m_frameRejectedTrace(task);
             }
         }

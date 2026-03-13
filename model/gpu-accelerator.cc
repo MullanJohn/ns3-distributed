@@ -113,6 +113,7 @@ GpuAccelerator::SubmitTask(Ptr<Task> task)
     if (!m_queueScheduler)
     {
         NS_LOG_ERROR("GpuAccelerator requires a QueueScheduler to be set");
+        task->SetState(TASK_FAILED);
         m_taskFailedTrace(task, "No QueueScheduler configured");
         return;
     }
@@ -145,6 +146,7 @@ GpuAccelerator::StartNextTask()
     if (!m_processingModel)
     {
         NS_LOG_ERROR("GpuAccelerator requires a ProcessingModel to be set");
+        m_currentTask->SetState(TASK_FAILED);
         m_taskFailedTrace(m_currentTask, "No ProcessingModel configured");
         m_currentTask = nullptr;
         m_queueLength = m_queueScheduler->GetLength();
@@ -156,6 +158,7 @@ GpuAccelerator::StartNextTask()
     if (!result.success)
     {
         NS_LOG_ERROR("ProcessingModel failed for task " << m_currentTask->GetTaskId());
+        m_currentTask->SetState(TASK_FAILED);
         m_taskFailedTrace(m_currentTask, "ProcessingModel returned failure");
         m_currentTask = nullptr;
         m_queueLength = m_queueScheduler->GetLength();
@@ -174,6 +177,7 @@ GpuAccelerator::StartNextTask()
     RecordTaskStartEnergy();
 
     // Fire task started trace
+    m_currentTask->SetState(TASK_RUNNING);
     m_taskStartedTrace(m_currentTask);
 
     // Update queue length after trace (includes current task being processed)
@@ -210,6 +214,7 @@ GpuAccelerator::ProcessingComplete()
                         << ", energy: " << taskEnergy << "J");
 
     // Task completion trace fires last
+    m_currentTask->SetState(TASK_COMPLETED);
     m_taskCompletedTrace(m_currentTask, duration);
 
     m_tasksCompleted++;

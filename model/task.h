@@ -13,11 +13,47 @@
 #include "ns3/object.h"
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
+#include "ns3/traced-value.h"
 
+#include <ostream>
 #include <string>
 
 namespace ns3
 {
+
+/**
+ * @ingroup distributed
+ * @brief Task lifecycle states.
+ *
+ * Tracks a task from creation through submission, admission, dispatch,
+ * execution, and completion (or failure/rejection).
+ */
+enum TaskState : uint8_t
+{
+    TASK_CREATED = 0,   //!< Task constructed, not yet submitted
+    TASK_SUBMITTED = 1, //!< Sent to orchestrator (client-side)
+    TASK_ADMITTED = 2,  //!< Accepted by admission policy (orchestrator-side)
+    TASK_DISPATCHED = 3, //!< Sent to backend worker
+    TASK_RUNNING = 4,   //!< Processing on accelerator
+    TASK_COMPLETED = 5, //!< Successfully processed
+    TASK_FAILED = 6,    //!< Processing or delivery failed
+    TASK_REJECTED = 7   //!< Rejected by admission policy
+};
+
+/**
+ * @brief Output stream operator for TaskState.
+ * @param os The output stream.
+ * @param state The task state.
+ * @return The output stream.
+ */
+std::ostream& operator<<(std::ostream& os, TaskState state);
+
+/**
+ * @brief TracedValue callback signature for TaskState.
+ * @param oldValue The old state.
+ * @param newValue The new state.
+ */
+typedef void (*TaskStateTracedCallback)(TaskState oldValue, TaskState newValue);
 
 /**
  * @ingroup distributed
@@ -187,9 +223,26 @@ class Task : public Object
      */
     virtual uint8_t GetTaskType() const = 0;
 
+    /**
+     * @brief Get the current lifecycle state.
+     * @return The task state.
+     */
+    TaskState GetState() const;
+
+    /**
+     * @brief Set the lifecycle state.
+     *
+     * Validates the transition is legal. Invalid transitions log a warning
+     * and are ignored.
+     *
+     * @param newState The new state.
+     */
+    void SetState(TaskState newState);
+
   protected:
     void DoDispose() override;
 
+    TracedValue<TaskState> m_state{TASK_CREATED}; //!< Lifecycle state
     uint64_t m_taskId{0};                      //!< Unique task identifier
     uint64_t m_inputSize{0};                   //!< Input data size in bytes
     uint64_t m_outputSize{0};                  //!< Output data size in bytes

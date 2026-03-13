@@ -312,6 +312,7 @@ OffloadClient::SubmitTask(Ptr<Task> task)
     NS_LOG_INFO("Client " << m_clientId << " sent ADMISSION_REQUEST for dagId " << dagId
                           << " (task " << task->GetTaskId() << ")");
 
+    task->SetState(TASK_SUBMITTED);
     m_taskSentTrace(task);
 }
 
@@ -434,6 +435,7 @@ OffloadClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
             Ptr<Task> task = dag->GetTask(i);
             if (task)
             {
+                task->SetState(TASK_REJECTED);
                 m_taskRejectedTrace(task);
             }
         }

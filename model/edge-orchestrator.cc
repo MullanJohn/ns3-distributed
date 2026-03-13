@@ -653,6 +653,15 @@ EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& cli
     m_workloads[workloadId] = state;
     m_clusterState.SetActiveWorkloadCount(static_cast<uint32_t>(m_workloads.size()));
 
+    for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
+    {
+        Ptr<Task> task = dag->GetTask(i);
+        if (task)
+        {
+            task->SetState(TASK_ADMITTED);
+        }
+    }
+
     if (!ProcessDagReadyTasks(workloadId))
     {
         // Dispatch failed — workload already cancelled by ProcessDagReadyTasks.
@@ -723,6 +732,7 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
         return -1;
     }
 
+    task->SetState(TASK_DISPATCHED);
     m_taskDispatchedTrace(workloadId, originalTaskId, backendIdx);
     m_clusterState.NotifyTaskDispatched(backendIdx);
     NS_LOG_INFO("Dispatched task " << originalTaskId << " (wire " << wireId << ") to backend "
