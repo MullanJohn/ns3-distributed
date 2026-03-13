@@ -19,12 +19,9 @@
 
 #include "ns3/application.h"
 #include "ns3/callback.h"
-#include "ns3/event-id.h"
-#include "ns3/nstime.h"
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 
-#include <deque>
 #include <map>
 #include <unordered_map>
 #include <utility>
@@ -340,11 +337,16 @@ class EdgeOrchestrator : public Application
     void CleanupClient(const Address& clientAddr);
 
     /**
-     * @brief Cancel timeout and remove the front pending admission for a client.
+     * @brief Handle a Phase 2 data upload from a client.
+     *
+     * Matches the dagId to a pending admission, cancels the timeout,
+     * deserializes the DAG, and dispatches the workload.
+     *
+     * @param dagId The DAG ID from the OrchestratorHeader taskId field.
+     * @param payload Packet containing serialized DAG full data.
      * @param clientAddr The client address.
-     * @param id The admission ID to clean up.
      */
-    void ConsumePendingAdmission(const Address& clientAddr, uint64_t id);
+    void HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr);
 
     /**
      * @brief Cancel an active workload, cleaning up all associated state.
@@ -387,13 +389,6 @@ class EdgeOrchestrator : public Application
         std::map<Address, Ptr<Packet>>& bufferMap,
         const Address& addr,
         Ptr<Packet> packet);
-
-    /**
-     * @brief Handle timeout of a pending admission.
-     * @param clientAddr The client address.
-     * @param id The admission ID that timed out.
-     */
-    void HandleAdmissionTimeout(Address clientAddr, uint64_t id);
 
     /**
      * @brief Encode workload ID and DAG index into a wire task ID.
@@ -475,19 +470,7 @@ class EdgeOrchestrator : public Application
     std::map<uint64_t, WorkloadState> m_workloads; //!< Active workloads
     uint64_t m_nextWorkloadId{1};                  //!< Next workload ID
 
-    // Pending admissions — per-client ordered queue
-    // TCP ordering guarantees Phase 2 data arrives in the same order as admissions,
-    // so the queue front tells the orchestrator what format to expect.
-    struct PendingAdmission
-    {
-        uint64_t id;          //!< DAG ID from Phase 1
-        EventId timeoutEvent; //!< Timeout event (default: not running)
-    };
-
-    std::map<Address, std::deque<PendingAdmission>> m_pendingAdmissionQueue;
-
-    // Admission timeout tracking
-    Time m_admissionTimeout; //!< Timeout for pending admissions (0 = no timeout)
+    std::map<Address, std::unordered_map<uint64_t, bool>> m_pendingAdmissions;
 
     // Statistics
     uint64_t m_workloadsAdmitted{0};  //!< Total admitted

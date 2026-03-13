@@ -105,6 +105,12 @@ OrchestratorHeader::IsResponse() const
     return m_messageType == ADMISSION_RESPONSE;
 }
 
+bool
+OrchestratorHeader::IsDataUpload() const
+{
+    return m_messageType == DATA_UPLOAD;
+}
+
 std::string
 OrchestratorHeader::GetMessageTypeName() const
 {
@@ -114,6 +120,8 @@ OrchestratorHeader::GetMessageTypeName() const
         return "ADMISSION_REQUEST";
     case ADMISSION_RESPONSE:
         return "ADMISSION_RESPONSE";
+    case DATA_UPLOAD:
+        return "DATA_UPLOAD";
     default:
         return "UNKNOWN";
     }

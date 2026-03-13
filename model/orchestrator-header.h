@@ -57,8 +57,9 @@ class OrchestratorHeader : public Header
      */
     enum MessageType : uint8_t
     {
-        ADMISSION_REQUEST = 2, //!< Client requests admission (serialized DAG metadata follows)
-        ADMISSION_RESPONSE = 3 //!< Server responds to admission (admit/reject)
+        ADMISSION_REQUEST = 2,  //!< Client requests admission (serialized DAG metadata follows)
+        ADMISSION_RESPONSE = 3, //!< Server responds to admission (admit/reject)
+        DATA_UPLOAD = 4         //!< Phase 2: full DAG data upload (dagId in taskId field)
     };
 
     /**
@@ -145,6 +146,12 @@ class OrchestratorHeader : public Header
      * @return true if ADMISSION_RESPONSE.
      */
     bool IsResponse() const;
+
+    /**
+     * @brief Check if this is a data upload message.
+     * @return true if DATA_UPLOAD.
+     */
+    bool IsDataUpload() const;
 
     /**
      * @brief Get string representation of message type.

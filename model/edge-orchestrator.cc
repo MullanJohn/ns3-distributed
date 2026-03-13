@@ -13,9 +13,7 @@
 #include "tcp-connection-manager.h"
 
 #include "ns3/log.h"
-#include "ns3/nstime.h"
 #include "ns3/pointer.h"
-#include "ns3/simulator.h"
 #include "ns3/uinteger.h"
 
 namespace ns3
@@ -58,11 +56,6 @@ EdgeOrchestrator::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&EdgeOrchestrator::m_workerConnMgr),
                           MakePointerChecker<ConnectionManager>())
-            .AddAttribute("AdmissionTimeout",
-                          "Timeout for pending admissions (0 = no timeout)",
-                          TimeValue(Seconds(0)),
-                          MakeTimeAccessor(&EdgeOrchestrator::m_admissionTimeout),
-                          MakeTimeChecker())
             .AddAttribute("DeviceManager",
                           "DVFS device manager for backend scaling (optional)",
                           PointerValue(),
@@ -191,14 +184,7 @@ void
 EdgeOrchestrator::CancelAllPendingAdmissions()
 {
     NS_LOG_FUNCTION(this);
-    for (auto& queuePair : m_pendingAdmissionQueue)
-    {
-        for (auto& entry : queuePair.second)
-        {
-            Simulator::Cancel(entry.timeoutEvent);
-        }
-    }
-    m_pendingAdmissionQueue.clear();
+    m_pendingAdmissions.clear();
 }
 
 std::map<Address, Ptr<Packet>>::iterator
@@ -529,92 +515,37 @@ EdgeOrchestrator::ProcessClientBuffer(const Address& clientAddr)
     Ptr<Packet> buffer = it->second;
     static const uint32_t orchHeaderSize = OrchestratorHeader::SERIALIZED_SIZE;
 
-    while (buffer->GetSize() > 0)
+    while (buffer->GetSize() >= orchHeaderSize)
     {
-        // Peek at first byte to distinguish Phase 1 (OrchestratorHeader, types >= 2)
-        // from Phase 2 (DAG data starting with 4-byte task count in network order;
-        // first byte is (taskCount >> 24), guaranteed < 2 by DagTask serialization).
-        uint8_t firstByte;
-        buffer->CopyData(&firstByte, 1);
+        OrchestratorHeader orchHeader;
+        buffer->PeekHeader(orchHeader);
 
-        if (firstByte >= OrchestratorHeader::ADMISSION_REQUEST)
+        uint64_t payloadSize = orchHeader.GetPayloadSize();
+        uint64_t totalMessageSize = orchHeaderSize + payloadSize;
+        if (buffer->GetSize() < totalMessageSize)
         {
-            // Phase 1: OrchestratorHeader-framed admission message
-            if (buffer->GetSize() < orchHeaderSize)
-            {
-                NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << orchHeaderSize
-                                           << " for OrchestratorHeader");
-                break;
-            }
-
-            OrchestratorHeader orchHeader;
-            buffer->PeekHeader(orchHeader);
-
-            uint64_t payloadSize = orchHeader.GetPayloadSize();
-            uint64_t totalMessageSize = orchHeaderSize + payloadSize;
-            if (buffer->GetSize() < totalMessageSize)
-            {
-                NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need "
-                                           << totalMessageSize << " for full message");
-                break;
-            }
-
-            // Remove OrchestratorHeader from buffer
-            buffer->RemoveAtStart(orchHeaderSize);
-
-            // Extract payload
-            Ptr<Packet> payload = buffer->CreateFragment(0, payloadSize);
-            buffer->RemoveAtStart(payloadSize);
-
-            uint8_t msgType = orchHeader.GetMessageType();
-            if (msgType == OrchestratorHeader::ADMISSION_REQUEST)
-            {
-                HandleAdmissionRequest(orchHeader.GetTaskId(), payload, clientAddr);
-            }
-            else
-            {
-                NS_LOG_WARN("Unexpected message type " << (int)msgType << " from client "
-                                                       << clientAddr << " - skipping");
-            }
+            NS_LOG_DEBUG("Buffer has " << buffer->GetSize() << " bytes, need " << totalMessageSize
+                                       << " for full message");
+            break;
         }
-        else
+
+        buffer->RemoveAtStart(orchHeaderSize);
+
+        Ptr<Packet> payload = buffer->CreateFragment(0, payloadSize);
+        buffer->RemoveAtStart(payloadSize);
+
+        switch (orchHeader.GetMessageType())
         {
-            // Phase 2: Raw DAG data upload
-            auto queueIt = m_pendingAdmissionQueue.find(clientAddr);
-            if (queueIt == m_pendingAdmissionQueue.end() || queueIt->second.empty())
-            {
-                NS_LOG_ERROR("Received Phase 2 data from client "
-                             << clientAddr << " but no pending admissions - clearing buffer");
-                m_rxBuffer.erase(it);
-                return;
-            }
-
-            const PendingAdmission& front = queueIt->second.front();
-            uint64_t expectedId = front.id;
-
-            uint64_t consumedBytes = 0;
-            Ptr<DagTask> dag = DagTask::DeserializeFullData(
-                buffer,
-                MakeCallback(&EdgeOrchestrator::DispatchDeserialize, this),
-                consumedBytes);
-
-            if (consumedBytes == 0)
-            {
-                break; // Not enough data yet
-            }
-
-            buffer->RemoveAtStart(consumedBytes);
-            ConsumePendingAdmission(clientAddr, expectedId);
-
-            if (dag)
-            {
-                CreateAndDispatchWorkload(dag, clientAddr);
-            }
-            else
-            {
-                NS_LOG_WARN("Failed to deserialize data from client " << clientAddr);
-                RejectWorkload(0, "deserialization_failed");
-            }
+        case OrchestratorHeader::ADMISSION_REQUEST:
+            HandleAdmissionRequest(orchHeader.GetTaskId(), payload, clientAddr);
+            break;
+        case OrchestratorHeader::DATA_UPLOAD:
+            HandleDataUpload(orchHeader.GetTaskId(), payload, clientAddr);
+            break;
+        default:
+            NS_LOG_WARN("Unknown message type " << static_cast<int>(orchHeader.GetMessageType())
+                                                << " from client " << clientAddr << " — skipping");
+            break;
         }
     }
 
@@ -639,30 +570,17 @@ EdgeOrchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const 
     }
 
     // Check for duplicate admission from same client
-    auto& queue = m_pendingAdmissionQueue[clientAddr];
-    for (const auto& entry : queue)
+    auto& map = m_pendingAdmissions[clientAddr];
+    if (map.count(id))
     {
-        if (entry.id == id)
-        {
-            NS_LOG_WARN("Duplicate admission request for id " << id << " from " << clientAddr);
-            RejectWorkload(dag->GetTaskCount(), "duplicate_admission");
-            SendAdmissionResponse(clientAddr, id, false);
-            return false;
-        }
+        NS_LOG_WARN("Duplicate admission request for id " << id << " from " << clientAddr);
+        RejectWorkload(dag->GetTaskCount(), "duplicate_admission");
+        SendAdmissionResponse(clientAddr, id, false);
+        return false;
     }
 
-    // Store pending admission for Phase 2
-    queue.push_back({id, EventId()});
-
-    // Schedule timeout if configured
-    if (m_admissionTimeout > Seconds(0))
-    {
-        queue.back().timeoutEvent = Simulator::Schedule(m_admissionTimeout,
-                                                        &EdgeOrchestrator::HandleAdmissionTimeout,
-                                                        this,
-                                                        clientAddr,
-                                                        id);
-    }
+    // Store pending admission for Phase 2 DATA_UPLOAD
+    map[id] = true;
 
     NS_LOG_INFO("Workload " << id << " admitted, awaiting data upload");
     SendAdmissionResponse(clientAddr, id, true);
@@ -689,24 +607,16 @@ EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t task
 
         if (admitted)
         {
-            auto queueIt = m_pendingAdmissionQueue.find(clientAddr);
-            if (queueIt != m_pendingAdmissionQueue.end())
+            auto mapIt = m_pendingAdmissions.find(clientAddr);
+            if (mapIt != m_pendingAdmissions.end())
             {
-                auto& queue = queueIt->second;
-                for (auto it = queue.begin(); it != queue.end(); ++it)
+                mapIt->second.erase(taskId);
+                if (mapIt->second.empty())
                 {
-                    if (it->id == taskId)
-                    {
-                        Simulator::Cancel(it->timeoutEvent);
-                        queue.erase(it);
-                        break;
-                    }
-                }
-                if (queue.empty())
-                {
-                    m_pendingAdmissionQueue.erase(queueIt);
+                    m_pendingAdmissions.erase(mapIt);
                 }
             }
+            RejectWorkload(0, "admission_response_send_failed");
         }
         return;
     }
@@ -885,15 +795,19 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
         }
 
         buffer->RemoveAtStart(consumedBytes);
-        m_wireTaskType.erase(wireId);
 
         if (!task)
         {
-            NS_LOG_ERROR("Deserializer consumed " << consumedBytes
-                                                  << " bytes but returned null task"
-                                                  << " - possible data corruption");
+            NS_LOG_ERROR("Deserializer consumed "
+                         << consumedBytes << " bytes but returned null task for wireId " << wireId
+                         << " — cancelling workload");
+            auto decoded = DecodeWireTaskId(wireId);
+            m_wireTaskType.erase(wireId);
+            CancelWorkload(decoded.first);
             continue;
         }
+
+        m_wireTaskType.erase(wireId);
 
         // Decode wire task ID to recover workload and DAG index
         std::pair<uint64_t, uint32_t> decoded = DecodeWireTaskId(wireId);
@@ -1097,22 +1011,41 @@ EdgeOrchestrator::SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> d
 }
 
 void
-EdgeOrchestrator::ConsumePendingAdmission(const Address& clientAddr, uint64_t id)
+EdgeOrchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr)
 {
-    NS_LOG_FUNCTION(this << clientAddr << id);
+    NS_LOG_FUNCTION(this << dagId << clientAddr);
 
-    auto queueIt = m_pendingAdmissionQueue.find(clientAddr);
-    if (queueIt != m_pendingAdmissionQueue.end() && !queueIt->second.empty())
+    // Look up dagId in pending admissions
+    auto mapIt = m_pendingAdmissions.find(clientAddr);
+    if (mapIt == m_pendingAdmissions.end() || mapIt->second.find(dagId) == mapIt->second.end())
     {
-        NS_ASSERT_MSG(queueIt->second.front().id == id,
-                      "ConsumePendingAdmission: front id " << queueIt->second.front().id
-                                                           << " != expected " << id);
-        Simulator::Cancel(queueIt->second.front().timeoutEvent);
-        queueIt->second.pop_front();
-        if (queueIt->second.empty())
-        {
-            m_pendingAdmissionQueue.erase(queueIt);
-        }
+        NS_LOG_WARN("Received DATA_UPLOAD for unknown dagId " << dagId << " from " << clientAddr
+                                                              << " — discarding");
+        return;
+    }
+
+    // Consume the pending admission entry
+    mapIt->second.erase(dagId);
+    if (mapIt->second.empty())
+    {
+        m_pendingAdmissions.erase(mapIt);
+    }
+
+    // Deserialize the full DAG data
+    uint64_t consumedBytes = 0;
+    Ptr<DagTask> dag =
+        DagTask::DeserializeFullData(payload,
+                                     MakeCallback(&EdgeOrchestrator::DispatchDeserialize, this),
+                                     consumedBytes);
+
+    if (dag)
+    {
+        CreateAndDispatchWorkload(dag, clientAddr);
+    }
+    else
+    {
+        NS_LOG_WARN("Failed to deserialize DAG data for dagId " << dagId << " from " << clientAddr);
+        RejectWorkload(0, "deserialization_failed");
     }
 }
 
@@ -1124,17 +1057,8 @@ EdgeOrchestrator::CleanupClient(const Address& clientAddr)
     // Clear receive buffer
     m_rxBuffer.erase(clientAddr);
 
-    // Clear pending admissions and their timeout events for this client
-    auto queueIt = m_pendingAdmissionQueue.find(clientAddr);
-    if (queueIt != m_pendingAdmissionQueue.end())
-    {
-        for (const auto& entry : queueIt->second)
-        {
-            NS_LOG_DEBUG("Removing pending admission " << entry.id << " - client disconnected");
-            Simulator::Cancel(entry.timeoutEvent);
-        }
-        m_pendingAdmissionQueue.erase(queueIt);
-    }
+    // Clear pending admissions for this client
+    m_pendingAdmissions.erase(clientAddr);
 
     // Cancel pending workloads from this client
     std::vector<uint64_t> clientWorkloads;
@@ -1192,33 +1116,6 @@ EdgeOrchestrator::HandleAdmissionRequest(uint64_t dagId,
     }
 
     ProcessAdmissionDecision(dag, dagId, clientAddr);
-}
-
-void
-EdgeOrchestrator::HandleAdmissionTimeout(Address clientAddr, uint64_t id)
-{
-    NS_LOG_FUNCTION(this << clientAddr << id);
-
-    auto queueIt = m_pendingAdmissionQueue.find(clientAddr);
-    if (queueIt == m_pendingAdmissionQueue.end() || queueIt->second.empty())
-    {
-        return;
-    }
-
-    auto& queue = queueIt->second;
-    NS_ASSERT_MSG(queue.front().id == id, "Admission timeout for non-front id " << id);
-
-    NS_LOG_WARN("Admission timeout for id " << id << " from client " << clientAddr);
-
-    // Cancel all pending admissions to preserve TCP stream ordering —
-    // data for later admissions cannot be parsed once a preceding one is removed.
-    for (auto& entry : queue)
-    {
-        Simulator::Cancel(entry.timeoutEvent);
-        RejectWorkload(0, "admission_timeout");
-    }
-    queue.clear();
-    m_pendingAdmissionQueue.erase(queueIt);
 }
 
 } // namespace ns3
