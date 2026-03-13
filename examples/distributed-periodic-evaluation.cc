@@ -418,7 +418,8 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND("=== Per-Client Results ===");
     NS_LOG_UNCOND(std::left << std::setw(8) << "Client" << std::setw(10) << "Sent" << std::setw(10)
                             << "Dropped" << std::setw(10) << "Rejected" << std::setw(12)
-                            << "Processed" << "Latency (ms)");
+                            << "Processed"
+                            << "Latency (ms)");
     NS_LOG_UNCOND(std::string(60, '-'));
     for (uint32_t i = 0; i < nClients; i++)
     {
@@ -432,7 +433,8 @@ main(int argc, char* argv[])
 
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("=== Per-Backend Energy ===");
-    NS_LOG_UNCOND(std::left << std::setw(10) << "Backend" << "Energy (J)");
+    NS_LOG_UNCOND(std::left << std::setw(10) << "Backend"
+                            << "Energy (J)");
     NS_LOG_UNCOND(std::string(24, '-'));
     double totalEnergy = 0.0;
     for (uint32_t i = 0; i < nBackends; i++)

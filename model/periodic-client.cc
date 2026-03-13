@@ -279,7 +279,7 @@ PeriodicClient::GenerateFrame()
     {
         m_framesDropped++;
         NS_LOG_INFO("PeriodicClient " << m_clientId << " dropped frame " << m_frameCount
-                                << " (previous frame still pending)");
+                                      << " (previous frame still pending)");
         m_frameDroppedTrace(m_frameCount);
         ScheduleNextFrame();
         return;
@@ -294,8 +294,8 @@ PeriodicClient::GenerateFrame()
     task->SetInputSize(frameSize);
     task->SetOutputSize(outputSize);
 
-    Time budget = m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget
-                                                        : Seconds(1.0 / m_frameRate);
+    Time budget =
+        m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : Seconds(1.0 / m_frameRate);
     Time computeBudget = budget - m_commBudget;
     task->SetDeadline(Simulator::Now() + computeBudget);
 
@@ -320,8 +320,8 @@ PeriodicClient::GenerateFrame()
 
     if (!m_connMgr->Send(packet))
     {
-        NS_LOG_WARN("PeriodicClient " << m_clientId << " failed to send admission request for dagId "
-                                      << dagId);
+        NS_LOG_WARN("PeriodicClient " << m_clientId
+                                      << " failed to send admission request for dagId " << dagId);
         m_framesDropped++;
         m_frameDroppedTrace(m_frameCount);
         ScheduleNextFrame();
@@ -336,8 +336,9 @@ PeriodicClient::GenerateFrame()
     m_framesSent++;
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("PeriodicClient " << m_clientId << " sent frame " << m_framesSent << " (dagId " << dagId
-                            << ", " << frameSize << " bytes, " << computeDemand << " FLOPS)");
+    NS_LOG_INFO("PeriodicClient " << m_clientId << " sent frame " << m_framesSent << " (dagId "
+                                  << dagId << ", " << frameSize << " bytes, " << computeDemand
+                                  << " FLOPS)");
 
     m_frameSentTrace(task);
 
@@ -472,8 +473,9 @@ PeriodicClient::HandleTaskResponse()
             Time latency = Simulator::Now() - it->second.submitTime;
             m_responsesReceived++;
 
-            NS_LOG_INFO("PeriodicClient " << m_clientId << " received result for frame (task " << taskId
-                                    << ", latency=" << latency.GetMilliSeconds() << "ms)");
+            NS_LOG_INFO("PeriodicClient " << m_clientId << " received result for frame (task "
+                                          << taskId << ", latency=" << latency.GetMilliSeconds()
+                                          << "ms)");
 
             m_frameProcessedTrace(task, latency);
 
@@ -506,8 +508,8 @@ PeriodicClient::SendFullData(uint64_t dagId)
 
     if (!m_connMgr->Send(packet))
     {
-        NS_LOG_WARN("PeriodicClient " << m_clientId
-                                      << " failed to send full data for dagId " << dagId);
+        NS_LOG_WARN("PeriodicClient " << m_clientId << " failed to send full data for dagId "
+                                      << dagId);
         for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
         {
             Ptr<Task> task = dag->GetTask(i);
@@ -522,8 +524,8 @@ PeriodicClient::SendFullData(uint64_t dagId)
 
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("PeriodicClient " << m_clientId << " sent full frame data for dagId " << dagId << " ("
-                            << packet->GetSize() << " bytes)");
+    NS_LOG_INFO("PeriodicClient " << m_clientId << " sent full frame data for dagId " << dagId
+                                  << " (" << packet->GetSize() << " bytes)");
 }
 
 int64_t

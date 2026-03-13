@@ -131,8 +131,9 @@ PeriodicServer::StartApplication()
     }
     else
     {
-        m_accelerator->TraceConnectWithoutContext("TaskCompleted",
-                                                  MakeCallback(&PeriodicServer::OnTaskCompleted, this));
+        m_accelerator->TraceConnectWithoutContext(
+            "TaskCompleted",
+            MakeCallback(&PeriodicServer::OnTaskCompleted, this));
     }
 
     if (!m_connMgr)
