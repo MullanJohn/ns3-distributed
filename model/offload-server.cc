@@ -332,7 +332,12 @@ OffloadServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Tim
 
     Ptr<Packet> packet = task->Serialize(true);
 
-    m_connMgr->Send(packet, clientAddr);
+    if (!m_connMgr->Send(packet, clientAddr))
+    {
+        NS_LOG_WARN("Failed to send response for task " << task->GetTaskId() << " to "
+                                                        << clientAddr);
+        return;
+    }
 
     m_tasksCompleted++;
     m_taskCompletedTrace(task, duration);

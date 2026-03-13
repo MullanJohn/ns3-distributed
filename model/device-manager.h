@@ -9,6 +9,7 @@
 #ifndef DEVICE_MANAGER_H
 #define DEVICE_MANAGER_H
 
+#include "accelerator.h"
 #include "cluster-state.h"
 #include "cluster.h"
 #include "connection-manager.h"
@@ -116,6 +117,8 @@ class DeviceManager : public Object
     Cluster m_cluster;                      //!< Backend cluster reference
     std::vector<double>
         m_commandedFrequency; //!< Expected frequency per backend (reported or commanded)
+    std::vector<std::vector<OperatingPoint>>
+        m_operatingPoints; //!< Per-backend OPP tables extracted at startup
 
     TracedCallback<uint32_t, double, double> m_frequencyChangedTrace; //!< Frequency change trace
 };

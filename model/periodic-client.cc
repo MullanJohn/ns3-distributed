@@ -6,13 +6,14 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ar-client.h"
+#include "periodic-client.h"
 
 #include "simple-task.h"
 #include "tcp-connection-manager.h"
 
 #include "ns3/double.h"
 #include "ns3/log.h"
+#include "ns3/nstime.h"
 #include "ns3/packet.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
@@ -21,73 +22,87 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("ArClient");
+NS_LOG_COMPONENT_DEFINE("PeriodicClient");
 
-NS_OBJECT_ENSURE_REGISTERED(ArClient);
+NS_OBJECT_ENSURE_REGISTERED(PeriodicClient);
 
-uint32_t ArClient::s_nextClientId = 0;
+uint32_t PeriodicClient::s_nextClientId = 0;
 
 TypeId
-ArClient::GetTypeId()
+PeriodicClient::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::ArClient")
+        TypeId("ns3::PeriodicClient")
             .SetParent<Application>()
             .SetGroupName("Distributed")
-            .AddConstructor<ArClient>()
+            .AddConstructor<PeriodicClient>()
             .AddAttribute("Remote",
                           "The address of the remote orchestrator",
                           AddressValue(),
-                          MakeAddressAccessor(&ArClient::m_peer),
+                          MakeAddressAccessor(&PeriodicClient::m_peer),
                           MakeAddressChecker())
             .AddAttribute("ConnectionManager",
                           "Connection manager for transport (defaults to TCP)",
                           PointerValue(),
-                          MakePointerAccessor(&ArClient::m_connMgr),
+                          MakePointerAccessor(&PeriodicClient::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
             .AddAttribute("FrameRate",
                           "Frames per second",
                           DoubleValue(30.0),
-                          MakeDoubleAccessor(&ArClient::m_frameRate),
+                          MakeDoubleAccessor(&PeriodicClient::m_frameRate),
                           MakeDoubleChecker<double>(0.0))
+            .AddAttribute("DeadlineBudget",
+                          "End-to-end delay budget per frame. "
+                          "When zero, defaults to 1/FrameRate.",
+                          TimeValue(Seconds(0)),
+                          MakeTimeAccessor(&PeriodicClient::m_deadlineBudget),
+                          MakeTimeChecker())
+            .AddAttribute("CommunicationBudget",
+                          "Estimated round-trip communication delay (T_ul + T_dl). "
+                          "Subtracted from the deadline budget to yield the compute budget.",
+                          TimeValue(Seconds(0)),
+                          MakeTimeAccessor(&PeriodicClient::m_commBudget),
+                          MakeTimeChecker())
             .AddAttribute("FrameSize",
                           "Random variable for input frame size in bytes",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&ArClient::m_frameSize),
+                          MakePointerAccessor(&PeriodicClient::m_frameSize),
                           MakePointerChecker<RandomVariableStream>())
             .AddAttribute("ComputeDemand",
                           "Random variable for compute demand per frame in FLOPS",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&ArClient::m_computeDemand),
+                          MakePointerAccessor(&PeriodicClient::m_computeDemand),
                           MakePointerChecker<RandomVariableStream>())
             .AddAttribute("OutputSize",
                           "Random variable for result size in bytes",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&ArClient::m_outputSize),
+                          MakePointerAccessor(&PeriodicClient::m_outputSize),
                           MakePointerChecker<RandomVariableStream>())
             .AddTraceSource("FrameSent",
                             "Trace fired when a frame admission request is sent",
-                            MakeTraceSourceAccessor(&ArClient::m_frameSentTrace),
-                            "ns3::ArClient::FrameSentTracedCallback")
+                            MakeTraceSourceAccessor(&PeriodicClient::m_frameSentTrace),
+                            "ns3::PeriodicClient::FrameSentTracedCallback")
             .AddTraceSource("FrameProcessed",
                             "Trace fired when a processed frame result is received",
-                            MakeTraceSourceAccessor(&ArClient::m_frameProcessedTrace),
-                            "ns3::ArClient::FrameProcessedTracedCallback")
+                            MakeTraceSourceAccessor(&PeriodicClient::m_frameProcessedTrace),
+                            "ns3::PeriodicClient::FrameProcessedTracedCallback")
             .AddTraceSource("FrameRejected",
                             "Trace fired when a frame admission is rejected",
-                            MakeTraceSourceAccessor(&ArClient::m_frameRejectedTrace),
-                            "ns3::ArClient::FrameRejectedTracedCallback")
+                            MakeTraceSourceAccessor(&PeriodicClient::m_frameRejectedTrace),
+                            "ns3::PeriodicClient::FrameRejectedTracedCallback")
             .AddTraceSource(
                 "FrameDropped",
                 "Trace fired when a frame is dropped because the previous frame is still pending",
-                MakeTraceSourceAccessor(&ArClient::m_frameDroppedTrace),
-                "ns3::ArClient::FrameDroppedTracedCallback");
+                MakeTraceSourceAccessor(&PeriodicClient::m_frameDroppedTrace),
+                "ns3::PeriodicClient::FrameDroppedTracedCallback");
     return tid;
 }
 
-ArClient::ArClient()
+PeriodicClient::PeriodicClient()
     : m_connMgr(nullptr),
       m_frameRate(30.0),
+      m_deadlineBudget(Seconds(0)),
+      m_commBudget(Seconds(0)),
       m_clientId(s_nextClientId++),
       m_framesSent(0),
       m_frameCount(0),
@@ -101,13 +116,13 @@ ArClient::ArClient()
     NS_LOG_FUNCTION(this);
 }
 
-ArClient::~ArClient()
+PeriodicClient::~PeriodicClient()
 {
     NS_LOG_FUNCTION(this);
 }
 
 void
-ArClient::DoDispose()
+PeriodicClient::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
@@ -129,50 +144,50 @@ ArClient::DoDispose()
 }
 
 void
-ArClient::SetRemote(const Address& addr)
+PeriodicClient::SetRemote(const Address& addr)
 {
     NS_LOG_FUNCTION(this << addr);
     m_peer = addr;
 }
 
 Address
-ArClient::GetRemote() const
+PeriodicClient::GetRemote() const
 {
     return m_peer;
 }
 
 uint64_t
-ArClient::GetFramesSent() const
+PeriodicClient::GetFramesSent() const
 {
     return m_framesSent;
 }
 
 uint64_t
-ArClient::GetFramesDropped() const
+PeriodicClient::GetFramesDropped() const
 {
     return m_framesDropped;
 }
 
 uint64_t
-ArClient::GetResponsesReceived() const
+PeriodicClient::GetResponsesReceived() const
 {
     return m_responsesReceived;
 }
 
 uint64_t
-ArClient::GetTotalTx() const
+PeriodicClient::GetTotalTx() const
 {
     return m_totalTx;
 }
 
 uint64_t
-ArClient::GetTotalRx() const
+PeriodicClient::GetTotalRx() const
 {
     return m_totalRx;
 }
 
 void
-ArClient::StartApplication()
+PeriodicClient::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -184,14 +199,14 @@ ArClient::StartApplication()
     }
 
     m_connMgr->SetNode(GetNode());
-    m_connMgr->SetReceiveCallback(MakeCallback(&ArClient::HandleReceive, this));
+    m_connMgr->SetReceiveCallback(MakeCallback(&PeriodicClient::HandleReceive, this));
 
     Ptr<TcpConnectionManager> tcpConnMgr = DynamicCast<TcpConnectionManager>(m_connMgr);
     if (tcpConnMgr)
     {
-        tcpConnMgr->SetConnectionCallback(MakeCallback(&ArClient::HandleConnected, this));
+        tcpConnMgr->SetConnectionCallback(MakeCallback(&PeriodicClient::HandleConnected, this));
         tcpConnMgr->SetConnectionFailedCallback(
-            MakeCallback(&ArClient::HandleConnectionFailed, this));
+            MakeCallback(&PeriodicClient::HandleConnectionFailed, this));
     }
 
     m_connMgr->Connect(m_peer);
@@ -203,7 +218,7 @@ ArClient::StartApplication()
 }
 
 void
-ArClient::StopApplication()
+PeriodicClient::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -216,23 +231,23 @@ ArClient::StopApplication()
 }
 
 void
-ArClient::HandleConnected(const Address& serverAddr)
+PeriodicClient::HandleConnected(const Address& serverAddr)
 {
     NS_LOG_FUNCTION(this << serverAddr);
-    NS_LOG_INFO("ArClient " << m_clientId << " connected to orchestrator " << serverAddr);
+    NS_LOG_INFO("PeriodicClient " << m_clientId << " connected to orchestrator " << serverAddr);
 
     ScheduleNextFrame();
 }
 
 void
-ArClient::HandleConnectionFailed(const Address& serverAddr)
+PeriodicClient::HandleConnectionFailed(const Address& serverAddr)
 {
     NS_LOG_FUNCTION(this << serverAddr);
-    NS_LOG_ERROR("ArClient " << m_clientId << " failed to connect to " << serverAddr);
+    NS_LOG_ERROR("PeriodicClient " << m_clientId << " failed to connect to " << serverAddr);
 }
 
 void
-ArClient::HandleReceive(Ptr<Packet> packet, const Address& from)
+PeriodicClient::HandleReceive(Ptr<Packet> packet, const Address& from)
 {
     NS_LOG_FUNCTION(this << packet << from);
 
@@ -248,7 +263,7 @@ ArClient::HandleReceive(Ptr<Packet> packet, const Address& from)
 }
 
 void
-ArClient::GenerateFrame()
+PeriodicClient::GenerateFrame()
 {
     NS_LOG_FUNCTION(this);
 
@@ -263,8 +278,8 @@ ArClient::GenerateFrame()
     if (!m_pendingWorkloads.empty())
     {
         m_framesDropped++;
-        NS_LOG_INFO("ArClient " << m_clientId << " dropped frame " << m_frameCount
-                                << " (previous frame still pending)");
+        NS_LOG_INFO("PeriodicClient " << m_clientId << " dropped frame " << m_frameCount
+                                      << " (previous frame still pending)");
         m_frameDroppedTrace(m_frameCount);
         ScheduleNextFrame();
         return;
@@ -278,6 +293,11 @@ ArClient::GenerateFrame()
     task->SetComputeDemand(computeDemand);
     task->SetInputSize(frameSize);
     task->SetOutputSize(outputSize);
+
+    Time budget =
+        m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : Seconds(1.0 / m_frameRate);
+    Time computeBudget = budget - m_commBudget;
+    task->SetDeadline(Simulator::Now() + computeBudget);
 
     uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_framesSent;
     task->SetTaskId(taskId);
@@ -298,18 +318,27 @@ ArClient::GenerateFrame()
     packet->AddAtEnd(metadata);
     packet->AddHeader(orchHeader);
 
+    if (!m_connMgr->Send(packet))
+    {
+        NS_LOG_WARN("PeriodicClient " << m_clientId
+                                      << " failed to send admission request for dagId " << dagId);
+        m_framesDropped++;
+        m_frameDroppedTrace(m_frameCount);
+        ScheduleNextFrame();
+        return;
+    }
+
     PendingWorkload pw;
     pw.dag = dag;
     pw.submitTime = Simulator::Now();
     m_pendingWorkloads[dagId] = pw;
 
-    m_connMgr->Send(packet);
-
     m_framesSent++;
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("ArClient " << m_clientId << " sent frame " << m_framesSent << " (dagId " << dagId
-                            << ", " << frameSize << " bytes, " << computeDemand << " FLOPS)");
+    NS_LOG_INFO("PeriodicClient " << m_clientId << " sent frame " << m_framesSent << " (dagId "
+                                  << dagId << ", " << frameSize << " bytes, " << computeDemand
+                                  << " FLOPS)");
 
     m_frameSentTrace(task);
 
@@ -317,7 +346,7 @@ ArClient::GenerateFrame()
 }
 
 void
-ArClient::ScheduleNextFrame()
+PeriodicClient::ScheduleNextFrame()
 {
     NS_LOG_FUNCTION(this);
 
@@ -327,13 +356,13 @@ ArClient::ScheduleNextFrame()
     }
 
     Time interval = Seconds(1.0 / m_frameRate);
-    m_sendEvent = Simulator::Schedule(interval, &ArClient::GenerateFrame, this);
+    m_sendEvent = Simulator::Schedule(interval, &PeriodicClient::GenerateFrame, this);
 
     NS_LOG_DEBUG("Next frame scheduled in " << interval.GetMilliSeconds() << " ms");
 }
 
 void
-ArClient::ProcessBuffer()
+PeriodicClient::ProcessBuffer()
 {
     NS_LOG_FUNCTION(this);
 
@@ -376,7 +405,7 @@ ArClient::ProcessBuffer()
 }
 
 void
-ArClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
+PeriodicClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
 {
     NS_LOG_FUNCTION(this << orchHeader.GetTaskId() << orchHeader.IsAdmitted());
 
@@ -391,12 +420,12 @@ ArClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
 
     if (orchHeader.IsAdmitted())
     {
-        NS_LOG_INFO("ArClient " << m_clientId << " admission ACCEPTED for dagId " << dagId);
+        NS_LOG_INFO("PeriodicClient " << m_clientId << " admission ACCEPTED for dagId " << dagId);
         SendFullData(dagId);
     }
     else
     {
-        NS_LOG_INFO("ArClient " << m_clientId << " admission REJECTED for dagId " << dagId);
+        NS_LOG_INFO("PeriodicClient " << m_clientId << " admission REJECTED for dagId " << dagId);
 
         Ptr<DagTask> dag = it->second.dag;
         for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
@@ -413,7 +442,7 @@ ArClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
 }
 
 void
-ArClient::HandleTaskResponse()
+PeriodicClient::HandleTaskResponse()
 {
     NS_LOG_FUNCTION(this);
 
@@ -444,8 +473,9 @@ ArClient::HandleTaskResponse()
             Time latency = Simulator::Now() - it->second.submitTime;
             m_responsesReceived++;
 
-            NS_LOG_INFO("ArClient " << m_clientId << " received result for frame (task " << taskId
-                                    << ", latency=" << latency.GetMilliSeconds() << "ms)");
+            NS_LOG_INFO("PeriodicClient " << m_clientId << " received result for frame (task "
+                                          << taskId << ", latency=" << latency.GetMilliSeconds()
+                                          << "ms)");
 
             m_frameProcessedTrace(task, latency);
 
@@ -462,7 +492,7 @@ ArClient::HandleTaskResponse()
 }
 
 void
-ArClient::SendFullData(uint64_t dagId)
+PeriodicClient::SendFullData(uint64_t dagId)
 {
     NS_LOG_FUNCTION(this << dagId);
 
@@ -476,15 +506,30 @@ ArClient::SendFullData(uint64_t dagId)
     Ptr<DagTask> dag = it->second.dag;
     Ptr<Packet> packet = dag->SerializeFullData();
 
-    m_connMgr->Send(packet);
+    if (!m_connMgr->Send(packet))
+    {
+        NS_LOG_WARN("PeriodicClient " << m_clientId << " failed to send full data for dagId "
+                                      << dagId);
+        for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
+        {
+            Ptr<Task> task = dag->GetTask(i);
+            if (task)
+            {
+                m_frameRejectedTrace(task);
+            }
+        }
+        m_pendingWorkloads.erase(it);
+        return;
+    }
+
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("ArClient " << m_clientId << " sent full frame data for dagId " << dagId << " ("
-                            << packet->GetSize() << " bytes)");
+    NS_LOG_INFO("PeriodicClient " << m_clientId << " sent full frame data for dagId " << dagId
+                                  << " (" << packet->GetSize() << " bytes)");
 }
 
 int64_t
-ArClient::AssignStreams(int64_t stream)
+PeriodicClient::AssignStreams(int64_t stream)
 {
     NS_LOG_FUNCTION(this << stream);
     auto currentStream = stream;

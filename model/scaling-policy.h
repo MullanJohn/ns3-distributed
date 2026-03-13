@@ -9,6 +9,7 @@
 #ifndef SCALING_POLICY_H
 #define SCALING_POLICY_H
 
+#include "accelerator.h"
 #include "cluster-state.h"
 
 #include "ns3/object.h"
@@ -16,6 +17,7 @@
 #include "ns3/simple-ref-count.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace ns3
 {
@@ -74,12 +76,14 @@ class ScalingPolicy : public Object
     ~ScalingPolicy() override;
 
     /**
-     * @brief Decide on a scaling action based on backend state.
+     * @brief Decide on a scaling action based on backend state and available OPPs.
      *
      * @param backend Per-backend state including device metrics and load counters.
+     * @param opps The accelerator's operating point table, sorted by frequency ascending.
      * @return A scaling decision, or nullptr if no change needed.
      */
-    virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend) = 0;
+    virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
+                                        const std::vector<OperatingPoint>& opps) = 0;
 };
 
 } // namespace ns3

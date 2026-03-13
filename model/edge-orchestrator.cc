@@ -685,7 +685,30 @@ EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t task
 
     if (!m_clientConnMgr->Send(packet, clientAddr))
     {
-        NS_LOG_WARN("Failed to send admission response to client " << clientAddr);
+        NS_LOG_WARN("Failed to send admission response for id " << taskId << " to " << clientAddr);
+
+        if (admitted)
+        {
+            auto queueIt = m_pendingAdmissionQueue.find(clientAddr);
+            if (queueIt != m_pendingAdmissionQueue.end())
+            {
+                auto& queue = queueIt->second;
+                for (auto it = queue.begin(); it != queue.end(); ++it)
+                {
+                    if (it->id == taskId)
+                    {
+                        Simulator::Cancel(it->timeoutEvent);
+                        queue.erase(it);
+                        break;
+                    }
+                }
+                if (queue.empty())
+                {
+                    m_pendingAdmissionQueue.erase(queueIt);
+                }
+            }
+        }
+        return;
     }
 
     NS_LOG_DEBUG("Sent ADMISSION_RESPONSE for id " << taskId << ": "
@@ -1027,25 +1050,26 @@ EdgeOrchestrator::CompleteWorkload(uint64_t workloadId)
     {
         return;
     }
+    if (!it->second.clientAddr.IsInvalid())
+    {
+        if (!SendWorkloadResponse(it->second.clientAddr, it->second.dag))
+        {
+            NS_LOG_WARN("Failed to deliver result for workload " << workloadId << " — cancelling");
+            CancelWorkload(workloadId);
+            return;
+        }
+    }
 
     NS_LOG_INFO("Workload " << workloadId << " completed");
 
-    WorkloadState state = std::move(it->second);
     m_workloads.erase(it);
     m_clusterState.SetActiveWorkloadCount(static_cast<uint32_t>(m_workloads.size()));
 
-    // Update counters
     m_workloadCompletedTrace(workloadId);
     m_workloadsCompleted++;
-
-    // Send response to client
-    if (!state.clientAddr.IsInvalid())
-    {
-        SendWorkloadResponse(state.clientAddr, state.dag);
-    }
 }
 
-void
+bool
 EdgeOrchestrator::SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> dag)
 {
     NS_LOG_FUNCTION(this << clientAddr);
@@ -1064,9 +1088,12 @@ EdgeOrchestrator::SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> d
             if (!m_clientConnMgr->Send(packet, clientAddr))
             {
                 NS_LOG_WARN("Failed to send response to client " << clientAddr);
+                return false;
             }
         }
     }
+
+    return true;
 }
 
 void

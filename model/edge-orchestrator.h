@@ -329,8 +329,9 @@ class EdgeOrchestrator : public Application
      *
      * @param clientAddr The client address.
      * @param dag The completed DAG.
+     * @return true if all sink task responses were sent successfully.
      */
-    void SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> dag);
+    bool SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> dag);
 
     /**
      * @brief Clean up state for a disconnected client.
@@ -472,7 +473,7 @@ class EdgeOrchestrator : public Application
     };
 
     std::map<uint64_t, WorkloadState> m_workloads; //!< Active workloads
-    uint32_t m_nextWorkloadId{1};                  //!< Next workload ID
+    uint64_t m_nextWorkloadId{1};                  //!< Next workload ID
 
     // Pending admissions — per-client ordered queue
     // TCP ordering guarantees Phase 2 data arrives in the same order as admissions,

@@ -18,8 +18,8 @@ namespace ns3
  * @ingroup distributed
  * @brief Conservative DVFS scaling policy inspired by Linux conservative governor.
  *
- * This policy adjusts frequency by a fixed step size per scaling decision.
- * It also computes target voltage via linear V-F mapping.
+ * This policy steps frequency up or down by one operating point per decision.
+ * Frequency and voltage values come from the accelerator's OPP table.
  */
 class ConservativeScalingPolicy : public ScalingPolicy
 {
@@ -33,14 +33,8 @@ class ConservativeScalingPolicy : public ScalingPolicy
     ConservativeScalingPolicy();
     ~ConservativeScalingPolicy() override;
 
-    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend) override;
-
-  private:
-    double m_minFrequency;  //!< Lower frequency bound in Hz
-    double m_maxFrequency;  //!< Upper frequency bound in Hz
-    double m_minVoltage;    //!< Lower voltage bound in V
-    double m_maxVoltage;    //!< Upper voltage bound in V
-    double m_frequencyStep; //!< Frequency step size per decision in Hz
+    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
+                                const std::vector<OperatingPoint>& opps) override;
 };
 
 } // namespace ns3
