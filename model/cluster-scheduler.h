@@ -71,6 +71,22 @@ class ClusterScheduler : public Object
                                  const ClusterState& state) = 0;
 
     /**
+     * @brief Check if a task can be scheduled without side effects.
+     *
+     * Returns true if ScheduleTask() would find a suitable backend.
+     * Default implementation checks if any backend matches the task's
+     * required accelerator type. Other scheduler's can override with custom behaviour.
+     *
+     * @param task The task to check.
+     * @param cluster The cluster of available backends.
+     * @param state Per-backend load and device metrics.
+     * @return true if the task can be scheduled, false otherwise.
+     */
+    virtual bool CanScheduleTask(Ptr<Task> task,
+                                 const Cluster& cluster,
+                                 const ClusterState& state) const;
+
+    /**
      * @brief Notify scheduler that a task completed on a backend.
      *
      * Called when a task finishes execution. Stateful schedulers can use this
