@@ -105,15 +105,16 @@ EdgeOrchestrator::~EdgeOrchestrator()
 }
 
 uint64_t
-EdgeOrchestrator::EncodeWireTaskId(uint32_t workloadId, uint32_t dagIdx)
+EdgeOrchestrator::PeekTaskId(Ptr<Packet> buffer)
 {
-    return (static_cast<uint64_t>(workloadId) << 32) | static_cast<uint64_t>(dagIdx);
-}
-
-std::pair<uint64_t, uint32_t>
-EdgeOrchestrator::DecodeWireTaskId(uint64_t wireId)
-{
-    return {wireId >> 32, static_cast<uint32_t>(wireId & 0xFFFFFFFF)};
+    uint8_t prefix[9];
+    buffer->CopyData(prefix, 9);
+    uint64_t taskId = 0;
+    for (int j = 1; j < 9; j++)
+    {
+        taskId = (taskId << 8) | prefix[j];
+    }
+    return taskId;
 }
 
 bool
@@ -133,15 +134,11 @@ EdgeOrchestrator::CancelWorkload(uint64_t workloadId)
     WorkloadState state = std::move(it->second);
     m_workloads.erase(it);
 
-    // Clean up wire task type entries and cluster state for dispatched tasks
+    // Clean up dispatched task entries and cluster state for dispatched tasks
     for (const auto& tb : state.taskToBackend)
     {
         m_clusterState.NotifyTaskCompleted(tb.second);
-        int32_t dagIdx = state.dag->GetTaskIndex(tb.first);
-        if (dagIdx >= 0)
-        {
-            m_wireTaskType.erase(EncodeWireTaskId(workloadId, static_cast<uint32_t>(dagIdx)));
-        }
+        m_dispatchedTasks.erase(tb.first);
     }
 
     m_workloadsCancelled++;
@@ -222,7 +219,7 @@ EdgeOrchestrator::DoDispose()
     m_scheduler = nullptr;
     m_deviceManager = nullptr;
     m_taskTypeRegistry.clear();
-    m_wireTaskType.clear();
+    m_dispatchedTasks.clear();
     m_cluster.Clear();
     m_clusterState.Clear();
 
@@ -699,44 +696,38 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
 
     const Cluster::Backend& backend = m_cluster.Get(backendIdx);
 
-    // Look up workload state to get DAG index for wire encoding
     auto wit = m_workloads.find(workloadId);
     NS_ASSERT_MSG(wit != m_workloads.end(),
                   "DispatchTask: workload " << workloadId << " not found");
     auto& state = wit->second;
 
-    uint64_t originalTaskId = task->GetTaskId();
-    int32_t dagIdx = state.dag->GetTaskIndex(originalTaskId);
-    NS_ASSERT_MSG(dagIdx >= 0, "Task " << originalTaskId << " not found in DAG");
-    uint64_t wireId = EncodeWireTaskId(workloadId, static_cast<uint32_t>(dagIdx));
+    uint64_t taskId = task->GetTaskId();
+    int32_t dagIdx = state.dag->GetTaskIndex(taskId);
+    NS_ASSERT_MSG(dagIdx >= 0, "Task " << taskId << " not found in DAG");
 
-    // Record task type for backend response deserialization
-    m_wireTaskType[wireId] = task->GetTaskType();
+    // Record dispatch info for routing backend responses
+    m_dispatchedTasks[taskId] = {workloadId, static_cast<uint32_t>(dagIdx), task->GetTaskType()};
 
     // Track dispatch
-    state.taskToBackend[originalTaskId] = backendIdx;
+    state.taskToBackend[taskId] = backendIdx;
     state.pendingTasks++;
 
-    // Set wire ID for backend routing, serialize, then restore original
-    task->SetTaskId(wireId);
     Ptr<Packet> packet = task->Serialize(false);
-    task->SetTaskId(originalTaskId);
 
     bool sent = m_workerConnMgr->Send(packet, backend.address);
     if (!sent)
     {
         NS_LOG_ERROR("Failed to send task to backend " << backendIdx);
-        m_wireTaskType.erase(wireId);
-        state.taskToBackend.erase(originalTaskId);
+        m_dispatchedTasks.erase(taskId);
+        state.taskToBackend.erase(taskId);
         state.pendingTasks--;
         return -1;
     }
 
     task->SetState(TASK_DISPATCHED);
-    m_taskDispatchedTrace(workloadId, originalTaskId, backendIdx);
+    m_taskDispatchedTrace(workloadId, taskId, backendIdx);
     m_clusterState.NotifyTaskDispatched(backendIdx);
-    NS_LOG_INFO("Dispatched task " << originalTaskId << " (wire " << wireId << ") to backend "
-                                   << backendIdx);
+    NS_LOG_INFO("Dispatched task " << taskId << " to backend " << backendIdx);
 
     return backendIdx;
 }
@@ -758,7 +749,7 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
 
     while (buffer->GetSize() > 0)
     {
-        // Need at least messageType(1) + taskId(8) to peek wireId
+        // Need at least messageType(1) + taskId(8) to peek task ID
         if (buffer->GetSize() < 9)
         {
             break;
@@ -770,29 +761,23 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
             continue;
         }
 
-        // Peek wireId from the common TaskHeader prefix (byte 0: messageType,
-        // bytes 1-8: taskId in network order). All TaskHeader implementations
-        // MUST serialize this 9-byte prefix — see TaskHeader class documentation.
-        uint8_t prefix[9];
-        buffer->CopyData(prefix, 9);
-        uint64_t wireId = 0;
-        for (int j = 1; j < 9; j++)
-        {
-            wireId = (wireId << 8) | prefix[j];
-        }
+        // Peek task ID from the common TaskHeader prefix
+        uint64_t taskId = PeekTaskId(buffer);
 
-        // Look up task type from dispatch-time recording
-        auto typeIt = m_wireTaskType.find(wireId);
-        if (typeIt == m_wireTaskType.end())
+        // Look up dispatch info recorded when the task was sent
+        auto dispIt = m_dispatchedTasks.find(taskId);
+        if (dispIt == m_dispatchedTasks.end())
         {
-            NS_LOG_ERROR("No task type recorded for wireId " << wireId);
+            NS_LOG_ERROR("No dispatch info for task " << taskId);
             break;
         }
 
-        auto regIt = m_taskTypeRegistry.find(typeIt->second);
+        DispatchedTaskInfo info = dispIt->second;
+
+        auto regIt = m_taskTypeRegistry.find(info.taskType);
         if (regIt == m_taskTypeRegistry.end())
         {
-            NS_LOG_ERROR("No deserializer for task type " << (int)typeIt->second);
+            NS_LOG_ERROR("No deserializer for task type " << (int)info.taskType);
             break;
         }
 
@@ -809,52 +794,35 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
         if (!task)
         {
             NS_LOG_ERROR("Deserializer consumed "
-                         << consumedBytes << " bytes but returned null task for wireId " << wireId
+                         << consumedBytes << " bytes but returned null task " << taskId
                          << " — cancelling workload");
-            auto decoded = DecodeWireTaskId(wireId);
-            m_wireTaskType.erase(wireId);
-            CancelWorkload(decoded.first);
+            m_dispatchedTasks.erase(dispIt);
+            CancelWorkload(info.workloadId);
             continue;
         }
 
-        m_wireTaskType.erase(wireId);
+        m_dispatchedTasks.erase(dispIt);
 
-        // Decode wire task ID to recover workload and DAG index
-        std::pair<uint64_t, uint32_t> decoded = DecodeWireTaskId(wireId);
-        uint64_t workloadId = decoded.first;
-        uint32_t dagIdx = decoded.second;
-
-        auto workloadIt = m_workloads.find(workloadId);
+        auto workloadIt = m_workloads.find(info.workloadId);
         if (workloadIt == m_workloads.end())
         {
-            NS_LOG_WARN("Workload " << workloadId << " not found for wire task " << wireId);
+            NS_LOG_WARN("Workload " << info.workloadId << " not found for task " << taskId);
             continue;
         }
-
-        auto& state = workloadIt->second;
-
-        // Restore original task ID from the DAG
-        Ptr<Task> originalDagTask = state.dag->GetTask(dagIdx);
-        if (!originalDagTask)
-        {
-            NS_LOG_WARN("DAG index " << dagIdx << " invalid for workload " << workloadId);
-            continue;
-        }
-        uint64_t originalTaskId = originalDagTask->GetTaskId();
-        task->SetTaskId(originalTaskId);
 
         // Get backend index
-        auto backendIt = state.taskToBackend.find(originalTaskId);
+        auto& state = workloadIt->second;
+        auto backendIt = state.taskToBackend.find(taskId);
         if (backendIt == state.taskToBackend.end())
         {
-            NS_LOG_ERROR("Backend index not found for task " << originalTaskId << " in workload "
-                                                             << workloadId
+            NS_LOG_ERROR("Backend index not found for task " << taskId << " in workload "
+                                                             << info.workloadId
                                                              << " - skipping completion");
             continue;
         }
         uint32_t backendIdx = backendIt->second;
 
-        OnTaskCompleted(workloadId, task, backendIdx);
+        OnTaskCompleted(info.workloadId, task, backendIdx);
     }
 
     if (buffer->GetSize() == 0)

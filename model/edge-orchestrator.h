@@ -391,19 +391,15 @@ class EdgeOrchestrator : public Application
         Ptr<Packet> packet);
 
     /**
-     * @brief Encode workload ID and DAG index into a wire task ID.
-     * @param workloadId The workload ID (upper 32 bits).
-     * @param dagIdx The DAG task index (lower 32 bits).
-     * @return The encoded wire task ID.
+     * @brief Peek the task ID from a backend response buffer.
+     *
+     * Reads the 8-byte task ID from the common TaskHeader prefix
+     * (byte 0: messageType, bytes 1-8: taskId in network order).
+     *
+     * @param buffer The packet buffer to peek from (must have >= 9 bytes).
+     * @return The task ID.
      */
-    static uint64_t EncodeWireTaskId(uint32_t workloadId, uint32_t dagIdx);
-
-    /**
-     * @brief Decode a wire task ID into workload ID and DAG index.
-     * @param wireId The encoded wire task ID.
-     * @return Pair of (workloadId, dagIdx).
-     */
-    static std::pair<uint64_t, uint32_t> DecodeWireTaskId(uint64_t wireId);
+    static uint64_t PeekTaskId(Ptr<Packet> buffer);
 
     /**
      * @brief Dispatch deserialization of a type-prefixed task buffer.
@@ -446,8 +442,19 @@ class EdgeOrchestrator : public Application
     Ptr<ClusterScheduler> m_scheduler;      //!< Task scheduler (required)
     Ptr<DeviceManager> m_deviceManager;     //!< DVFS device manager (optional)
     std::map<uint8_t, TaskTypeEntry> m_taskTypeRegistry; //!< taskType → deserializers
-    std::unordered_map<uint64_t, uint8_t>
-        m_wireTaskType;          //!< wireId → taskType (for backend responses)
+
+    /**
+     * @brief Info stored per dispatched task for routing backend responses.
+     */
+    struct DispatchedTaskInfo
+    {
+        uint64_t workloadId; //!< Owning workload
+        uint32_t dagIdx;     //!< Index within the DAG
+        uint8_t taskType;    //!< Task type for deserialization
+    };
+
+    std::unordered_map<uint64_t, DispatchedTaskInfo>
+        m_dispatchedTasks;       //!< originalTaskId → dispatch info
     Cluster m_cluster;           //!< Backend cluster
     ClusterState m_clusterState; //!< Per-backend load and device metrics
     uint16_t m_port;             //!< Listen port
