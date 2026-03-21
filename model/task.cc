@@ -116,6 +116,8 @@ Task::DoDispose()
     m_deadline = Time(-1);
     m_priority = 0;
     m_requiredAcceleratorType.clear();
+    m_computeTime = Seconds(0);
+    m_serverTime = Seconds(0);
     Object::DoDispose();
 }
 
@@ -221,6 +223,32 @@ Task::SetPriority(uint32_t priority)
 {
     NS_LOG_FUNCTION(this << priority);
     m_priority = priority;
+}
+
+Time
+Task::GetComputeTime() const
+{
+    return m_computeTime;
+}
+
+void
+Task::SetComputeTime(Time time)
+{
+    NS_LOG_FUNCTION(this << time);
+    m_computeTime = time;
+}
+
+Time
+Task::GetServerTime() const
+{
+    return m_serverTime;
+}
+
+void
+Task::SetServerTime(Time time)
+{
+    NS_LOG_FUNCTION(this << time);
+    m_serverTime = time;
 }
 
 std::string

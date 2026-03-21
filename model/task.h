@@ -180,6 +180,30 @@ class Task : public Object
     void SetPriority(uint32_t priority);
 
     /**
+     * @brief Get the recorded compute time (accelerator execution).
+     * @return The compute time. Returns Time(0) if not set.
+     */
+    Time GetComputeTime() const;
+
+    /**
+     * @brief Set the recorded compute time.
+     * @param time The compute time.
+     */
+    void SetComputeTime(Time time);
+
+    /**
+     * @brief Get the recorded server time (arrival to response, includes queuing + compute).
+     * @return The server time. Returns Time(0) if not set.
+     */
+    Time GetServerTime() const;
+
+    /**
+     * @brief Set the recorded server time.
+     * @param time The server time.
+     */
+    void SetServerTime(Time time);
+
+    /**
      * @brief Get the required accelerator type.
      * @return The accelerator type string (e.g., "GPU", "TPU"). Empty string means any accelerator.
      */
@@ -251,6 +275,8 @@ class Task : public Object
     Time m_deadline{Time(-1)};                 //!< Task deadline (-1 = no deadline)
     uint32_t m_priority{0};                    //!< Task priority (higher = higher priority)
     std::string m_requiredAcceleratorType{""}; //!< Required accelerator type (empty = any)
+    Time m_computeTime{Seconds(0)};            //!< Accelerator execution time
+    Time m_serverTime{Seconds(0)};             //!< Server arrival to response (queue + compute)
 };
 
 } // namespace ns3

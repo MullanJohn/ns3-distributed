@@ -213,6 +213,8 @@ GpuAccelerator::ProcessingComplete()
     NS_LOG_INFO("Task " << m_currentTask->GetTaskId() << " completed in " << duration
                         << ", energy: " << taskEnergy << "J");
 
+    m_currentTask->SetComputeTime(duration);
+
     // Task completion trace fires last
     m_currentTask->SetState(TASK_COMPLETED);
     m_taskCompletedTrace(m_currentTask, duration);
