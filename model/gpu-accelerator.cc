@@ -271,9 +271,42 @@ GpuAccelerator::SetFrequency(double frequency)
     {
         return;
     }
+
     double ratio = frequency / m_frequency;
-    m_computeRate *= ratio;
-    m_frequency = frequency;
+
+    if (m_busy && m_currentEvent.IsPending())
+    {
+        Time delayLeft = Simulator::GetDelayLeft(m_currentEvent);
+        Simulator::Cancel(m_currentEvent);
+
+        ProcessingModel::Result currentResult =
+            m_processingModel->Process(m_currentTask, this);
+        double fraction =
+            1.0 - (delayLeft.GetSeconds() / currentResult.processingTime.GetSeconds());
+
+        m_computeRate *= ratio;
+        m_frequency = frequency;
+
+        if (fraction >= 1.0)
+        {
+            Simulator::ScheduleNow(&GpuAccelerator::ProcessingComplete, this);
+        }
+        else
+        {
+            ProcessingModel::Result newResult =
+                m_processingModel->Process(m_currentTask, this);
+            Time remaining = newResult.processingTime * (1.0 - fraction);
+            m_currentEvent = Simulator::Schedule(
+                remaining,
+                &GpuAccelerator::ProcessingComplete,
+                this);
+        }
+    }
+    else
+    {
+        m_computeRate *= ratio;
+        m_frequency = frequency;
+    }
 }
 
 void
