@@ -72,6 +72,7 @@ DeviceManager::Start(const Cluster& cluster, Ptr<ConnectionManager> workerCm)
         if (accel)
         {
             m_operatingPoints[i] = accel->GetOperatingPoints();
+            m_commandedFrequency[i] = accel->GetFrequency();
         }
     }
 }
@@ -132,11 +133,27 @@ DeviceManager::EvaluateScaling(const ClusterState& state)
 
     for (uint32_t i = 0; i < m_commandedFrequency.size(); i++)
     {
-        const ClusterState::BackendState& backend = state.Get(i);
+        const ClusterState::BackendState& real = state.Get(i);
 
-        Ptr<ScalingDecision> decision = m_scalingPolicy->Decide(backend, m_operatingPoints[i]);
+        ClusterState::BackendState effective = real;
+        if (!effective.deviceMetrics)
+        {
+            Ptr<DeviceMetrics> synthetic = Create<DeviceMetrics>();
+            synthetic->frequency = m_commandedFrequency[i];
+            synthetic->busy = real.activeTasks > 0;
+            synthetic->queueLength = real.activeTasks;
+            effective.deviceMetrics = synthetic;
+        }
+
+        Ptr<ScalingDecision> decision =
+            m_scalingPolicy->Decide(effective, m_operatingPoints[i]);
 
         if (!decision)
+        {
+            continue;
+        }
+
+        if (decision->targetFrequency == m_commandedFrequency[i])
         {
             continue;
         }
