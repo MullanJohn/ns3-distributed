@@ -56,9 +56,9 @@ class DeviceManager : public Object
      * Must be called before HandleMetrics() or EvaluateScaling().
      *
      * @param cluster The backend cluster.
-     * @param workerCm The worker connection manager for sending commands.
+     * @param backendCm The backend connection manager for sending commands.
      */
-    void Start(const Cluster& cluster, Ptr<ConnectionManager> workerCm);
+    void Start(const Cluster& cluster, Ptr<ConnectionManager> backendCm);
 
     /**
      * @brief Store metrics received from a backend.
@@ -113,7 +113,7 @@ class DeviceManager : public Object
     Ptr<ScalingPolicy> m_scalingPolicy;   //!< Pluggable scaling strategy
     Ptr<DeviceProtocol> m_deviceProtocol; //!< Protocol for metrics/command serialization
 
-    Ptr<ConnectionManager> m_workerConnMgr; //!< Worker connection for sending commands
+    Ptr<ConnectionManager> m_backendConnMgr; //!< Backend connection for sending commands
     Cluster m_cluster;                      //!< Backend cluster reference
     std::vector<double>
         m_commandedFrequency; //!< Expected frequency per backend (reported or commanded)

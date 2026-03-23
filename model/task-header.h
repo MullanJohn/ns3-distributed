@@ -21,21 +21,15 @@ namespace ns3
  * @brief Abstract base class for task-based protocol headers.
  *
  * TaskHeader defines the minimal interface for headers used in
- * distributed computing scenarios. It provides:
+ * computing scenarios. It provides:
  * - Message type identification (request vs response)
  * - Task identification for routing and correlation
  * - Payload size calculation for TCP stream reassembly
- *
- * Concrete implementations (e.g., SimpleTaskHeader) add task-specific
- * fields like compute demand, I/O sizes, or inference parameters.
  *
  * Implementations MUST serialize messageType (1 byte) followed by taskId
  * (8 bytes, network byte order) as the first 9 bytes. This common prefix
  * enables the EdgeOrchestrator to peek the taskId for response routing
  * without knowing the concrete header type.
- *
- * OffloadServer and EdgeOrchestrator use this interface to route messages
- * without inspecting task-specific fields.
  *
  * Example usage:
  * @code
@@ -61,8 +55,8 @@ class TaskHeader : public Header
      */
     enum MessageType
     {
-        TASK_REQUEST = 0, //!< Request message (client to server)
-        TASK_RESPONSE = 1 //!< Response message (server to client)
+        TASK_REQUEST = 0, //!< Request message
+        TASK_RESPONSE = 1 //!< Response message
     };
 
     /**

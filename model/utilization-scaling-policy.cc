@@ -45,7 +45,7 @@ UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
 
     if (opps.size() < 2)
     {
-        return nullptr; // No scaling possible
+        return nullptr;
     }
 
     bool busy;
@@ -67,7 +67,7 @@ UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
 
     if (target.frequency == currentFreq)
     {
-        return nullptr; // No change needed
+        return nullptr;
     }
 
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();

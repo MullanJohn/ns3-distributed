@@ -117,7 +117,7 @@ Task::DoDispose()
     m_priority = 0;
     m_requiredAcceleratorType.clear();
     m_computeTime = Seconds(0);
-    m_serverTime = Seconds(0);
+    m_backendTime = Seconds(0);
     Object::DoDispose();
 }
 
@@ -239,16 +239,16 @@ Task::SetComputeTime(Time time)
 }
 
 Time
-Task::GetServerTime() const
+Task::GetBackendTime() const
 {
-    return m_serverTime;
+    return m_backendTime;
 }
 
 void
-Task::SetServerTime(Time time)
+Task::SetBackendTime(Time time)
 {
     NS_LOG_FUNCTION(this << time);
-    m_serverTime = time;
+    m_backendTime = time;
 }
 
 std::string

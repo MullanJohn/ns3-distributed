@@ -137,7 +137,7 @@ GpuAccelerator::StartNextTask()
     if (m_queueScheduler->IsEmpty())
     {
         m_busy = false;
-        UpdateEnergyState(false, 0.0); // Transition to idle
+        UpdateEnergyState(false, 0.0);
         return;
     }
 
@@ -153,7 +153,6 @@ GpuAccelerator::StartNextTask()
         StartNextTask();
         return;
     }
-    // Calculate processing characteristics using ProcessingModel
     ProcessingModel::Result result = m_processingModel->Process(m_currentTask, this);
     if (!result.success)
     {
@@ -166,21 +165,17 @@ GpuAccelerator::StartNextTask()
         return;
     }
 
-    // Processing model validated task - begin execution
     m_busy = true;
     m_taskStartTime = Simulator::Now();
 
     NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
 
-    // Update energy state: transition to active with modeled utilization
     UpdateEnergyState(true, result.utilization);
     RecordTaskStartEnergy();
 
-    // Fire task started trace
     m_currentTask->SetState(TASK_RUNNING);
     m_taskStartedTrace(m_currentTask);
 
-    // Update queue length after trace (includes current task being processed)
     m_queueLength = m_queueScheduler->GetLength() + 1;
 
     NS_LOG_DEBUG("Processing time: " << result.processingTime);
@@ -195,18 +190,8 @@ GpuAccelerator::ProcessingComplete()
 
     Time duration = Simulator::Now() - m_taskStartTime;
 
-    // Trace firing order:
-    // 1. UpdateEnergyState fires CurrentPower and TotalEnergy traces
-    //    (must happen first to accumulate energy from the active period)
-    // 2. TaskEnergy trace fires with per-task energy consumption
-    //    (requires final energy accumulation from step 1)
-    // 3. TaskCompleted trace fires last with task and duration
-
-    // Energy state transition: active -> idle
-    // This fires CurrentPower and TotalEnergy traces
     UpdateEnergyState(false, 0.0);
 
-    // Per-task energy calculation and trace
     double taskEnergy = GetTaskEnergy();
     m_taskEnergyTrace(m_currentTask, taskEnergy);
 
@@ -215,7 +200,6 @@ GpuAccelerator::ProcessingComplete()
 
     m_currentTask->SetComputeTime(duration);
 
-    // Task completion trace fires last
     m_currentTask->SetState(TASK_COMPLETED);
     m_taskCompletedTrace(m_currentTask, duration);
 
@@ -223,7 +207,6 @@ GpuAccelerator::ProcessingComplete()
     m_currentTask = nullptr;
     m_queueLength = m_queueScheduler->GetLength();
 
-    // Start next task if available
     StartNextTask();
 }
 

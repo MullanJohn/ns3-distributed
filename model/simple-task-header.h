@@ -22,11 +22,9 @@ namespace ns3
  * @brief Header for task offload packets.
  *
  * This header serializes task metadata for transmission between
- * offload clients and servers. It includes the task identifier,
+ * clients and backends. It includes the task identifier,
  * compute demand, and input/output data sizes.
  *
- * SimpleTaskHeader is a concrete implementation of TaskHeader
- * designed for compute offloading scenarios.
  */
 class SimpleTaskHeader : public TaskHeader
 {
@@ -46,7 +44,7 @@ class SimpleTaskHeader : public TaskHeader
      * - inputSize: 8 bytes
      * - outputSize: 8 bytes
      * - deadline: 8 bytes (int64_t nanoseconds, -1 = no deadline)
-     * - acceleratorType: 16 bytes (null-padded string)
+     * - acceleratorType: 16 bytes
      */
     static constexpr uint32_t SERIALIZED_SIZE = 57;
 
@@ -59,7 +57,7 @@ class SimpleTaskHeader : public TaskHeader
     SimpleTaskHeader();
     ~SimpleTaskHeader() override;
 
-    // DistributedHeader interface implementation
+    // TaskHeader interface implementation
     MessageType GetMessageType() const override;
     void SetMessageType(MessageType messageType) override;
     uint64_t GetTaskId() const override;

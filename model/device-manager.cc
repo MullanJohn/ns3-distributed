@@ -58,11 +58,11 @@ DeviceManager::~DeviceManager()
 }
 
 void
-DeviceManager::Start(const Cluster& cluster, Ptr<ConnectionManager> workerCm)
+DeviceManager::Start(const Cluster& cluster, Ptr<ConnectionManager> backendCm)
 {
     NS_LOG_FUNCTION(this);
     m_cluster = cluster;
-    m_workerConnMgr = workerCm;
+    m_backendConnMgr = backendCm;
     m_commandedFrequency.resize(cluster.GetN(), 0.0);
 
     m_operatingPoints.resize(cluster.GetN());
@@ -161,7 +161,7 @@ DeviceManager::EvaluateScaling(const ClusterState& state)
         double oldFreq = m_commandedFrequency[i];
 
         Ptr<Packet> cmdPacket = m_deviceProtocol->CreateCommandPacket(decision);
-        if (!m_workerConnMgr->Send(cmdPacket, m_cluster.Get(i).address))
+        if (!m_backendConnMgr->Send(cmdPacket, m_cluster.Get(i).address))
         {
             NS_LOG_WARN("Failed to send scaling command to backend " << i);
             continue;
@@ -181,7 +181,7 @@ DeviceManager::DoDispose()
     NS_LOG_FUNCTION(this);
     m_scalingPolicy = nullptr;
     m_deviceProtocol = nullptr;
-    m_workerConnMgr = nullptr;
+    m_backendConnMgr = nullptr;
     m_commandedFrequency.clear();
     m_operatingPoints.clear();
     m_cluster.Clear();

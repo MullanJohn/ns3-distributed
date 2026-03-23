@@ -33,7 +33,7 @@ enum TaskState : uint8_t
     TASK_CREATED = 0,   //!< Task constructed, not yet submitted
     TASK_SUBMITTED = 1, //!< Sent to orchestrator (client-side)
     TASK_ADMITTED = 2,  //!< Accepted by admission policy (orchestrator-side)
-    TASK_DISPATCHED = 3, //!< Sent to backend worker
+    TASK_DISPATCHED = 3, //!< Sent to backend
     TASK_RUNNING = 4,   //!< Processing on accelerator
     TASK_COMPLETED = 5, //!< Successfully processed
     TASK_FAILED = 6,    //!< Processing or delivery failed
@@ -59,10 +59,9 @@ typedef void (*TaskStateTracedCallback)(TaskState oldValue, TaskState newValue);
  * @ingroup distributed
  * @brief Abstract base class representing a task to be executed on an accelerator.
  *
- * Task provides a common interface for all task types in the distributed computing
- * simulation framework. All tasks have common fields for compute demand, I/O sizes,
- * and timing metadata. Derived classes must implement GetName() to identify the
- * task type.
+ * Task provides a common interface for all task types. All tasks have common
+ * fields for compute demand, I/O sizes, and timing metadata. Derived classes
+ * must implement GetName() to identify the task type.
  */
 class Task : public Object
 {
@@ -90,7 +89,7 @@ class Task : public Object
 
     /**
      * @brief Get the task type name.
-     * @return A string identifying the task type (e.g., "SimpleTask", "InferenceTask").
+     * @return A string identifying the task type (e.g., "SimpleTask").
      *
      * Used for logging and for dispatching tasks to appropriate accelerators or headers.
      */
@@ -192,16 +191,16 @@ class Task : public Object
     void SetComputeTime(Time time);
 
     /**
-     * @brief Get the recorded server time (arrival to response, includes queuing + compute).
-     * @return The server time. Returns Time(0) if not set.
+     * @brief Get the recorded backend time (arrival to response, includes queuing + compute).
+     * @return The backend time. Returns Time(0) if not set.
      */
-    Time GetServerTime() const;
+    Time GetBackendTime() const;
 
     /**
-     * @brief Set the recorded server time.
-     * @param time The server time.
+     * @brief Set the recorded backend time.
+     * @param time The backend time.
      */
-    void SetServerTime(Time time);
+    void SetBackendTime(Time time);
 
     /**
      * @brief Get the required accelerator type.
@@ -276,7 +275,7 @@ class Task : public Object
     uint32_t m_priority{0};                    //!< Task priority (higher = higher priority)
     std::string m_requiredAcceleratorType{""}; //!< Required accelerator type (empty = any)
     Time m_computeTime{Seconds(0)};            //!< Accelerator execution time
-    Time m_serverTime{Seconds(0)};             //!< Server arrival to response (queue + compute)
+    Time m_backendTime{Seconds(0)};             //!< Backend arrival to response (queue + compute)
 };
 
 } // namespace ns3

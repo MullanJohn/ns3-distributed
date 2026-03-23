@@ -24,11 +24,6 @@ namespace ns3
  *
  * FirstFitScheduler iterates through backends in round-robin order and selects
  * the first one that matches the task's accelerator requirements.
- *
- * Example with backends [GPU, CPU, GPU] and task requiring "GPU":
- * - First task: Backend 0 (GPU matches)
- * - Second task: Backend 2 (GPU matches, round-robin skips CPU)
- * - Third task: Backend 0 (wraps around)
  */
 class FirstFitScheduler : public ClusterScheduler
 {
@@ -50,6 +45,7 @@ class FirstFitScheduler : public ClusterScheduler
      *
      * @param task The task to schedule.
      * @param cluster The cluster of backends.
+     * @param state The current state of the cluster.
      * @return Backend index, or -1 if no suitable backend.
      */
     int32_t ScheduleTask(Ptr<Task> task,

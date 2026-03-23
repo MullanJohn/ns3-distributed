@@ -26,9 +26,9 @@ namespace ns3
  * multiplexed on the same connection as task data using message type 5.
  *
  * Wire format (17 bytes):
- * - messageType: 1 byte (uint8_t, always SCALING_COMMAND = 5)
- * - targetFrequency: 8 bytes (double as uint64_t via memcpy, network byte order)
- * - targetVoltage: 8 bytes (double as uint64_t via memcpy, network byte order)
+ * - messageType: 1 byte (SCALING_COMMAND = 5)
+ * - targetFrequency: 8 bytes
+ * - targetVoltage: 8 bytes
  */
 class ScalingCommandHeader : public Header
 {

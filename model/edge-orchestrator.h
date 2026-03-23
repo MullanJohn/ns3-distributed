@@ -39,7 +39,6 @@ class DeviceManager;
  * of backend workers. It provides:
  * - Admission control via pluggable AdmissionPolicy
  * - Task scheduling via pluggable Scheduler
- * - Support for DAG workflows (single tasks are wrapped as 1-node DAGs)
  *
  * The orchestrator supports mixed task types through a task type registry.
  * Each task type is registered via RegisterTaskType() with its deserializer
@@ -461,9 +460,9 @@ class EdgeOrchestrator : public Application
 
     // Connection management
     Ptr<ConnectionManager> m_clientConnMgr;          //!< For client connections (listening)
-    Ptr<ConnectionManager> m_workerConnMgr;          //!< For worker connections (outgoing)
-    std::map<Address, Ptr<Packet>> m_rxBuffer;       //!< Per-client receive buffers
-    std::map<Address, Ptr<Packet>> m_workerRxBuffer; //!< Per-worker receive buffers
+    Ptr<ConnectionManager> m_backendConnMgr;          //!< For backend connections (outgoing)
+    std::map<Address, Ptr<Packet>> m_rxBuffer;        //!< Per-client receive buffers
+    std::map<Address, Ptr<Packet>> m_backendRxBuffer; //!< Per-backend receive buffers
 
     // Workload state
     struct WorkloadState

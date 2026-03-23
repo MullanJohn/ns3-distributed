@@ -72,8 +72,6 @@ EnergyModel::PowerState
 DvfsEnergyModel::CalculateIdlePower(Ptr<Accelerator> accelerator)
 {
     NS_LOG_FUNCTION(this << accelerator);
-
-    // Idle state: only static power, no dynamic power
     return EnergyModel::PowerState(m_staticPower, 0.0);
 }
 
@@ -88,10 +86,8 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
         return EnergyModel::PowerState();
     }
 
-    // Clamp utilization to [0.0, 1.0]
     utilization = std::max(0.0, std::min(1.0, utilization));
 
-    // Get voltage and frequency from accelerator
     double voltage = accelerator->GetVoltage();
     double frequency = accelerator->GetFrequency();
 

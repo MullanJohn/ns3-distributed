@@ -23,10 +23,10 @@ class DeviceMetrics;
  * @ingroup distributed
  * @brief Centralized view of per-backend load and device metrics for decision-makers.
  *
- * ClusterState is a plain data container owned by
- * EdgeOrchestrator. It aggregates orchestrator-tracked dispatch/completion
- * counts and device-reported metrics into a single object that is passed
- * to ScalingPolicy, ClusterScheduler, and AdmissionPolicy on each call.
+ * ClusterState is a plain data container owned by EdgeOrchestrator. It aggregates
+ * orchestrator-tracked dispatch/completion counts and device-reported metrics
+ * into a single object that is passed to ScalingPolicy, ClusterScheduler, and
+ * AdmissionPolicy on each call.
  */
 class ClusterState
 {

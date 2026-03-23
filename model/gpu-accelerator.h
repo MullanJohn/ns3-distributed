@@ -28,8 +28,6 @@ namespace ns3
  * GpuAccelerator models a GPU processing unit. Task processing time
  * is determined by the attached ProcessingModel, which must be set
  * before tasks can be submitted.
- *
- * This is a concrete implementation of the Accelerator interface.
  */
 class GpuAccelerator : public Accelerator
 {

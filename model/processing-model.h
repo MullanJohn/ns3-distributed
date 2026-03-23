@@ -25,10 +25,7 @@ class Accelerator; // Forward declaration
  * @brief Abstract base class for compute processing models.
  *
  * ProcessingModel defines the interface for calculating task processing
- * characteristics such as execution time and output size. This decouples
- * the compute model from the hardware accelerator, allowing different
- * workload types (e.g., fixed-ratio compute, LLM inference, image recognition)
- * to be modeled independently.
+ * characteristics such as execution time and output size.
  *
  * Example usage:
  * @code
@@ -45,10 +42,6 @@ class Accelerator; // Forward declaration
  * task->SetOutputSize(1e6);
  *
  * ProcessingModel::Result result = model->Process(task, gpu);
- * if (result.success)
- * {
- *     Simulator::Schedule(result.processingTime, &OnComplete, result.outputSize);
- * }
  * @endcode
  */
 class ProcessingModel : public Object
@@ -116,7 +109,7 @@ class ProcessingModel : public Object
      * the calculated processing time and output size. If the task
      * type is not supported, return a Result with success=false.
      *
-     * @param task The task to process (const to prevent modification).
+     * @param task The task to process.
      * @param accelerator The accelerator providing hardware characteristics.
      * @return Result containing processing time, output size, and success status.
      */
@@ -125,7 +118,7 @@ class ProcessingModel : public Object
     /**
      * @brief Get the name of this processing model.
      *
-     * @return A string identifying the model (e.g., "FixedRatio", "LLM").
+     * @return A string identifying the model (e.g., "FixedRatio").
      */
     virtual std::string GetName() const = 0;
 

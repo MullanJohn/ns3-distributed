@@ -47,20 +47,6 @@ namespace ns3
  * conn->Send(packet);  // Manager picks an idle connection
  * @endcode
  *
- * **Explicit Connection Control** (for streaming or metrics):
- * @code
- * auto connId = conn->AcquireConnection();
- * conn->Send(connId, packet);  // All packets on same connection
- * // ... receive response ...
- * conn->ReleaseConnection(connId);
- * @endcode
- *
- * ## Stream Reassembly
- *
- * TCP is a stream protocol, so received data may be fragmented or coalesced.
- * The ReceiveCallback delivers data as it arrives. Applications that need
- * message framing should handle it at the application layer (e.g., using
- * headers with length fields).
  */
 class TcpConnectionManager : public ConnectionManager
 {

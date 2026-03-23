@@ -71,11 +71,9 @@ SimpleTask::Serialize(bool isResponse) const
     header.SetDeadlineNs(m_deadline.IsNegative() ? -1 : m_deadline.GetNanoSeconds());
     header.SetAcceleratorType(GetRequiredAcceleratorType());
 
-    // Create packet with header
     Ptr<Packet> packet = Create<Packet>();
     packet->AddHeader(header);
 
-    // Add payload padding (simulates actual data transfer)
     uint64_t payloadSize = isResponse ? m_outputSize : m_inputSize;
     if (payloadSize > 0)
     {
@@ -98,7 +96,6 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
     NS_LOG_FUNCTION(packet);
     consumedBytes = 0;
 
-    // Check if we have enough data for the header
     if (packet->GetSize() < SimpleTaskHeader::SERIALIZED_SIZE)
     {
         NS_LOG_DEBUG("Not enough data for header: have " << packet->GetSize() << ", need "
@@ -106,7 +103,6 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
         return nullptr;
     }
 
-    // Peek at header to determine total message size (non-destructive)
     SimpleTaskHeader header;
     packet->PeekHeader(header);
 
@@ -114,7 +110,6 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
         header.IsResponse() ? header.GetResponsePayloadSize() : header.GetRequestPayloadSize();
     uint64_t totalSize = SimpleTaskHeader::SERIALIZED_SIZE + payloadSize;
 
-    // Check if we have the complete message
     if (packet->GetSize() < totalSize)
     {
         NS_LOG_DEBUG("Not enough data for message: have " << packet->GetSize() << ", need "
@@ -122,7 +117,6 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
         return nullptr;
     }
 
-    // Create task from header data (non-destructive - caller removes bytes)
     Ptr<SimpleTask> task = CreateObject<SimpleTask>();
     task->SetTaskId(header.GetTaskId());
     task->SetComputeDemand(header.GetComputeDemand());
@@ -135,7 +129,6 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
         task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
     }
 
-    // Report consumed bytes - caller is responsible for removing from buffer
     consumedBytes = totalSize;
     return task;
 }
@@ -146,7 +139,6 @@ SimpleTask::DeserializeHeader(Ptr<Packet> packet, uint64_t& consumedBytes)
     NS_LOG_FUNCTION(packet);
     consumedBytes = 0;
 
-    // Check if we have enough data for the header
     if (packet->GetSize() < SimpleTaskHeader::SERIALIZED_SIZE)
     {
         NS_LOG_DEBUG("Not enough data for header: have " << packet->GetSize() << ", need "
@@ -154,11 +146,9 @@ SimpleTask::DeserializeHeader(Ptr<Packet> packet, uint64_t& consumedBytes)
         return nullptr;
     }
 
-    // Peek at header (non-destructive)
     SimpleTaskHeader header;
     packet->PeekHeader(header);
 
-    // Create task from header data only - no payload consumed
     Ptr<SimpleTask> task = CreateObject<SimpleTask>();
     task->SetTaskId(header.GetTaskId());
     task->SetComputeDemand(header.GetComputeDemand());
@@ -171,7 +161,6 @@ SimpleTask::DeserializeHeader(Ptr<Packet> packet, uint64_t& consumedBytes)
         task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
     }
 
-    // Only the header bytes are consumed, not payload
     consumedBytes = SimpleTaskHeader::SERIALIZED_SIZE;
     return task;
 }

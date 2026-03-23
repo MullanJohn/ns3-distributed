@@ -26,19 +26,6 @@ namespace ns3
  * After admission is granted, normal Task serialization (TaskHeader with
  * TASK_REQUEST/TASK_RESPONSE) is used for execution.
  *
- * Protocol:
- *
- * Phase 1 - Admission:
- * - Client: ADMISSION_REQUEST + serialized DAG metadata (no payloads)
- * - Server: ADMISSION_RESPONSE (taskId + admit/reject)
- *
- * Phase 2 - Execution (if admitted):
- * - Client: Normal Task.Serialize(false) with same taskId
- * - Server: Normal Task.Serialize(true) response
- *
- * The taskId enables concurrent admission requests - the server echoes
- * it back so the client can correlate responses.
- *
  * Wire format (18 bytes):
  * - messageType: 1 byte
  * - taskId: 8 bytes (from TaskHeader for request, echoed in response)

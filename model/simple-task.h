@@ -19,8 +19,7 @@ namespace ns3
  * @brief Concrete task implementation using the common Task fields.
  *
  * SimpleTask is the basic concrete implementation of Task, providing
- * a task with compute demand, input size, and output size. It uses
- * the fields defined in the Task base class.
+ * a task with compute demand, input size, and output size.
  */
 class SimpleTask : public Task
 {

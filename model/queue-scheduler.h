@@ -27,10 +27,6 @@ namespace ns3
  * accelerators. Subclasses implement different scheduling algorithms
  * such as FIFO, priority queues, or batching strategies.
  *
- * This abstraction allows accelerators to use different queue management
- * policies without changing their implementation, enabling experiments
- * with various scheduling strategies for distributed computing workloads.
- *
  * Example usage:
  * @code
  * Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
@@ -67,8 +63,7 @@ class QueueScheduler : public Object
      * @brief Add a task to the queue.
      *
      * The task is added according to the scheduling policy implemented
-     * by the subclass (e.g., at the back for FIFO, by priority for
-     * priority queues).
+     * by the subclass.
      *
      * @param task The task to enqueue.
      */
@@ -78,8 +73,6 @@ class QueueScheduler : public Object
      * @brief Remove and return the next task from the queue.
      *
      * Returns the next task according to the scheduling policy.
-     * For FIFO, this is the oldest task; for priority queues,
-     * this is the highest priority task.
      *
      * @return The next task, or nullptr if the queue is empty.
      */

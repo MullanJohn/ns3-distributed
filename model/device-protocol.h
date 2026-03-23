@@ -28,9 +28,6 @@ class Accelerator;
  * packets and how scaling commands are deserialized and applied. Each
  * accelerator type provides its own concrete protocol implementation.
  *
- * Used by:
- * - The server application to create metrics packets and apply incoming commands.
- * - The DeviceManager to parse metrics and create command packets.
  */
 class DeviceProtocol : public Object
 {

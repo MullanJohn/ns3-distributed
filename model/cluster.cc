@@ -32,7 +32,6 @@ Cluster::AddBackend(Ptr<Node> node, const Address& address, const std::string& a
     backend.acceleratorType = acceleratorType;
     m_backends.push_back(backend);
 
-    // Update indices
     m_typeIndex[acceleratorType].push_back(idx);
     m_addrIndex[address] = idx;
 

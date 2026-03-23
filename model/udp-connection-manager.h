@@ -21,19 +21,8 @@ namespace ns3
  * @brief UDP implementation of ConnectionManager.
  *
  * UdpConnectionManager provides unreliable, unordered datagram delivery
- * using UDP sockets. It is simpler than TCP as there are no connections
- * to manage - datagrams can be sent to any address at any time.
+ * using UDP sockets.
  *
- * ## Client Mode
- *
- * Call Connect() to set a default destination address. Subsequent calls
- * to Send(packet) will send to that address. You can still use
- * Send(packet, address) to send to other addresses.
- *
- * ## Server Mode
- *
- * Call Bind() to start receiving datagrams. The ReceiveCallback provides
- * both the packet and the sender's address, allowing you to respond.
  */
 class UdpConnectionManager : public ConnectionManager
 {
