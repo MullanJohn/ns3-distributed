@@ -31,6 +31,7 @@ LeastLoadedScheduler::GetTypeId()
 LeastLoadedScheduler::LeastLoadedScheduler()
 {
     NS_LOG_FUNCTION(this);
+    m_tiebreaker = CreateObject<UniformRandomVariable>();
 }
 
 LeastLoadedScheduler::~LeastLoadedScheduler()
@@ -47,54 +48,52 @@ LeastLoadedScheduler::ScheduleTask(Ptr<Task> task,
 
     std::string required = task->GetRequiredAcceleratorType();
 
+    std::vector<uint32_t> pool;
     if (required.empty())
     {
         uint32_t n = cluster.GetN();
-        if (n == 0)
-        {
-            NS_LOG_DEBUG("LeastLoaded: no backends in cluster");
-            return -1;
-        }
-
-        int32_t bestIdx = -1;
-        uint32_t minLoad = UINT32_MAX;
+        pool.reserve(n);
         for (uint32_t i = 0; i < n; i++)
         {
-            uint32_t load = state.Get(i).activeTasks;
-            if (load < minLoad)
-            {
-                minLoad = load;
-                bestIdx = static_cast<int32_t>(i);
-            }
+            pool.push_back(i);
         }
-
-        NS_LOG_DEBUG("LeastLoaded: scheduled task " << task->GetTaskId() << " to backend "
-                                                    << bestIdx << " (load=" << minLoad << ")");
-        return bestIdx;
+    }
+    else
+    {
+        pool = cluster.GetBackendsByType(required);
     }
 
-    const std::vector<uint32_t>& candidates = cluster.GetBackendsByType(required);
-    if (candidates.empty())
+    if (pool.empty())
     {
-        NS_LOG_DEBUG("LeastLoaded: no backend matches required accelerator '" << required << "'");
+        NS_LOG_DEBUG("LeastLoaded: no suitable backends");
         return -1;
     }
 
-    int32_t bestIdx = -1;
     uint32_t minLoad = UINT32_MAX;
-    for (uint32_t candidateIdx : candidates)
+    for (uint32_t idx : pool)
     {
-        uint32_t load = state.Get(candidateIdx).activeTasks;
+        uint32_t load = state.Get(idx).activeTasks;
         if (load < minLoad)
         {
             minLoad = load;
-            bestIdx = static_cast<int32_t>(candidateIdx);
         }
     }
 
+    std::vector<uint32_t> tied;
+    for (uint32_t idx : pool)
+    {
+        if (state.Get(idx).activeTasks == minLoad)
+        {
+            tied.push_back(idx);
+        }
+    }
+
+    uint32_t pick = m_tiebreaker->GetInteger(0, tied.size() - 1);
+    int32_t bestIdx = static_cast<int32_t>(tied[pick]);
+
     NS_LOG_DEBUG("LeastLoaded: scheduled task " << task->GetTaskId() << " to backend " << bestIdx
-                                                << " (accelerator: " << required
-                                                << ", load=" << minLoad << ")");
+                                                << " (load=" << minLoad << ", tied="
+                                                << tied.size() << ")");
     return bestIdx;
 }
 

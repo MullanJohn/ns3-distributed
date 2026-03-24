@@ -27,7 +27,7 @@ class UtilizationScalingOppTestCase : public TestCase
 {
   public:
     UtilizationScalingOppTestCase()
-        : TestCase("UtilizationScalingPolicy selects min/max OPP with voltage from table")
+        : TestCase("UtilizationScalingPolicy selects min-max OPP with voltage from table")
     {
     }
 
