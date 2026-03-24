@@ -22,7 +22,7 @@ namespace ns3
  * @brief Header for device metrics reports sent from backend to orchestrator.
  *
  * DeviceMetricsHeader carries accelerator state (frequency, voltage, busy
- * status, queue length, power) from an OffloadServer to the EdgeOrchestrator's
+ * status, queue length, power) from a backend to the EdgeOrchestrator's
  * DeviceManager. It is multiplexed on the same connection as task data using
  * message type 4.
  *

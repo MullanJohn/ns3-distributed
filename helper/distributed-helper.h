@@ -19,7 +19,7 @@
 
 // Helper headers
 #include "ns3/edge-orchestrator-helper.h"
-#include "ns3/offload-client-helper.h"
-#include "ns3/offload-server-helper.h"
+#include "ns3/periodic-client-helper.h"
+#include "ns3/periodic-server-helper.h"
 
 #endif // DISTRIBUTED_HELPER_H

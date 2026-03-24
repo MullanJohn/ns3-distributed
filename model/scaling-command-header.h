@@ -22,7 +22,7 @@ namespace ns3
  * @brief Header for scaling commands sent from orchestrator to backend.
  *
  * ScalingCommandHeader carries DVFS commands (target frequency, target voltage)
- * from the EdgeOrchestrator's DeviceManager to an OffloadServer. It is
+ * from the EdgeOrchestrator's DeviceManager to a backend. It is
  * multiplexed on the same connection as task data using message type 5.
  *
  * Wire format (17 bytes):
