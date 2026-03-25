@@ -87,12 +87,8 @@ class GpuAccelerator : public Accelerator
 
     // State
     Ptr<Task> m_currentTask; //!< Currently executing task
-    bool m_busy;             //!< True if processing a task
     EventId m_currentEvent;  //!< Current scheduled event
     Time m_taskStartTime;    //!< When current task started
-
-    // Statistics
-    uint64_t m_tasksCompleted; //!< Number of completed tasks
 
     // Traced values
     TracedValue<uint32_t> m_queueLength; //!< Current queue length
