@@ -62,8 +62,6 @@ DagTask::AddTask(Ptr<Task> task)
     NS_LOG_FUNCTION(this << task);
     DagNode node;
     node.task = task;
-    node.inDegree = 0;
-    node.completed = false;
     m_nodes.push_back(node);
 
     uint32_t idx = static_cast<uint32_t>(m_nodes.size() - 1);
@@ -105,24 +103,12 @@ void
 DagTask::AddDataDependency(uint32_t fromIdx, uint32_t toIdx)
 {
     NS_LOG_FUNCTION(this << fromIdx << toIdx);
-    if (fromIdx >= m_nodes.size() || toIdx >= m_nodes.size())
+    size_t prevSize = (fromIdx < m_nodes.size()) ? m_nodes[fromIdx].successors.size() : 0;
+    AddDependency(fromIdx, toIdx);
+    if (fromIdx < m_nodes.size() && m_nodes[fromIdx].successors.size() > prevSize)
     {
-        NS_LOG_ERROR("Invalid task index: fromIdx=" << fromIdx << " toIdx=" << toIdx
-                                                    << " size=" << m_nodes.size());
-        return;
+        m_nodes[fromIdx].dataSuccessors.push_back(toIdx);
     }
-    if (fromIdx == toIdx)
-    {
-        NS_LOG_ERROR("Self-dependency not allowed: idx=" << fromIdx);
-        return;
-    }
-    m_nodes[fromIdx].successors.push_back(toIdx);
-    m_nodes[toIdx].inDegree++;
-    if (m_nodes[toIdx].inDegree == 1)
-    {
-        m_readySet.erase(toIdx);
-    }
-    m_nodes[fromIdx].dataSuccessors.push_back(toIdx);
 }
 
 std::vector<uint32_t>
@@ -164,7 +150,6 @@ DagTask::MarkCompleted(uint32_t idx)
     m_nodes[idx].completed = true;
     m_completedCount++;
     m_readySet.erase(idx);
-    // Decrement in-degree of all successors
     for (uint32_t successorIdx : m_nodes[idx].successors)
     {
         if (m_nodes[successorIdx].inDegree > 0)
@@ -238,6 +223,7 @@ DagTask::SetTask(uint32_t idx, Ptr<Task> task)
 const std::vector<uint32_t>&
 DagTask::GetSuccessors(uint32_t idx) const
 {
+    NS_ASSERT_MSG(idx < m_nodes.size(), "Invalid task index: " << idx);
     return m_nodes[idx].successors;
 }
 
@@ -301,39 +287,7 @@ bool
 DagTask::Validate() const
 {
     NS_LOG_FUNCTION(this);
-    if (m_nodes.empty())
-    {
-        return true;
-    }
-
-    std::vector<int> color(m_nodes.size(), 0);
-
-    std::function<bool(uint32_t)> hasCycle = [&](uint32_t u) -> bool {
-        color[u] = 1;
-        for (uint32_t v : m_nodes[u].successors)
-        {
-            if (color[v] == 1)
-            {
-                return true;
-            }
-            if (color[v] == 0 && hasCycle(v))
-            {
-                return true;
-            }
-        }
-        color[u] = 2;
-        return false;
-    };
-
-    for (uint32_t i = 0; i < m_nodes.size(); i++)
-    {
-        if (color[i] == 0 && hasCycle(i))
-        {
-            NS_LOG_WARN("Cycle detected in DAG");
-            return false;
-        }
-    }
-    return true;
+    return GetTopologicalOrder().size() == m_nodes.size();
 }
 
 Ptr<Packet>
@@ -384,7 +338,6 @@ DagTask::SerializeInternal(bool metadataOnly) const
     countBuf[3] = taskCount & 0xFF;
     result->AddAtEnd(Create<Packet>(countBuf, 4));
 
-    // Serialize each task
     for (uint32_t i = 0; i < m_nodes.size(); i++)
     {
         Ptr<Task> task = m_nodes[i].task;
@@ -487,7 +440,6 @@ DagTask::DeserializeInternal(Ptr<Packet> packet,
 
     Ptr<DagTask> dag = CreateObject<DagTask>();
 
-    // Deserialize each task
     for (uint32_t i = 0; i < taskCount; i++)
     {
         if (packet->GetSize() < offset + 8)
