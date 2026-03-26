@@ -51,12 +51,12 @@ GpuAccelerator::GetTypeId()
                                           "Operating frequency in Hz",
                                           DoubleValue(1.5e9),
                                           MakeDoubleAccessor(&GpuAccelerator::m_frequency),
-                                          MakeDoubleChecker<double>(0.0))
+                                          MakeDoubleChecker<double>(1.0))
                             .AddAttribute("Voltage",
                                           "Operating voltage in Volts",
                                           DoubleValue(1.0),
                                           MakeDoubleAccessor(&GpuAccelerator::m_voltage),
-                                          MakeDoubleChecker<double>(0.0))
+                                          MakeDoubleChecker<double>(0.01))
                             .AddTraceSource("QueueLength",
                                             "Current number of tasks in queue",
                                             MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
@@ -72,6 +72,7 @@ GpuAccelerator::GpuAccelerator()
       m_processingModel(nullptr),
       m_queueScheduler(nullptr),
       m_currentTask(nullptr),
+      m_currentUtilization(0.0),
       m_queueLength(0)
 {
     NS_LOG_FUNCTION(this);
@@ -158,10 +159,11 @@ GpuAccelerator::StartNextTask()
         }
 
         m_taskStartTime = Simulator::Now();
+        m_currentUtilization = result.utilization;
 
         NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
 
-        UpdateEnergyState(true, result.utilization);
+        UpdateEnergyState(true, m_currentUtilization);
         RecordTaskStartEnergy();
 
         m_currentTask->SetState(TASK_RUNNING);
@@ -250,26 +252,37 @@ GpuAccelerator::SetFrequency(double frequency)
         return;
     }
 
+    if (m_currentTask)
+    {
+        UpdateEnergyState(true, m_currentUtilization);
+    }
+
     double ratio = frequency / m_frequency;
     m_computeRate *= ratio;
     m_frequency = frequency;
 
-    if (m_currentTask && m_currentEvent.IsPending())
+    if (m_currentTask)
     {
-        Time delayLeft = Simulator::GetDelayLeft(m_currentEvent);
-        Simulator::Cancel(m_currentEvent);
+        UpdateEnergyState(true, m_currentUtilization);
 
-        if (delayLeft.IsZero())
+        if (m_currentEvent.IsPending())
         {
-            Simulator::ScheduleNow(&GpuAccelerator::ProcessingComplete, this);
-        }
-        else
-        {
-            Time remaining = Seconds(delayLeft.GetSeconds() / ratio);
-            m_currentEvent = Simulator::Schedule(
-                remaining,
-                &GpuAccelerator::ProcessingComplete,
-                this);
+            Time delayLeft = Simulator::GetDelayLeft(m_currentEvent);
+            Simulator::Cancel(m_currentEvent);
+
+            if (delayLeft.IsZero())
+            {
+                m_currentEvent =
+                    Simulator::ScheduleNow(&GpuAccelerator::ProcessingComplete, this);
+            }
+            else
+            {
+                Time remaining = Seconds(delayLeft.GetSeconds() / ratio);
+                m_currentEvent = Simulator::Schedule(
+                    remaining,
+                    &GpuAccelerator::ProcessingComplete,
+                    this);
+            }
         }
     }
 }
