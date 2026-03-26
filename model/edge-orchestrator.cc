@@ -136,7 +136,6 @@ EdgeOrchestrator::CancelWorkload(uint64_t workloadId)
     for (const auto& tb : state.taskToBackend)
     {
         m_clusterState.NotifyTaskCompleted(tb.second);
-        m_dispatchedTasks.erase(tb.first);
     }
 
     m_workloadsCancelled++;
