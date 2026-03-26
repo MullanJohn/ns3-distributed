@@ -10,6 +10,7 @@
 
 #include "ns3/log.h"
 
+#include <algorithm>
 #include <deque>
 #include <set>
 
@@ -91,7 +92,12 @@ DagTask::AddDependency(uint32_t fromIdx, uint32_t toIdx)
         NS_LOG_ERROR("Self-dependency not allowed: idx=" << fromIdx);
         return;
     }
-    m_nodes[fromIdx].successors.push_back(toIdx);
+    auto& successors = m_nodes[fromIdx].successors;
+    if (std::find(successors.begin(), successors.end(), toIdx) != successors.end())
+    {
+        return;
+    }
+    successors.push_back(toIdx);
     m_nodes[toIdx].inDegree++;
     if (m_nodes[toIdx].inDegree == 1)
     {
@@ -233,10 +239,13 @@ DagTask::GetTopologicalOrder() const
     NS_LOG_FUNCTION(this);
 
     uint32_t n = static_cast<uint32_t>(m_nodes.size());
-    std::vector<uint32_t> inDegree(n);
+    std::vector<uint32_t> inDegree(n, 0);
     for (uint32_t i = 0; i < n; ++i)
     {
-        inDegree[i] = m_nodes[i].inDegree;
+        for (uint32_t s : m_nodes[i].successors)
+        {
+            inDegree[s]++;
+        }
     }
 
     std::vector<uint32_t> order;
