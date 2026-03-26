@@ -24,6 +24,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace ns3
@@ -476,7 +477,7 @@ class EdgeOrchestrator : public Application
     std::map<uint64_t, WorkloadState> m_workloads; //!< Active workloads
     uint64_t m_nextWorkloadId{1};                  //!< Next workload ID
 
-    std::map<Address, std::unordered_map<uint64_t, bool>> m_pendingAdmissions;
+    std::map<Address, std::unordered_set<uint64_t>> m_pendingAdmissions;
 
     // Statistics
     uint64_t m_workloadsAdmitted{0};  //!< Total admitted

@@ -545,8 +545,8 @@ EdgeOrchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const 
         return false;
     }
 
-    auto& map = m_pendingAdmissions[clientAddr];
-    if (map.count(id))
+    auto& pending = m_pendingAdmissions[clientAddr];
+    if (pending.count(id))
     {
         NS_LOG_WARN("Duplicate admission request for id " << id << " from " << clientAddr);
         RejectWorkload(dag->GetTaskCount(), "duplicate_admission");
@@ -554,7 +554,7 @@ EdgeOrchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const 
         return false;
     }
 
-    map[id] = true;
+    pending.insert(id);
 
     NS_LOG_INFO("Workload " << id << " admitted, awaiting data upload");
     SendAdmissionResponse(clientAddr, id, true);

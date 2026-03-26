@@ -15,8 +15,6 @@
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
 
-#include <algorithm>
-#include <set>
 
 namespace ns3
 {
@@ -60,35 +58,7 @@ TcpConnectionManager::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
-    if (m_listenSocket)
-    {
-        m_listenSocket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
-                                          MakeNullCallback<void, Ptr<Socket>, const Address&>());
-        m_listenSocket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
-                                          MakeNullCallback<void, Ptr<Socket>>());
-        m_listenSocket->Close();
-        m_listenSocket = nullptr;
-    }
-
-    for (auto& socket : m_sockets)
-    {
-        if (socket)
-        {
-            socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
-            socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
-                                       MakeNullCallback<void, Ptr<Socket>>());
-            socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
-                                      MakeNullCallback<void, Ptr<Socket>>());
-            socket->Close();
-        }
-    }
-    m_sockets.clear();
-
-    m_socketBusy.clear();
-    m_socketToPeer.clear();
-    m_peerToSocket.clear();
-    m_idToSocket.clear();
-    m_socketToId.clear();
+    Close();
 
     m_receiveCallback = ReceiveCallback();
     m_connectionCallback = ConnectionCallback();
@@ -363,16 +333,8 @@ void
 TcpConnectionManager::HandlePeerError(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-
-    Address peer = GetPeerAddress(socket);
-    NS_LOG_ERROR("Connection error with " << peer);
-
-    if (!m_closeCallback.IsNull() && !peer.IsInvalid())
-    {
-        m_closeCallback(peer);
-    }
-
-    CleanupSocket(socket);
+    NS_LOG_ERROR("Connection error with " << GetPeerAddress(socket));
+    HandlePeerClose(socket);
 }
 
 void
@@ -471,9 +433,7 @@ TcpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
 {
     NS_LOG_FUNCTION(this << packet << to);
 
-    Ptr<Socket> socket = nullptr;
-
-    socket = GetIdleSocketTo(to);
+    Ptr<Socket> socket = GetIdleSocketTo(to);
     if (!socket)
     {
         NS_LOG_ERROR("No connection to peer " << to);
@@ -537,13 +497,7 @@ TcpConnectionManager::GetUniqueRemoteCount() const
     {
         return 0;
     }
-
-    std::set<Address> uniquePeers;
-    for (const auto& pair : m_socketToPeer)
-    {
-        uniquePeers.insert(pair.second);
-    }
-    return static_cast<uint32_t>(uniquePeers.size());
+    return static_cast<uint32_t>(m_peerToSocket.size());
 }
 
 void
@@ -770,10 +724,7 @@ TcpConnectionManager::ReleaseConnection(ConnectionId connId)
 
     Ptr<Socket> socket = it->second;
 
-    // Mark as not busy
     m_socketBusy[socket] = false;
-
-    // Remove connection ID mapping
     m_socketToId.erase(socket);
     m_idToSocket.erase(it);
 
