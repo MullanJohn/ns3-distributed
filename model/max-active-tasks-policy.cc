@@ -10,9 +10,13 @@
 
 #include "cluster-state.h"
 #include "dag-task.h"
+#include "task.h"
 
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
+
+#include <set>
+#include <string>
 
 namespace ns3
 {
@@ -54,20 +58,52 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
 {
     NS_LOG_FUNCTION(this << dag->GetTaskCount() << state.GetActiveWorkloadCount());
 
-    for (uint32_t i = 0; i < state.GetN(); i++)
+    std::set<std::string> requiredTypes;
+    for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
     {
-        if (state.Get(i).activeTasks < m_maxActiveTasks)
+        Ptr<Task> task = dag->GetTask(i);
+        if (task)
         {
-            NS_LOG_DEBUG("MaxActiveTasks: backend " << i << " has capacity ("
-                                                    << state.Get(i).activeTasks << "/"
-                                                    << m_maxActiveTasks << ")");
-            return true;
+            requiredTypes.insert(task->GetRequiredAcceleratorType());
         }
     }
 
-    NS_LOG_DEBUG("MaxActiveTasks: all "
-                 << state.GetN() << " backends at capacity (threshold=" << m_maxActiveTasks << ")");
-    return false;
+    for (const auto& type : requiredTypes)
+    {
+        bool hasCapacity = false;
+
+        if (type.empty())
+        {
+            for (uint32_t i = 0; i < state.GetN(); i++)
+            {
+                if (state.Get(i).activeTasks < m_maxActiveTasks)
+                {
+                    hasCapacity = true;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (uint32_t idx : cluster.GetBackendsByType(type))
+            {
+                if (state.Get(idx).activeTasks < m_maxActiveTasks)
+                {
+                    hasCapacity = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasCapacity)
+        {
+            NS_LOG_DEBUG("MaxActiveTasks: no capacity for type '"
+                         << (type.empty() ? "any" : type) << "'");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 std::string
