@@ -48,6 +48,8 @@ void
 ClusterState::NotifyTaskCompleted(uint32_t backendIdx)
 {
     NS_LOG_FUNCTION(this << backendIdx);
+    NS_ASSERT_MSG(m_backends[backendIdx].activeTasks > 0,
+                  "activeTasks underflow for backend " << backendIdx);
     m_backends[backendIdx].activeTasks--;
     m_backends[backendIdx].totalCompleted++;
 }
