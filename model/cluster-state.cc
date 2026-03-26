@@ -60,6 +60,13 @@ ClusterState::SetDeviceMetrics(uint32_t backendIdx, Ptr<DeviceMetrics> metrics)
 }
 
 void
+ClusterState::SetCommandedFrequency(uint32_t backendIdx, double frequency)
+{
+    NS_LOG_FUNCTION(this << backendIdx << frequency);
+    m_backends[backendIdx].commandedFrequency = frequency;
+}
+
+void
 ClusterState::SetActiveWorkloadCount(uint32_t count)
 {
     NS_LOG_FUNCTION(this << count);

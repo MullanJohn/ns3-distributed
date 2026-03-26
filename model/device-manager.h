@@ -57,8 +57,9 @@ class DeviceManager : public Object
      *
      * @param cluster The backend cluster.
      * @param backendCm The backend connection manager for sending commands.
+     * @param state The cluster state to initialize commanded frequencies.
      */
-    void Start(const Cluster& cluster, Ptr<ConnectionManager> backendCm);
+    void Start(const Cluster& cluster, Ptr<ConnectionManager> backendCm, ClusterState& state);
 
     /**
      * @brief Store metrics received from a backend.
@@ -94,7 +95,7 @@ class DeviceManager : public Object
      *
      * @param state The cluster state with per-backend load and metrics.
      */
-    void EvaluateScaling(const ClusterState& state);
+    void EvaluateScaling(ClusterState& state);
 
     /**
      * @brief TracedCallback signature for frequency change events.
@@ -115,8 +116,6 @@ class DeviceManager : public Object
 
     Ptr<ConnectionManager> m_backendConnMgr; //!< Backend connection for sending commands
     Cluster m_cluster;                      //!< Backend cluster reference
-    std::vector<double>
-        m_commandedFrequency; //!< Expected frequency per backend (reported or commanded)
     std::vector<std::vector<OperatingPoint>>
         m_operatingPoints; //!< Per-backend OPP tables extracted at startup
 

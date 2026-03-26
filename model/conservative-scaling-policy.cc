@@ -51,20 +51,8 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
         return nullptr;
     }
 
-    bool busy;
-    double currentFreq;
-
-    Ptr<DeviceMetrics> metrics = backend.deviceMetrics;
-    if (metrics)
-    {
-        busy = metrics->busy || metrics->queueLength > 0;
-        currentFreq = metrics->frequency;
-    }
-    else
-    {
-        busy = backend.activeTasks > 0;
-        currentFreq = opps.front().frequency;
-    }
+    bool busy = backend.activeTasks > 0;
+    double currentFreq = backend.commandedFrequency;
 
     size_t currentIdx = 0;
     double minDist = std::abs(opps[0].frequency - currentFreq);

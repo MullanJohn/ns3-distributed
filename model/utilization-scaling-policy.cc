@@ -48,20 +48,8 @@ UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
         return nullptr;
     }
 
-    bool busy;
-    double currentFreq;
-
-    Ptr<DeviceMetrics> metrics = backend.deviceMetrics;
-    if (metrics)
-    {
-        busy = metrics->busy || metrics->queueLength > 0;
-        currentFreq = metrics->frequency;
-    }
-    else
-    {
-        busy = backend.activeTasks > 0;
-        currentFreq = 0.0;
-    }
+    bool busy = backend.activeTasks > 0;
+    double currentFreq = backend.commandedFrequency;
 
     const OperatingPoint& target = busy ? opps.back() : opps.front();
 

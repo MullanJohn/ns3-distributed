@@ -391,7 +391,7 @@ EdgeOrchestrator::StartApplication()
 
     if (m_deviceManager)
     {
-        m_deviceManager->Start(m_cluster, m_backendConnMgr);
+        m_deviceManager->Start(m_cluster, m_backendConnMgr, m_clusterState);
     }
 }
 
