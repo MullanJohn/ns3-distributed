@@ -251,7 +251,8 @@ class EdgeOrchestrator : public Application
      * @brief Process an admission decision for a workload.
      *
      * Checks admission policy, detects duplicate requests, queues the
-     * pending admission, schedules timeout, and sends the response.
+     * pending admission, and sends the response. Pending admissions are
+     * cleaned up on client disconnect but have no expiry timeout.
      *
      * @param dag The workload DAG.
      * @param id The DAG ID.

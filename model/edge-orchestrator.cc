@@ -635,13 +635,13 @@ EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& cli
         }
     }
 
+    m_workloadsAdmitted++;
+    m_workloadAdmittedTrace(workloadId, dag->GetTaskCount());
+
     if (!ProcessDagReadyTasks(workloadId))
     {
         return 0;
     }
-
-    m_workloadsAdmitted++;
-    m_workloadAdmittedTrace(workloadId, dag->GetTaskCount());
 
     if (m_deviceManager)
     {
