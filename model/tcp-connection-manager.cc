@@ -569,35 +569,25 @@ TcpConnectionManager::Close(const Address& peer)
 {
     NS_LOG_FUNCTION(this << peer);
 
-    auto it = m_peerToSocket.find(peer);
-    if (it == m_peerToSocket.end())
+    std::list<Ptr<Socket>> socketsToClose;
+    for (auto& socket : m_sockets)
+    {
+        auto peerIt = m_socketToPeer.find(socket);
+        if (peerIt != m_socketToPeer.end() && peerIt->second == peer)
+        {
+            socketsToClose.push_back(socket);
+        }
+    }
+
+    if (socketsToClose.empty())
     {
         NS_LOG_WARN("No connection to peer " << peer);
         return;
     }
 
-    if (m_listenSocket)
+    for (auto& socket : socketsToClose)
     {
-        CleanupSocket(it->second);
-    }
-    else
-    {
-        std::list<Ptr<Socket>> socketsToClose;
-        for (auto& socket : m_sockets)
-        {
-            auto peerIt = m_socketToPeer.find(socket);
-            if (peerIt != m_socketToPeer.end() && peerIt->second == peer)
-            {
-                socketsToClose.push_back(socket);
-            }
-        }
-
-        NS_LOG_DEBUG("Client mode: closing " << socketsToClose.size() << " connections to "
-                                             << peer);
-        for (auto& socket : socketsToClose)
-        {
-            CleanupSocket(socket);
-        }
+        CleanupSocket(socket);
     }
 }
 
@@ -655,29 +645,29 @@ TcpConnectionManager::AcquireConnection(const Address& peer)
 {
     NS_LOG_FUNCTION(this << peer);
 
-    auto it = m_peerToSocket.find(peer);
-    if (it == m_peerToSocket.end())
+    for (auto& socket : m_sockets)
     {
-        NS_LOG_WARN("No connection to peer " << peer);
-        return INVALID_CONNECTION;
+        auto peerIt = m_socketToPeer.find(socket);
+        if (peerIt == m_socketToPeer.end() || peerIt->second != peer)
+        {
+            continue;
+        }
+        if (m_socketBusy[socket])
+        {
+            continue;
+        }
+
+        m_socketBusy[socket] = true;
+        ConnectionId connId = GenerateConnectionId();
+        m_idToSocket[connId] = socket;
+        m_socketToId[socket] = connId;
+
+        NS_LOG_DEBUG("Acquired connection " << connId << " to " << peer);
+        return connId;
     }
 
-    Ptr<Socket> socket = it->second;
-
-    if (m_socketBusy[socket])
-    {
-        NS_LOG_WARN("Connection to " << peer << " is already acquired");
-        return INVALID_CONNECTION;
-    }
-
-    m_socketBusy[socket] = true;
-
-    ConnectionId connId = GenerateConnectionId();
-    m_idToSocket[connId] = socket;
-    m_socketToId[socket] = connId;
-
-    NS_LOG_DEBUG("Acquired connection " << connId << " to " << peer);
-    return connId;
+    NS_LOG_WARN("No idle connection to peer " << peer);
+    return INVALID_CONNECTION;
 }
 
 bool
