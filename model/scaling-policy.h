@@ -83,6 +83,12 @@ class ScalingPolicy : public Object
      */
     virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                         const std::vector<OperatingPoint>& opps) = 0;
+
+    /**
+     * @brief Get the name of this scaling policy.
+     * @return A string identifying the policy.
+     */
+    virtual std::string GetName() const = 0;
 };
 
 } // namespace ns3

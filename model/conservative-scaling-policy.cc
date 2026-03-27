@@ -87,4 +87,10 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
     return decision;
 }
 
+std::string
+ConservativeScalingPolicy::GetName() const
+{
+    return "ConservativeScaling";
+}
+
 } // namespace ns3

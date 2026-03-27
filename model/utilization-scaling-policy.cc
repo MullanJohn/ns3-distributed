@@ -64,4 +64,10 @@ UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
     return decision;
 }
 
+std::string
+UtilizationScalingPolicy::GetName() const
+{
+    return "UtilizationScaling";
+}
+
 } // namespace ns3

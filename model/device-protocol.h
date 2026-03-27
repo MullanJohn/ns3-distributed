@@ -79,6 +79,12 @@ class DeviceProtocol : public Object
      * @param accel The accelerator to which the command is applied.
      */
     virtual void ApplyCommand(Ptr<Packet> packet, Ptr<Accelerator> accel) = 0;
+
+    /**
+     * @brief Get the name of this device protocol.
+     * @return A string identifying the protocol.
+     */
+    virtual std::string GetName() const = 0;
 };
 
 } // namespace ns3
