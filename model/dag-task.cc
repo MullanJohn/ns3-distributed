@@ -167,11 +167,17 @@ DagTask::MarkCompleted(uint32_t idx)
             }
         }
     }
-    uint64_t outputSize = m_nodes[idx].task->GetOutputSize();
-    for (uint32_t successorIdx : m_nodes[idx].dataSuccessors)
+    if (m_nodes[idx].task)
     {
-        uint64_t currentInput = m_nodes[successorIdx].task->GetInputSize();
-        m_nodes[successorIdx].task->SetInputSize(currentInput + outputSize);
+        uint64_t outputSize = m_nodes[idx].task->GetOutputSize();
+        for (uint32_t successorIdx : m_nodes[idx].dataSuccessors)
+        {
+            if (m_nodes[successorIdx].task)
+            {
+                m_nodes[successorIdx].task->SetInputSize(
+                    m_nodes[successorIdx].task->GetInputSize() + outputSize);
+            }
+        }
     }
 }
 

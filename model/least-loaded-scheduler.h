@@ -57,6 +57,9 @@ class LeastLoadedScheduler : public ClusterScheduler
      */
     std::string GetName() const override;
 
+  protected:
+    void DoDispose() override;
+
   private:
     Ptr<UniformRandomVariable> m_tiebreaker; //!< RNG for breaking ties
 };

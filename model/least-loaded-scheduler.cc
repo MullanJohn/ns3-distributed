@@ -39,6 +39,14 @@ LeastLoadedScheduler::~LeastLoadedScheduler()
     NS_LOG_FUNCTION(this);
 }
 
+void
+LeastLoadedScheduler::DoDispose()
+{
+    NS_LOG_FUNCTION(this);
+    m_tiebreaker = nullptr;
+    ClusterScheduler::DoDispose();
+}
+
 int32_t
 LeastLoadedScheduler::ScheduleTask(Ptr<Task> task,
                                    const Cluster& cluster,
