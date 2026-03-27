@@ -135,7 +135,7 @@ TcpConnectionManager::Connect(const Address& remote)
         return;
     }
 
-    if (m_peerToSocket.find(remote) != m_peerToSocket.end())
+    if (m_peerSocketCount.find(remote) != m_peerSocketCount.end())
     {
         NS_LOG_WARN("Already connected to " << remote);
         return;
@@ -178,7 +178,7 @@ TcpConnectionManager::CreateConnectionTo(const Address& remote)
     m_sockets.push_back(socket);
     m_socketBusy[socket] = false;
     m_socketToPeer[socket] = remote;
-    m_peerToSocket[remote] = socket;
+    ++m_peerSocketCount[remote];
 
     NS_LOG_DEBUG("Created connection to " << remote);
 }
@@ -190,36 +190,7 @@ TcpConnectionManager::CreatePooledConnections(const Address& remote)
 
     for (uint32_t i = 0; i < m_poolSize; ++i)
     {
-        Ptr<Socket> socket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
-
-        if (InetSocketAddress::IsMatchingType(remote))
-        {
-            socket->Bind();
-        }
-        else if (Inet6SocketAddress::IsMatchingType(remote))
-        {
-            socket->Bind6();
-        }
-
-        socket->SetConnectCallback(
-            MakeCallback(&TcpConnectionManager::HandleConnectionSucceeded, this),
-            MakeCallback(&TcpConnectionManager::HandleConnectionFailed, this));
-        socket->SetRecvCallback(MakeCallback(&TcpConnectionManager::HandleRead, this));
-        socket->SetCloseCallbacks(MakeCallback(&TcpConnectionManager::HandlePeerClose, this),
-                                  MakeCallback(&TcpConnectionManager::HandlePeerError, this));
-
-        socket->Connect(remote);
-
-        m_sockets.push_back(socket);
-        m_socketBusy[socket] = false;
-        m_socketToPeer[socket] = remote;
-        if (m_peerToSocket.find(remote) == m_peerToSocket.end())
-        {
-            m_peerToSocket[remote] = socket;
-        }
-
-        NS_LOG_DEBUG("Created pooled connection " << (i + 1) << "/" << m_poolSize << " to "
-                                                  << remote);
+        CreateConnectionTo(remote);
     }
 }
 
@@ -273,7 +244,7 @@ TcpConnectionManager::HandleAccept(Ptr<Socket> socket, const Address& from)
     m_sockets.push_back(socket);
     m_socketBusy[socket] = false;
     m_socketToPeer[socket] = peerAddr;
-    m_peerToSocket[peerAddr] = socket;
+    ++m_peerSocketCount[peerAddr];
 
     if (!m_connectionCallback.IsNull())
     {
@@ -358,7 +329,18 @@ TcpConnectionManager::CleanupSocket(Ptr<Socket> socket)
     auto peerIt = m_socketToPeer.find(socket);
     if (peerIt != m_socketToPeer.end())
     {
-        m_peerToSocket.erase(peerIt->second);
+        auto countIt = m_peerSocketCount.find(peerIt->second);
+        if (countIt != m_peerSocketCount.end())
+        {
+            if (countIt->second <= 1)
+            {
+                m_peerSocketCount.erase(countIt);
+            }
+            else
+            {
+                --countIt->second;
+            }
+        }
         m_socketToPeer.erase(peerIt);
     }
 
@@ -497,7 +479,7 @@ TcpConnectionManager::GetUniqueRemoteCount() const
     {
         return 0;
     }
-    return static_cast<uint32_t>(m_peerToSocket.size());
+    return static_cast<uint32_t>(m_peerSocketCount.size());
 }
 
 void
@@ -559,7 +541,7 @@ TcpConnectionManager::Close()
     m_sockets.clear();
     m_socketBusy.clear();
     m_socketToPeer.clear();
-    m_peerToSocket.clear();
+    m_peerSocketCount.clear();
     m_idToSocket.clear();
     m_socketToId.clear();
 }

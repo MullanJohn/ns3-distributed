@@ -214,7 +214,7 @@ class TcpConnectionManager : public ConnectionManager
     std::list<Ptr<Socket>> m_sockets;
     std::map<Ptr<Socket>, bool> m_socketBusy;
     std::map<Ptr<Socket>, Address> m_socketToPeer;
-    std::map<Address, Ptr<Socket>> m_peerToSocket;
+    std::map<Address, uint32_t> m_peerSocketCount; //!< Number of sockets per peer address
 
     // Connection ID mapping for explicit control
     ConnectionId m_nextConnectionId;
