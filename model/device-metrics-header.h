@@ -24,7 +24,7 @@ namespace ns3
  * DeviceMetricsHeader carries accelerator state (frequency, voltage, busy
  * status, queue length, power) from a backend to the EdgeOrchestrator's
  * DeviceManager. It is multiplexed on the same connection as task data using
- * message type 4.
+ * message type 6.
  *
  * Wire format (30 bytes):
  * - messageType: 1 byte (uint8_t, always DEVICE_METRICS = 6)

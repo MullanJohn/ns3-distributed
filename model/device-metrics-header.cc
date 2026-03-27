@@ -67,6 +67,7 @@ DeviceMetricsHeader::GetFrequency() const
 void
 DeviceMetricsHeader::SetFrequency(double frequency)
 {
+    NS_LOG_FUNCTION(this << frequency);
     m_frequency = frequency;
 }
 
@@ -79,6 +80,7 @@ DeviceMetricsHeader::GetVoltage() const
 void
 DeviceMetricsHeader::SetVoltage(double voltage)
 {
+    NS_LOG_FUNCTION(this << voltage);
     m_voltage = voltage;
 }
 
@@ -91,6 +93,7 @@ DeviceMetricsHeader::GetBusy() const
 void
 DeviceMetricsHeader::SetBusy(bool busy)
 {
+    NS_LOG_FUNCTION(this << busy);
     m_busy = busy;
 }
 
@@ -103,6 +106,7 @@ DeviceMetricsHeader::GetQueueLength() const
 void
 DeviceMetricsHeader::SetQueueLength(uint32_t queueLength)
 {
+    NS_LOG_FUNCTION(this << queueLength);
     m_queueLength = queueLength;
 }
 
@@ -115,6 +119,7 @@ DeviceMetricsHeader::GetCurrentPower() const
 void
 DeviceMetricsHeader::SetCurrentPower(double power)
 {
+    NS_LOG_FUNCTION(this << power);
     m_currentPower = power;
 }
 

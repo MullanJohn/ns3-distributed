@@ -64,6 +64,7 @@ ScalingCommandHeader::GetTargetFrequency() const
 void
 ScalingCommandHeader::SetTargetFrequency(double frequency)
 {
+    NS_LOG_FUNCTION(this << frequency);
     m_targetFrequency = frequency;
 }
 
@@ -76,6 +77,7 @@ ScalingCommandHeader::GetTargetVoltage() const
 void
 ScalingCommandHeader::SetTargetVoltage(double voltage)
 {
+    NS_LOG_FUNCTION(this << voltage);
     m_targetVoltage = voltage;
 }
 
