@@ -97,9 +97,13 @@ SimpleTaskHeader::Deserialize(Buffer::Iterator start)
     if (messageTypeByte > TASK_RESPONSE)
     {
         NS_LOG_WARN("Invalid message type " << static_cast<int>(messageTypeByte)
-                                            << " received in SimpleTaskHeader");
+                                            << " in SimpleTaskHeader, clamping to TASK_REQUEST");
+        m_messageType = TASK_REQUEST;
     }
-    m_messageType = static_cast<MessageType>(messageTypeByte);
+    else
+    {
+        m_messageType = static_cast<MessageType>(messageTypeByte);
+    }
 
     m_taskId = start.ReadNtohU64();
 

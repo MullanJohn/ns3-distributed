@@ -156,12 +156,17 @@ OrchestratorHeader::Deserialize(Buffer::Iterator start)
     NS_LOG_FUNCTION(this);
 
     uint8_t messageTypeByte = start.ReadU8();
-    if (messageTypeByte > DATA_UPLOAD)
+    if (messageTypeByte < ADMISSION_REQUEST || messageTypeByte > DATA_UPLOAD)
     {
         NS_LOG_WARN("Invalid OrchestratorHeader message type "
-                    << static_cast<uint32_t>(messageTypeByte));
+                    << static_cast<uint32_t>(messageTypeByte)
+                    << ", clamping to ADMISSION_REQUEST");
+        m_messageType = ADMISSION_REQUEST;
     }
-    m_messageType = static_cast<MessageType>(messageTypeByte);
+    else
+    {
+        m_messageType = static_cast<MessageType>(messageTypeByte);
+    }
     m_taskId = start.ReadNtohU64();
     m_admitted = (start.ReadU8() != 0);
     m_payloadSize = start.ReadNtohU64();
