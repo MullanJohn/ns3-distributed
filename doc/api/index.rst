@@ -1,6 +1,3 @@
-ns-3 Continuum Documentation
-============================
-
 |lastupdated| |github| |release|
 
 .. |lastupdated| image:: https://img.shields.io/github/last-commit/MullanJohn/ns3-distributed
@@ -11,7 +8,9 @@ ns-3 Continuum Documentation
 .. |release| image:: https://img.shields.io/github/v/release/MullanJohn/ns3-distributed
 
 Welcome to the documentation for ns-3 Continuum. A flexible module for simulating
-workloads that travel over the computing continuum in ns-3.
+workloads that travel over the computing continuum in ns-3. If you are new to this
+documentation, we recommend that you read the :ref:`introduction page <doc_about_intro>` to get an overview
+of what this documentation has to offer.
 
 
 .. note:: This documentation is part of an open source project produced as part of a final year project at UCC.
@@ -21,6 +20,12 @@ workloads that travel over the computing continuum in ns-3.
 
 
 The main documentation is organised into the following sections:
+
+.. toctree::
+   :maxdepth: 2
+   :caption: General
+
+   about/introduction.rst
 
 .. toctree::
    :maxdepth: 1
