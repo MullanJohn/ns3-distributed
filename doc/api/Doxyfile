@@ -1,0 +1,18 @@
+PROJECT_NAME           = "ns-3 Continuum"
+PROJECT_BRIEF          = "Computing continuum simulation framework"
+
+INPUT                  = ../../model ../../helper
+FILE_PATTERNS          = *.h *.cc
+RECURSIVE              = NO
+
+OUTPUT_DIRECTORY       = _build/doxygen
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+QUIET                  = YES
+WARNINGS               = YES
