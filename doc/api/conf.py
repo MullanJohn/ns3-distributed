@@ -21,6 +21,8 @@ html_theme_options = {
     "navigation_depth": 3,
 }
 
+html_favicon = 'static/favicon.svg'
+
 default_dark_mode = True
 
 html_use_index = False
