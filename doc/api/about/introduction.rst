@@ -55,3 +55,14 @@ with other external software libraries.
 
 What is the purpose of this project?
 ------------------------------------
+
+The purpose of this project is to fill a hole in the current simulation landscape.
+Currently there exists lackluster support for simulating the computing continuum in
+various simulators, including ns-3.
+
+ns-3 is extremely strong for networking simulation, supporting modern standards
+such as Wi-Fi 7 and 5G. It also includes useful built-in features such as tracing,
+which makes collecting experimental data straightforward. ns-3 was chosen to be
+used as the base for development due to it's in depth support for modern networking
+standards and modular design. By using ns-3 as the base for development it was hoped
+that the result would be well documented, easy to use and easy to debug.
