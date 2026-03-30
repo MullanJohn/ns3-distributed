@@ -16,7 +16,8 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Type-aware admission policy that rejects workloads when compatible backends are at capacity.
+ * @brief Type-aware admission policy that rejects workloads when compatible backends are at
+ * capacity.
  *
  * MaxActiveTasksPolicy checks whether backends compatible with the workload's
  * required accelerator types have fewer active tasks than the configured

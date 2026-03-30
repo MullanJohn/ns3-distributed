@@ -759,9 +759,9 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
 
         if (!task)
         {
-            NS_LOG_ERROR("Deserializer consumed "
-                         << consumedBytes << " bytes but returned null task " << taskId
-                         << " — cancelling workload");
+            NS_LOG_ERROR("Deserializer consumed " << consumedBytes
+                                                  << " bytes but returned null task " << taskId
+                                                  << " — cancelling workload");
             m_dispatchedTasks.erase(dispIt);
             CancelWorkload(info.workloadId);
             continue;

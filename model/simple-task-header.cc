@@ -40,11 +40,10 @@ SimpleTaskHeader::~SimpleTaskHeader()
 TypeId
 SimpleTaskHeader::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::SimpleTaskHeader")
-            .SetParent<TaskHeader>()
-            .SetGroupName("Distributed")
-            .AddConstructor<SimpleTaskHeader>();
+    static TypeId tid = TypeId("ns3::SimpleTaskHeader")
+                            .SetParent<TaskHeader>()
+                            .SetGroupName("Distributed")
+                            .AddConstructor<SimpleTaskHeader>();
     return tid;
 }
 

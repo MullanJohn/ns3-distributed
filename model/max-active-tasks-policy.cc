@@ -97,8 +97,8 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
 
         if (!hasCapacity)
         {
-            NS_LOG_DEBUG("MaxActiveTasks: no capacity for type '"
-                         << (type.empty() ? "any" : type) << "'");
+            NS_LOG_DEBUG("MaxActiveTasks: no capacity for type '" << (type.empty() ? "any" : type)
+                                                                  << "'");
             return false;
         }
     }

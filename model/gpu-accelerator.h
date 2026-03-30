@@ -86,10 +86,10 @@ class GpuAccelerator : public Accelerator
     Ptr<QueueScheduler> m_queueScheduler;   //!< Queue scheduler for task management
 
     // State
-    Ptr<Task> m_currentTask;       //!< Currently executing task
-    EventId m_currentEvent;        //!< Current scheduled event
-    Time m_taskStartTime;          //!< When current task started
-    double m_currentUtilization;   //!< Utilization from last ProcessingModel result
+    Ptr<Task> m_currentTask;     //!< Currently executing task
+    EventId m_currentEvent;      //!< Current scheduled event
+    Time m_taskStartTime;        //!< When current task started
+    double m_currentUtilization; //!< Utilization from last ProcessingModel result
 
     // Traced values
     TracedValue<uint32_t> m_queueLength; //!< Current queue length

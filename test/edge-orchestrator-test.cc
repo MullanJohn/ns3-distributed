@@ -341,8 +341,7 @@ class MultiBackendTestCase : public TestCase
                               0,
                               "Backend 1 should have received at least one task");
 
-        uint64_t totalProcessed =
-            server0->GetFramesProcessed() + server1->GetFramesProcessed();
+        uint64_t totalProcessed = server0->GetFramesProcessed() + server1->GetFramesProcessed();
         NS_TEST_ASSERT_MSG_EQ(totalProcessed,
                               4,
                               "Both servers should have processed 4 frames total");

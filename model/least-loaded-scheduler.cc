@@ -100,8 +100,8 @@ LeastLoadedScheduler::ScheduleTask(Ptr<Task> task,
     int32_t bestIdx = static_cast<int32_t>(tied[pick]);
 
     NS_LOG_DEBUG("LeastLoaded: scheduled task " << task->GetTaskId() << " to backend " << bestIdx
-                                                << " (load=" << minLoad << ", tied="
-                                                << tied.size() << ")");
+                                                << " (load=" << minLoad << ", tied=" << tied.size()
+                                                << ")");
     return bestIdx;
 }
 

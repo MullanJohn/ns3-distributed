@@ -115,7 +115,7 @@ class DeviceManager : public Object
     Ptr<DeviceProtocol> m_deviceProtocol; //!< Protocol for metrics/command serialization
 
     Ptr<ConnectionManager> m_backendConnMgr; //!< Backend connection for sending commands
-    Cluster m_cluster;                      //!< Backend cluster reference
+    Cluster m_cluster;                       //!< Backend cluster reference
     std::vector<std::vector<OperatingPoint>>
         m_operatingPoints; //!< Per-backend OPP tables extracted at startup
 

@@ -133,8 +133,7 @@ DeviceManager::EvaluateScaling(ClusterState& state)
     {
         const ClusterState::BackendState& backend = state.Get(i);
 
-        Ptr<ScalingDecision> decision =
-            m_scalingPolicy->Decide(backend, m_operatingPoints[i]);
+        Ptr<ScalingDecision> decision = m_scalingPolicy->Decide(backend, m_operatingPoints[i]);
 
         if (!decision)
         {

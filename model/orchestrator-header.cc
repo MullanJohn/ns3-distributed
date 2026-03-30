@@ -159,8 +159,7 @@ OrchestratorHeader::Deserialize(Buffer::Iterator start)
     if (messageTypeByte < ADMISSION_REQUEST || messageTypeByte > DATA_UPLOAD)
     {
         NS_LOG_WARN("Invalid OrchestratorHeader message type "
-                    << static_cast<uint32_t>(messageTypeByte)
-                    << ", clamping to ADMISSION_REQUEST");
+                    << static_cast<uint32_t>(messageTypeByte) << ", clamping to ADMISSION_REQUEST");
         m_messageType = ADMISSION_REQUEST;
     }
     else

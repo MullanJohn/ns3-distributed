@@ -461,7 +461,7 @@ class EdgeOrchestrator : public Application
     uint16_t m_port;             //!< Listen port
 
     // Connection management
-    Ptr<ConnectionManager> m_clientConnMgr;          //!< For client connections (listening)
+    Ptr<ConnectionManager> m_clientConnMgr;           //!< For client connections (listening)
     Ptr<ConnectionManager> m_backendConnMgr;          //!< For backend connections (outgoing)
     std::map<Address, Ptr<Packet>> m_rxBuffer;        //!< Per-client receive buffers
     std::map<Address, Ptr<Packet>> m_backendRxBuffer; //!< Per-backend receive buffers

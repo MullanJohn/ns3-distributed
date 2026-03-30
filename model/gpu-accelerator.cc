@@ -272,16 +272,13 @@ GpuAccelerator::SetFrequency(double frequency)
 
             if (delayLeft.IsZero())
             {
-                m_currentEvent =
-                    Simulator::ScheduleNow(&GpuAccelerator::ProcessingComplete, this);
+                m_currentEvent = Simulator::ScheduleNow(&GpuAccelerator::ProcessingComplete, this);
             }
             else
             {
                 Time remaining = Seconds(delayLeft.GetSeconds() / ratio);
-                m_currentEvent = Simulator::Schedule(
-                    remaining,
-                    &GpuAccelerator::ProcessingComplete,
-                    this);
+                m_currentEvent =
+                    Simulator::Schedule(remaining, &GpuAccelerator::ProcessingComplete, this);
             }
         }
     }

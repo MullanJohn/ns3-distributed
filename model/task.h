@@ -30,14 +30,14 @@ namespace ns3
  */
 enum TaskState : uint8_t
 {
-    TASK_CREATED = 0,   //!< Task constructed, not yet submitted
-    TASK_SUBMITTED = 1, //!< Sent to orchestrator (client-side)
-    TASK_ADMITTED = 2,  //!< Accepted by admission policy (orchestrator-side)
+    TASK_CREATED = 0,    //!< Task constructed, not yet submitted
+    TASK_SUBMITTED = 1,  //!< Sent to orchestrator (client-side)
+    TASK_ADMITTED = 2,   //!< Accepted by admission policy (orchestrator-side)
     TASK_DISPATCHED = 3, //!< Sent to backend
-    TASK_RUNNING = 4,   //!< Processing on accelerator
-    TASK_COMPLETED = 5, //!< Successfully processed
-    TASK_FAILED = 6,    //!< Processing or delivery failed
-    TASK_REJECTED = 7   //!< Rejected by admission policy
+    TASK_RUNNING = 4,    //!< Processing on accelerator
+    TASK_COMPLETED = 5,  //!< Successfully processed
+    TASK_FAILED = 6,     //!< Processing or delivery failed
+    TASK_REJECTED = 7    //!< Rejected by admission policy
 };
 
 /**
@@ -266,16 +266,16 @@ class Task : public Object
     void DoDispose() override;
 
     TracedValue<TaskState> m_state{TASK_CREATED}; //!< Lifecycle state
-    uint64_t m_taskId{0};                      //!< Unique task identifier
-    uint64_t m_inputSize{0};                   //!< Input data size in bytes
-    uint64_t m_outputSize{0};                  //!< Output data size in bytes
-    double m_computeDemand{0.0};               //!< Compute demand in FLOPS
-    Time m_arrivalTime{Seconds(0)};            //!< Time when task arrived
-    Time m_deadline{Time(-1)};                 //!< Task deadline (-1 = no deadline)
-    uint32_t m_priority{0};                    //!< Task priority (higher = higher priority)
-    std::string m_requiredAcceleratorType{""}; //!< Required accelerator type (empty = any)
-    Time m_computeTime{Seconds(0)};            //!< Accelerator execution time
-    Time m_backendTime{Seconds(0)};             //!< Backend arrival to response (queue + compute)
+    uint64_t m_taskId{0};                         //!< Unique task identifier
+    uint64_t m_inputSize{0};                      //!< Input data size in bytes
+    uint64_t m_outputSize{0};                     //!< Output data size in bytes
+    double m_computeDemand{0.0};                  //!< Compute demand in FLOPS
+    Time m_arrivalTime{Seconds(0)};               //!< Time when task arrived
+    Time m_deadline{Time(-1)};                    //!< Task deadline (-1 = no deadline)
+    uint32_t m_priority{0};                       //!< Task priority (higher = higher priority)
+    std::string m_requiredAcceleratorType{""};    //!< Required accelerator type (empty = any)
+    Time m_computeTime{Seconds(0)};               //!< Accelerator execution time
+    Time m_backendTime{Seconds(0)};               //!< Backend arrival to response (queue + compute)
 };
 
 } // namespace ns3

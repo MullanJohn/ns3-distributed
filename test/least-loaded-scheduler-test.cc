@@ -122,7 +122,9 @@ class LeastLoadedSchedulerTypeFilterTestCase : public TestCase
         task2->SetRequiredAcceleratorType("GPU");
         int32_t idx2 = scheduler->ScheduleTask(task2, cluster, state);
         int32_t expectedOther = (idx1 == 0) ? 2 : 0;
-        NS_TEST_ASSERT_MSG_EQ(idx2, expectedOther, "Should pick the other GPU backend (less loaded)");
+        NS_TEST_ASSERT_MSG_EQ(idx2,
+                              expectedOther,
+                              "Should pick the other GPU backend (less loaded)");
 
         // Nonexistent type returns -1
         Ptr<SimpleTask> task3 = CreateObject<SimpleTask>();
