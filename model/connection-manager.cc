@@ -20,6 +20,7 @@ NS_OBJECT_ENSURE_REGISTERED(ConnectionManager);
 TypeId
 ConnectionManager::GetTypeId()
 {
+    // Uses ns3::distributed prefix to avoid collision with src/wimax/model/connection-manager.cc
     static TypeId tid =
         TypeId("ns3::distributed::ConnectionManager")
             .SetParent<Object>()

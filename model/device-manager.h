@@ -29,10 +29,10 @@ namespace ns3
  * @ingroup distributed
  * @brief Manages DVFS scaling for backend accelerators in the orchestrator.
  *
- * DeviceManager is a concrete component of EdgeOrchestrator. It stores the
- * latest DeviceMetrics per backend, evaluates a pluggable ScalingPolicy, and
- * sends ScalingCommandHeader packets back to backends via the orchestrator's
- * worker ConnectionManager.
+ * DeviceManager is a concrete component of EdgeOrchestrator. It evaluates a
+ * pluggable ScalingPolicy using per-backend state from ClusterState, and sends
+ * ScalingCommandHeader packets to backends via the orchestrator's worker
+ * ConnectionManager.
  *
  * Metrics arrive via HandleMetrics() (called by EdgeOrchestrator when a type-4
  * packet arrives). Scaling is evaluated via EvaluateScaling() (called by

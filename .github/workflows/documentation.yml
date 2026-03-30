@@ -1,0 +1,72 @@
+name: documentation
+
+on:
+  push:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Doxygen
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y doxygen
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14.3"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv venv .venv --seed
+          source .venv/bin/activate
+          uv pip install sphinx breathe sphinx-rtd-theme sphinx-rtd-dark-mode
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Build documentation
+        run: |
+          set -e
+          source .venv/bin/activate
+          cd doc/api
+          mkdir -p _build/doxygen
+          doxygen Doxyfile
+          sphinx-build -b html . _build/html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: doc/api/_build/html
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
