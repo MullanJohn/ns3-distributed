@@ -107,4 +107,10 @@ GpuDeviceProtocol::ApplyCommand(Ptr<Packet> packet, Ptr<Accelerator> accel)
     accel->SetVoltage(header.GetTargetVoltage());
 }
 
+std::string
+GpuDeviceProtocol::GetName() const
+{
+    return "GpuDevice";
+}
+
 } // namespace ns3

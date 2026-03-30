@@ -51,12 +51,12 @@ GpuAccelerator::GetTypeId()
                                           "Operating frequency in Hz",
                                           DoubleValue(1.5e9),
                                           MakeDoubleAccessor(&GpuAccelerator::m_frequency),
-                                          MakeDoubleChecker<double>(0.0))
+                                          MakeDoubleChecker<double>(1.0))
                             .AddAttribute("Voltage",
                                           "Operating voltage in Volts",
                                           DoubleValue(1.0),
                                           MakeDoubleAccessor(&GpuAccelerator::m_voltage),
-                                          MakeDoubleChecker<double>(0.0))
+                                          MakeDoubleChecker<double>(0.01))
                             .AddTraceSource("QueueLength",
                                             "Current number of tasks in queue",
                                             MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
@@ -72,8 +72,7 @@ GpuAccelerator::GpuAccelerator()
       m_processingModel(nullptr),
       m_queueScheduler(nullptr),
       m_currentTask(nullptr),
-      m_busy(false),
-      m_tasksCompleted(0),
+      m_currentUtilization(0.0),
       m_queueLength(0)
 {
     NS_LOG_FUNCTION(this);
@@ -113,16 +112,17 @@ GpuAccelerator::SubmitTask(Ptr<Task> task)
     if (!m_queueScheduler)
     {
         NS_LOG_ERROR("GpuAccelerator requires a QueueScheduler to be set");
+        task->SetState(TASK_FAILED);
         m_taskFailedTrace(task, "No QueueScheduler configured");
         return;
     }
 
     m_queueScheduler->Enqueue(task);
-    m_queueLength = m_queueScheduler->GetLength() + (m_busy ? 1 : 0);
+    m_queueLength = m_queueScheduler->GetLength() + (m_currentTask ? 1 : 0);
 
     NS_LOG_DEBUG("Task " << task->GetTaskId() << " submitted, queue length: " << m_queueLength);
 
-    if (!m_busy)
+    if (!m_currentTask)
     {
         StartNextTask();
     }
@@ -133,55 +133,52 @@ GpuAccelerator::StartNextTask()
 {
     NS_LOG_FUNCTION(this);
 
-    if (m_queueScheduler->IsEmpty())
+    while (!m_queueScheduler->IsEmpty())
     {
-        m_busy = false;
-        UpdateEnergyState(false, 0.0); // Transition to idle
+        m_currentTask = m_queueScheduler->Dequeue();
+
+        if (!m_processingModel)
+        {
+            NS_LOG_ERROR("GpuAccelerator requires a ProcessingModel to be set");
+            m_currentTask->SetState(TASK_FAILED);
+            m_taskFailedTrace(m_currentTask, "No ProcessingModel configured");
+            m_currentTask = nullptr;
+            m_queueLength = m_queueScheduler->GetLength();
+            continue;
+        }
+
+        ProcessingModel::Result result = m_processingModel->Process(m_currentTask, this);
+        if (!result.success)
+        {
+            NS_LOG_ERROR("ProcessingModel failed for task " << m_currentTask->GetTaskId());
+            m_currentTask->SetState(TASK_FAILED);
+            m_taskFailedTrace(m_currentTask, "ProcessingModel returned failure");
+            m_currentTask = nullptr;
+            m_queueLength = m_queueScheduler->GetLength();
+            continue;
+        }
+
+        m_taskStartTime = Simulator::Now();
+        m_currentUtilization = result.utilization;
+
+        NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
+
+        UpdateEnergyState(true, m_currentUtilization);
+        RecordTaskStartEnergy();
+
+        m_currentTask->SetState(TASK_RUNNING);
+        m_taskStartedTrace(m_currentTask);
+
+        m_queueLength = m_queueScheduler->GetLength() + 1;
+
+        NS_LOG_DEBUG("Processing time: " << result.processingTime);
+        m_currentEvent =
+            Simulator::Schedule(result.processingTime, &GpuAccelerator::ProcessingComplete, this);
         return;
     }
 
-    m_currentTask = m_queueScheduler->Dequeue();
-
-    if (!m_processingModel)
-    {
-        NS_LOG_ERROR("GpuAccelerator requires a ProcessingModel to be set");
-        m_taskFailedTrace(m_currentTask, "No ProcessingModel configured");
-        m_currentTask = nullptr;
-        m_queueLength = m_queueScheduler->GetLength();
-        StartNextTask();
-        return;
-    }
-    // Calculate processing characteristics using ProcessingModel
-    ProcessingModel::Result result = m_processingModel->Process(m_currentTask, this);
-    if (!result.success)
-    {
-        NS_LOG_ERROR("ProcessingModel failed for task " << m_currentTask->GetTaskId());
-        m_taskFailedTrace(m_currentTask, "ProcessingModel returned failure");
-        m_currentTask = nullptr;
-        m_queueLength = m_queueScheduler->GetLength();
-        StartNextTask();
-        return;
-    }
-
-    // Processing model validated task - begin execution
-    m_busy = true;
-    m_taskStartTime = Simulator::Now();
-
-    NS_LOG_INFO("Starting task " << m_currentTask->GetTaskId() << " at " << Simulator::Now());
-
-    // Update energy state: transition to active with modeled utilization
-    UpdateEnergyState(true, result.utilization);
-    RecordTaskStartEnergy();
-
-    // Fire task started trace
-    m_taskStartedTrace(m_currentTask);
-
-    // Update queue length after trace (includes current task being processed)
-    m_queueLength = m_queueScheduler->GetLength() + 1;
-
-    NS_LOG_DEBUG("Processing time: " << result.processingTime);
-    m_currentEvent =
-        Simulator::Schedule(result.processingTime, &GpuAccelerator::ProcessingComplete, this);
+    m_currentTask = nullptr;
+    UpdateEnergyState(false, 0.0);
 }
 
 void
@@ -191,32 +188,22 @@ GpuAccelerator::ProcessingComplete()
 
     Time duration = Simulator::Now() - m_taskStartTime;
 
-    // Trace firing order:
-    // 1. UpdateEnergyState fires CurrentPower and TotalEnergy traces
-    //    (must happen first to accumulate energy from the active period)
-    // 2. TaskEnergy trace fires with per-task energy consumption
-    //    (requires final energy accumulation from step 1)
-    // 3. TaskCompleted trace fires last with task and duration
-
-    // Energy state transition: active -> idle
-    // This fires CurrentPower and TotalEnergy traces
     UpdateEnergyState(false, 0.0);
 
-    // Per-task energy calculation and trace
     double taskEnergy = GetTaskEnergy();
     m_taskEnergyTrace(m_currentTask, taskEnergy);
 
     NS_LOG_INFO("Task " << m_currentTask->GetTaskId() << " completed in " << duration
                         << ", energy: " << taskEnergy << "J");
 
-    // Task completion trace fires last
+    m_currentTask->SetComputeTime(duration);
+
+    m_currentTask->SetState(TASK_COMPLETED);
     m_taskCompletedTrace(m_currentTask, duration);
 
-    m_tasksCompleted++;
     m_currentTask = nullptr;
     m_queueLength = m_queueScheduler->GetLength();
 
-    // Start next task if available
     StartNextTask();
 }
 
@@ -229,7 +216,7 @@ GpuAccelerator::GetQueueLength() const
 bool
 GpuAccelerator::IsBusy() const
 {
-    return m_busy;
+    return m_currentTask != nullptr;
 }
 
 double
@@ -264,9 +251,37 @@ GpuAccelerator::SetFrequency(double frequency)
     {
         return;
     }
+
+    if (m_currentTask)
+    {
+        UpdateEnergyState(true, m_currentUtilization);
+    }
+
     double ratio = frequency / m_frequency;
     m_computeRate *= ratio;
     m_frequency = frequency;
+
+    if (m_currentTask)
+    {
+        UpdateEnergyState(true, m_currentUtilization);
+
+        if (m_currentEvent.IsPending())
+        {
+            Time delayLeft = Simulator::GetDelayLeft(m_currentEvent);
+            Simulator::Cancel(m_currentEvent);
+
+            if (delayLeft.IsZero())
+            {
+                m_currentEvent = Simulator::ScheduleNow(&GpuAccelerator::ProcessingComplete, this);
+            }
+            else
+            {
+                Time remaining = Seconds(delayLeft.GetSeconds() / ratio);
+                m_currentEvent =
+                    Simulator::Schedule(remaining, &GpuAccelerator::ProcessingComplete, this);
+            }
+        }
+    }
 }
 
 void

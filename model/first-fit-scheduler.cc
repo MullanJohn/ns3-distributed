@@ -55,7 +55,6 @@ FirstFitScheduler::ScheduleTask(Ptr<Task> task,
 
     if (required.empty())
     {
-        // No accelerator requirement - round-robin across all backends
         uint32_t n = cluster.GetN();
         if (n == 0)
         {
@@ -69,7 +68,6 @@ FirstFitScheduler::ScheduleTask(Ptr<Task> task,
         return static_cast<int32_t>(idx);
     }
 
-    // Has accelerator requirement - use type index for efficient lookup
     const std::vector<uint32_t>& candidates = cluster.GetBackendsByType(required);
     if (candidates.empty())
     {
@@ -77,7 +75,6 @@ FirstFitScheduler::ScheduleTask(Ptr<Task> task,
         return -1;
     }
 
-    // Round-robin within matching backends using per-type index
     uint32_t& nextIdx = m_nextIndexByType[required];
     uint32_t candidateIdx = nextIdx % candidates.size();
     nextIdx = (candidateIdx + 1) % candidates.size();

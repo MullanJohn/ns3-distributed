@@ -27,9 +27,7 @@ class DagTask;
  * @brief Abstract base class for admission control policies.
  *
  * AdmissionPolicy determines whether a workload should be accepted for execution.
- * It is designed to be decoupled from the orchestrator to allow future extraction
- * to a separate CloudController service.
- *
+
  * Implementations are stateless - the orchestrator tracks active workloads
  * and passes the count to ShouldAdmit(). This follows real-world patterns
  * from Kubernetes and Spark where admission controllers are stateless.

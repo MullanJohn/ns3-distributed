@@ -45,35 +45,29 @@ UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
 
     if (opps.size() < 2)
     {
-        return nullptr; // No scaling possible
+        return nullptr;
     }
 
-    bool busy;
-    double currentFreq;
-
-    Ptr<DeviceMetrics> metrics = backend.deviceMetrics;
-    if (metrics)
-    {
-        busy = metrics->busy || metrics->queueLength > 0;
-        currentFreq = metrics->frequency;
-    }
-    else
-    {
-        busy = backend.activeTasks > 0;
-        currentFreq = 0.0;
-    }
+    bool busy = backend.activeTasks > 0;
+    double currentFreq = backend.commandedFrequency;
 
     const OperatingPoint& target = busy ? opps.back() : opps.front();
 
     if (target.frequency == currentFreq)
     {
-        return nullptr; // No change needed
+        return nullptr;
     }
 
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();
     decision->targetFrequency = target.frequency;
     decision->targetVoltage = target.voltage;
     return decision;
+}
+
+std::string
+UtilizationScalingPolicy::GetName() const
+{
+    return "UtilizationScaling";
 }
 
 } // namespace ns3

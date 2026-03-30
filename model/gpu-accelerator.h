@@ -28,8 +28,6 @@ namespace ns3
  * GpuAccelerator models a GPU processing unit. Task processing time
  * is determined by the attached ProcessingModel, which must be set
  * before tasks can be submitted.
- *
- * This is a concrete implementation of the Accelerator interface.
  */
 class GpuAccelerator : public Accelerator
 {
@@ -88,13 +86,10 @@ class GpuAccelerator : public Accelerator
     Ptr<QueueScheduler> m_queueScheduler;   //!< Queue scheduler for task management
 
     // State
-    Ptr<Task> m_currentTask; //!< Currently executing task
-    bool m_busy;             //!< True if processing a task
-    EventId m_currentEvent;  //!< Current scheduled event
-    Time m_taskStartTime;    //!< When current task started
-
-    // Statistics
-    uint64_t m_tasksCompleted; //!< Number of completed tasks
+    Ptr<Task> m_currentTask;     //!< Currently executing task
+    EventId m_currentEvent;      //!< Current scheduled event
+    Time m_taskStartTime;        //!< When current task started
+    double m_currentUtilization; //!< Utilization from last ProcessingModel result
 
     // Traced values
     TracedValue<uint32_t> m_queueLength; //!< Current queue length

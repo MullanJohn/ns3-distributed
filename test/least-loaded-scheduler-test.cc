@@ -48,28 +48,30 @@ class LeastLoadedSchedulerTestCase : public TestCase
 
         Ptr<LeastLoadedScheduler> scheduler = CreateObject<LeastLoadedScheduler>();
 
-        // Both idle — picks index 0 (first match on tie)
+        // Both idle — tie, should pick either 0 or 1
         Ptr<SimpleTask> task1 = CreateObject<SimpleTask>();
         task1->SetTaskId(1);
         int32_t idx1 = scheduler->ScheduleTask(task1, cluster, state);
-        NS_TEST_ASSERT_MSG_EQ(idx1, 0, "Should pick first backend when both idle");
+        bool validTie1 = (idx1 == 0 || idx1 == 1);
+        NS_TEST_ASSERT_MSG_EQ(validTie1, true, "Should pick a valid backend when both idle");
 
         // Load backend 0
         state.NotifyTaskDispatched(0);
 
-        // Backend 1 now less loaded
+        // Backend 1 now less loaded — deterministic, no tie
         Ptr<SimpleTask> task2 = CreateObject<SimpleTask>();
         task2->SetTaskId(2);
         int32_t idx2 = scheduler->ScheduleTask(task2, cluster, state);
         NS_TEST_ASSERT_MSG_EQ(idx2, 1, "Should pick backend 1 (less loaded)");
 
-        // Load backend 1 — tie again
+        // Load backend 1 — tie again, should pick either
         state.NotifyTaskDispatched(1);
 
         Ptr<SimpleTask> task3 = CreateObject<SimpleTask>();
         task3->SetTaskId(3);
         int32_t idx3 = scheduler->ScheduleTask(task3, cluster, state);
-        NS_TEST_ASSERT_MSG_EQ(idx3, 0, "Should pick first backend on tie");
+        bool validTie3 = (idx3 == 0 || idx3 == 1);
+        NS_TEST_ASSERT_MSG_EQ(validTie3, true, "Should pick a valid backend on tie");
 
         NS_TEST_ASSERT_MSG_EQ(scheduler->GetName(),
                               "LeastLoaded",
@@ -107,20 +109,22 @@ class LeastLoadedSchedulerTypeFilterTestCase : public TestCase
 
         Ptr<LeastLoadedScheduler> scheduler = CreateObject<LeastLoadedScheduler>();
 
-        // GPU task — picks first GPU backend (idx 0)
         Ptr<SimpleTask> task1 = CreateObject<SimpleTask>();
         task1->SetTaskId(1);
         task1->SetRequiredAcceleratorType("GPU");
         int32_t idx1 = scheduler->ScheduleTask(task1, cluster, state);
-        NS_TEST_ASSERT_MSG_EQ(idx1, 0, "Should pick first GPU backend");
+        bool validGpuTie = (idx1 == 0 || idx1 == 2);
+        NS_TEST_ASSERT_MSG_EQ(validGpuTie, true, "Should pick a GPU backend when both idle");
 
-        // Load GPU backend 0 — next GPU task goes to idx 2
-        state.NotifyTaskDispatched(0);
+        state.NotifyTaskDispatched(idx1);
         Ptr<SimpleTask> task2 = CreateObject<SimpleTask>();
         task2->SetTaskId(2);
         task2->SetRequiredAcceleratorType("GPU");
         int32_t idx2 = scheduler->ScheduleTask(task2, cluster, state);
-        NS_TEST_ASSERT_MSG_EQ(idx2, 2, "Should pick second GPU backend (less loaded)");
+        int32_t expectedOther = (idx1 == 0) ? 2 : 0;
+        NS_TEST_ASSERT_MSG_EQ(idx2,
+                              expectedOther,
+                              "Should pick the other GPU backend (less loaded)");
 
         // Nonexistent type returns -1
         Ptr<SimpleTask> task3 = CreateObject<SimpleTask>();

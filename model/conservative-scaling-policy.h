@@ -35,6 +35,7 @@ class ConservativeScalingPolicy : public ScalingPolicy
 
     Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                 const std::vector<OperatingPoint>& opps) override;
+    std::string GetName() const override;
 };
 
 } // namespace ns3

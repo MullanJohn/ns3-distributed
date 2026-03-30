@@ -16,12 +16,13 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Admission policy that rejects workloads when all backends are at capacity.
+ * @brief Type-aware admission policy that rejects workloads when compatible backends are at
+ * capacity.
  *
- * MaxActiveTasksPolicy checks whether any backend has fewer active tasks
- * than the configured threshold. If at least one backend has capacity,
- * the workload is admitted; if all backends are at or above the threshold,
- * it is rejected.
+ * MaxActiveTasksPolicy checks whether backends compatible with the workload's
+ * required accelerator types have fewer active tasks than the configured
+ * threshold. For each required type, at least one matching backend must have
+ * capacity. Tasks with no required type are matched against any backend.
  */
 class MaxActiveTasksPolicy : public AdmissionPolicy
 {
@@ -36,12 +37,12 @@ class MaxActiveTasksPolicy : public AdmissionPolicy
     ~MaxActiveTasksPolicy() override;
 
     /**
-     * @brief Admit if any backend has fewer active tasks than the threshold.
+     * @brief Admit if compatible backends have capacity for each required task type.
      *
-     * @param dag The workload DAG (ignored).
-     * @param cluster Current cluster state (ignored).
+     * @param dag The workload DAG (inspected for required accelerator types).
+     * @param cluster The cluster (used for type-based backend lookup).
      * @param state Per-backend load and device metrics.
-     * @return true if any backend has capacity, false if all are at/above threshold.
+     * @return true if capacity exists for all required types, false otherwise.
      */
     bool ShouldAdmit(Ptr<DagTask> dag, const Cluster& cluster, const ClusterState& state) override;
 

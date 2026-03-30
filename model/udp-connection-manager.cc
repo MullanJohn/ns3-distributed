@@ -123,12 +123,10 @@ UdpConnectionManager::Connect(const Address& remote)
         return;
     }
 
-    // Create socket if not already created
     if (!m_socket)
     {
         m_socket = Socket::CreateSocket(m_node, UdpSocketFactory::GetTypeId());
 
-        // Bind to ephemeral port
         if (InetSocketAddress::IsMatchingType(remote))
         {
             m_socket->Bind();
@@ -141,11 +139,9 @@ UdpConnectionManager::Connect(const Address& remote)
         m_socket->SetRecvCallback(MakeCallback(&UdpConnectionManager::HandleRead, this));
     }
 
-    // Set default destination (UDP "connect" just sets default destination)
     m_defaultDestination = remote;
     m_hasDefaultDestination = true;
 
-    // Optionally call socket Connect for ICMP error handling
     m_socket->Connect(remote);
 
     NS_LOG_INFO("UDP default destination set to " << remote);
@@ -264,7 +260,6 @@ void
 UdpConnectionManager::Close(const Address& peer)
 {
     NS_LOG_FUNCTION(this << peer);
-    // UDP is connectionless - closing a specific peer is a no-op
     NS_LOG_DEBUG("Close(peer) is a no-op for UDP (connectionless)");
 }
 
@@ -283,7 +278,6 @@ UdpConnectionManager::IsReliable() const
 bool
 UdpConnectionManager::IsConnected() const
 {
-    // Either way, having a socket means we can send/receive
     return m_socket != nullptr && m_hasDefaultDestination;
 }
 

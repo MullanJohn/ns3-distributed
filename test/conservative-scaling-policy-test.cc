@@ -44,11 +44,8 @@ class ConservativeStepUpTestCase : public TestCase
         std::vector<OperatingPoint> opps = MakeTestOpps();
 
         ClusterState::BackendState backend;
-        Ptr<DeviceMetrics> metrics = Create<DeviceMetrics>();
-        metrics->busy = true;
-        metrics->frequency = 1.0e9;
-        metrics->voltage = 0.85;
-        backend.deviceMetrics = metrics;
+        backend.activeTasks = 1;
+        backend.commandedFrequency = 1.0e9;
 
         Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
         NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should produce a scaling decision");
@@ -82,12 +79,8 @@ class ConservativeStepDownTestCase : public TestCase
         std::vector<OperatingPoint> opps = MakeTestOpps();
 
         ClusterState::BackendState backend;
-        Ptr<DeviceMetrics> metrics = Create<DeviceMetrics>();
-        metrics->busy = false;
-        metrics->queueLength = 0;
-        metrics->frequency = 1.0e9;
-        metrics->voltage = 0.85;
-        backend.deviceMetrics = metrics;
+        backend.activeTasks = 0;
+        backend.commandedFrequency = 1.0e9;
 
         Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
         NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should produce a scaling decision");
@@ -121,11 +114,8 @@ class ConservativeVoltageScalingTestCase : public TestCase
         std::vector<OperatingPoint> opps = MakeTestOpps();
 
         ClusterState::BackendState backend;
-        Ptr<DeviceMetrics> metrics = Create<DeviceMetrics>();
-        metrics->busy = true;
-        metrics->frequency = 1.5e9;
-        metrics->voltage = 1.05;
-        backend.deviceMetrics = metrics;
+        backend.activeTasks = 1;
+        backend.commandedFrequency = 1.5e9;
 
         Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
         NS_TEST_ASSERT_MSG_EQ(decision, nullptr, "Should return nullptr at max OPP");

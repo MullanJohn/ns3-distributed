@@ -309,6 +309,8 @@ PeriodicServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
     Ptr<Task> pendingTask = it->second.task;
     m_pendingTasks.erase(it);
 
+    pendingTask->SetBackendTime(Simulator::Now() - pendingTask->GetArrivalTime());
+
     SendResponse(clientAddr, pendingTask, duration);
 }
 

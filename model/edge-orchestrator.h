@@ -19,14 +19,12 @@
 
 #include "ns3/application.h"
 #include "ns3/callback.h"
-#include "ns3/event-id.h"
-#include "ns3/nstime.h"
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 
-#include <deque>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace ns3
@@ -42,7 +40,6 @@ class DeviceManager;
  * of backend workers. It provides:
  * - Admission control via pluggable AdmissionPolicy
  * - Task scheduling via pluggable Scheduler
- * - Support for DAG workflows (single tasks are wrapped as 1-node DAGs)
  *
  * The orchestrator supports mixed task types through a task type registry.
  * Each task type is registered via RegisterTaskType() with its deserializer
@@ -254,7 +251,8 @@ class EdgeOrchestrator : public Application
      * @brief Process an admission decision for a workload.
      *
      * Checks admission policy, detects duplicate requests, queues the
-     * pending admission, schedules timeout, and sends the response.
+     * pending admission, and sends the response. Pending admissions are
+     * cleaned up on client disconnect but have no expiry timeout.
      *
      * @param dag The workload DAG.
      * @param id The DAG ID.
@@ -340,11 +338,16 @@ class EdgeOrchestrator : public Application
     void CleanupClient(const Address& clientAddr);
 
     /**
-     * @brief Cancel timeout and remove the front pending admission for a client.
+     * @brief Handle a Phase 2 data upload from a client.
+     *
+     * Matches the dagId to a pending admission, cancels the timeout,
+     * deserializes the DAG, and dispatches the workload.
+     *
+     * @param dagId The DAG ID from the OrchestratorHeader taskId field.
+     * @param payload Packet containing serialized DAG full data.
      * @param clientAddr The client address.
-     * @param id The admission ID to clean up.
      */
-    void ConsumePendingAdmission(const Address& clientAddr, uint64_t id);
+    void HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr);
 
     /**
      * @brief Cancel an active workload, cleaning up all associated state.
@@ -389,26 +392,15 @@ class EdgeOrchestrator : public Application
         Ptr<Packet> packet);
 
     /**
-     * @brief Handle timeout of a pending admission.
-     * @param clientAddr The client address.
-     * @param id The admission ID that timed out.
+     * @brief Peek the task ID from a backend response buffer.
+     *
+     * Reads the 8-byte task ID from the common TaskHeader prefix
+     * (byte 0: messageType, bytes 1-8: taskId in network order).
+     *
+     * @param buffer The packet buffer to peek from (must have >= 9 bytes).
+     * @return The task ID.
      */
-    void HandleAdmissionTimeout(Address clientAddr, uint64_t id);
-
-    /**
-     * @brief Encode workload ID and DAG index into a wire task ID.
-     * @param workloadId The workload ID (upper 32 bits).
-     * @param dagIdx The DAG task index (lower 32 bits).
-     * @return The encoded wire task ID.
-     */
-    static uint64_t EncodeWireTaskId(uint32_t workloadId, uint32_t dagIdx);
-
-    /**
-     * @brief Decode a wire task ID into workload ID and DAG index.
-     * @param wireId The encoded wire task ID.
-     * @return Pair of (workloadId, dagIdx).
-     */
-    static std::pair<uint64_t, uint32_t> DecodeWireTaskId(uint64_t wireId);
+    static uint64_t PeekTaskId(Ptr<Packet> buffer);
 
     /**
      * @brief Dispatch deserialization of a type-prefixed task buffer.
@@ -451,17 +443,28 @@ class EdgeOrchestrator : public Application
     Ptr<ClusterScheduler> m_scheduler;      //!< Task scheduler (required)
     Ptr<DeviceManager> m_deviceManager;     //!< DVFS device manager (optional)
     std::map<uint8_t, TaskTypeEntry> m_taskTypeRegistry; //!< taskType → deserializers
-    std::unordered_map<uint64_t, uint8_t>
-        m_wireTaskType;          //!< wireId → taskType (for backend responses)
+
+    /**
+     * @brief Info stored per dispatched task for routing backend responses.
+     */
+    struct DispatchedTaskInfo
+    {
+        uint64_t workloadId; //!< Owning workload
+        uint32_t dagIdx;     //!< Index within the DAG
+        uint8_t taskType;    //!< Task type for deserialization
+    };
+
+    std::unordered_map<uint64_t, DispatchedTaskInfo>
+        m_dispatchedTasks;       //!< originalTaskId → dispatch info
     Cluster m_cluster;           //!< Backend cluster
     ClusterState m_clusterState; //!< Per-backend load and device metrics
     uint16_t m_port;             //!< Listen port
 
     // Connection management
-    Ptr<ConnectionManager> m_clientConnMgr;          //!< For client connections (listening)
-    Ptr<ConnectionManager> m_workerConnMgr;          //!< For worker connections (outgoing)
-    std::map<Address, Ptr<Packet>> m_rxBuffer;       //!< Per-client receive buffers
-    std::map<Address, Ptr<Packet>> m_workerRxBuffer; //!< Per-worker receive buffers
+    Ptr<ConnectionManager> m_clientConnMgr;           //!< For client connections (listening)
+    Ptr<ConnectionManager> m_backendConnMgr;          //!< For backend connections (outgoing)
+    std::map<Address, Ptr<Packet>> m_rxBuffer;        //!< Per-client receive buffers
+    std::map<Address, Ptr<Packet>> m_backendRxBuffer; //!< Per-backend receive buffers
 
     // Workload state
     struct WorkloadState
@@ -475,19 +478,7 @@ class EdgeOrchestrator : public Application
     std::map<uint64_t, WorkloadState> m_workloads; //!< Active workloads
     uint64_t m_nextWorkloadId{1};                  //!< Next workload ID
 
-    // Pending admissions — per-client ordered queue
-    // TCP ordering guarantees Phase 2 data arrives in the same order as admissions,
-    // so the queue front tells the orchestrator what format to expect.
-    struct PendingAdmission
-    {
-        uint64_t id;          //!< DAG ID from Phase 1
-        EventId timeoutEvent; //!< Timeout event (default: not running)
-    };
-
-    std::map<Address, std::deque<PendingAdmission>> m_pendingAdmissionQueue;
-
-    // Admission timeout tracking
-    Time m_admissionTimeout; //!< Timeout for pending admissions (0 = no timeout)
+    std::map<Address, std::unordered_set<uint64_t>> m_pendingAdmissions;
 
     // Statistics
     uint64_t m_workloadsAdmitted{0};  //!< Total admitted

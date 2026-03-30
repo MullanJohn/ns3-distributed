@@ -160,13 +160,11 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
 
     if (!m_energyModel)
     {
-        // No energy model configured - nothing to do
         return;
     }
 
     Time now = Simulator::Now();
 
-    // First-time initialization: calculate idle power for period from time 0
     if (m_lastEnergyUpdateTime.IsStrictlyNegative())
     {
         EnergyModel::PowerState idleState = m_energyModel->CalculateIdlePower(this);
@@ -237,9 +235,7 @@ Accelerator::DoDispose()
     // Final energy update if we have an active energy model
     if (m_energyModel)
     {
-        // Accumulate any remaining energy before disposal
         Time now = Simulator::Now();
-        // Only accumulate if we've been initialized (sentinel value is negative)
         if (!m_lastEnergyUpdateTime.IsStrictlyNegative() && m_lastEnergyUpdateTime < now)
         {
             double elapsed = (now - m_lastEnergyUpdateTime).GetSeconds();

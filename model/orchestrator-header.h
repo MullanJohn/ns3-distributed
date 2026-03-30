@@ -26,19 +26,6 @@ namespace ns3
  * After admission is granted, normal Task serialization (TaskHeader with
  * TASK_REQUEST/TASK_RESPONSE) is used for execution.
  *
- * Protocol:
- *
- * Phase 1 - Admission:
- * - Client: ADMISSION_REQUEST + serialized DAG metadata (no payloads)
- * - Server: ADMISSION_RESPONSE (taskId + admit/reject)
- *
- * Phase 2 - Execution (if admitted):
- * - Client: Normal Task.Serialize(false) with same taskId
- * - Server: Normal Task.Serialize(true) response
- *
- * The taskId enables concurrent admission requests - the server echoes
- * it back so the client can correlate responses.
- *
  * Wire format (18 bytes):
  * - messageType: 1 byte
  * - taskId: 8 bytes (from TaskHeader for request, echoed in response)
@@ -57,8 +44,9 @@ class OrchestratorHeader : public Header
      */
     enum MessageType : uint8_t
     {
-        ADMISSION_REQUEST = 2, //!< Client requests admission (serialized DAG metadata follows)
-        ADMISSION_RESPONSE = 3 //!< Server responds to admission (admit/reject)
+        ADMISSION_REQUEST = 2,  //!< Client requests admission (serialized DAG metadata follows)
+        ADMISSION_RESPONSE = 3, //!< Server responds to admission (admit/reject)
+        DATA_UPLOAD = 4         //!< Phase 2: full DAG data upload (dagId in taskId field)
     };
 
     /**
@@ -145,6 +133,12 @@ class OrchestratorHeader : public Header
      * @return true if ADMISSION_RESPONSE.
      */
     bool IsResponse() const;
+
+    /**
+     * @brief Check if this is a data upload message.
+     * @return true if DATA_UPLOAD.
+     */
+    bool IsDataUpload() const;
 
     /**
      * @brief Get string representation of message type.

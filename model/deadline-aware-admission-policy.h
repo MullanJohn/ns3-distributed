@@ -71,7 +71,7 @@ class DeadlineAwareAdmissionPolicy : public AdmissionPolicy
                          const ClusterState::BackendState& backend,
                          Time earliestStart) const;
 
-    double m_computeRate; //!< Assumed backend processing rate in FLOPS
+    double m_computeRate; //!< Backend processing rate in FLOPS
 };
 
 } // namespace ns3

@@ -187,7 +187,7 @@ class DagTask : public Object
     /**
      * @brief Validate that the DAG has no cycles.
      *
-     * Uses DFS to detect cycles. A DAG with cycles cannot be scheduled.
+     * A DAG with cycles cannot be scheduled.
      *
      * @return true if the DAG is valid (no cycles).
      */

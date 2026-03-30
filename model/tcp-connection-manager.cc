@@ -15,9 +15,6 @@
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
 
-#include <algorithm>
-#include <set>
-
 namespace ns3
 {
 
@@ -60,40 +57,8 @@ TcpConnectionManager::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
-    // Close listening socket
-    if (m_listenSocket)
-    {
-        m_listenSocket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
-                                          MakeNullCallback<void, Ptr<Socket>, const Address&>());
-        m_listenSocket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
-                                          MakeNullCallback<void, Ptr<Socket>>());
-        m_listenSocket->Close();
-        m_listenSocket = nullptr;
-    }
+    Close();
 
-    // Close all connection sockets
-    for (auto& socket : m_sockets)
-    {
-        if (socket)
-        {
-            socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
-            socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
-                                       MakeNullCallback<void, Ptr<Socket>>());
-            socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
-                                      MakeNullCallback<void, Ptr<Socket>>());
-            socket->Close();
-        }
-    }
-    m_sockets.clear();
-
-    // Clear all maps
-    m_socketBusy.clear();
-    m_socketToPeer.clear();
-    m_peerToSocket.clear();
-    m_idToSocket.clear();
-    m_socketToId.clear();
-
-    // Clear callbacks
     m_receiveCallback = ReceiveCallback();
     m_connectionCallback = ConnectionCallback();
     m_closeCallback = ConnectionCallback();
@@ -135,7 +100,6 @@ TcpConnectionManager::Bind(const Address& local)
         return;
     }
 
-    // Create listening socket
     m_listenSocket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
 
     if (m_listenSocket->Bind(local) == -1)
@@ -170,23 +134,18 @@ TcpConnectionManager::Connect(const Address& remote)
         return;
     }
 
-    // Check if already connected to this remote
-    if (m_peerToSocket.find(remote) != m_peerToSocket.end())
+    if (m_peerSocketCount.find(remote) != m_peerSocketCount.end())
     {
         NS_LOG_WARN("Already connected to " << remote);
         return;
     }
 
-    // If connecting to multiple remotes, only create single connection per remote
-    // Connection pooling only applies when connecting to a single server
     if (GetUniqueRemoteCount() == 0 && m_poolSize > 1)
     {
-        // First connection with pooling enabled - create pool to this server
         CreatePooledConnections(remote);
     }
     else
     {
-        // Either already have connections (multi-remote) or poolSize is 1
         CreateConnectionTo(remote);
     }
 }
@@ -198,7 +157,6 @@ TcpConnectionManager::CreateConnectionTo(const Address& remote)
 
     Ptr<Socket> socket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
 
-    // Bind to ephemeral port
     if (InetSocketAddress::IsMatchingType(remote))
     {
         socket->Bind();
@@ -208,21 +166,18 @@ TcpConnectionManager::CreateConnectionTo(const Address& remote)
         socket->Bind6();
     }
 
-    // Set up callbacks
     socket->SetConnectCallback(MakeCallback(&TcpConnectionManager::HandleConnectionSucceeded, this),
                                MakeCallback(&TcpConnectionManager::HandleConnectionFailed, this));
     socket->SetRecvCallback(MakeCallback(&TcpConnectionManager::HandleRead, this));
     socket->SetCloseCallbacks(MakeCallback(&TcpConnectionManager::HandlePeerClose, this),
                               MakeCallback(&TcpConnectionManager::HandlePeerError, this));
 
-    // Connect to server
     socket->Connect(remote);
 
-    // Track the connection
     m_sockets.push_back(socket);
     m_socketBusy[socket] = false;
     m_socketToPeer[socket] = remote;
-    m_peerToSocket[remote] = socket;
+    ++m_peerSocketCount[remote];
 
     NS_LOG_DEBUG("Created connection to " << remote);
 }
@@ -234,41 +189,7 @@ TcpConnectionManager::CreatePooledConnections(const Address& remote)
 
     for (uint32_t i = 0; i < m_poolSize; ++i)
     {
-        Ptr<Socket> socket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
-
-        // Bind to ephemeral port
-        if (InetSocketAddress::IsMatchingType(remote))
-        {
-            socket->Bind();
-        }
-        else if (Inet6SocketAddress::IsMatchingType(remote))
-        {
-            socket->Bind6();
-        }
-
-        // Set up callbacks
-        socket->SetConnectCallback(
-            MakeCallback(&TcpConnectionManager::HandleConnectionSucceeded, this),
-            MakeCallback(&TcpConnectionManager::HandleConnectionFailed, this));
-        socket->SetRecvCallback(MakeCallback(&TcpConnectionManager::HandleRead, this));
-        socket->SetCloseCallbacks(MakeCallback(&TcpConnectionManager::HandlePeerClose, this),
-                                  MakeCallback(&TcpConnectionManager::HandlePeerError, this));
-
-        // Connect to server
-        socket->Connect(remote);
-
-        // Add to pool
-        m_sockets.push_back(socket);
-        m_socketBusy[socket] = false;
-        m_socketToPeer[socket] = remote;
-        // Note: m_peerToSocket maps to the first socket for this peer (for Close(peer) support)
-        if (m_peerToSocket.find(remote) == m_peerToSocket.end())
-        {
-            m_peerToSocket[remote] = socket;
-        }
-
-        NS_LOG_DEBUG("Created pooled connection " << (i + 1) << "/" << m_poolSize << " to "
-                                                  << remote);
+        CreateConnectionTo(remote);
     }
 }
 
@@ -310,22 +231,19 @@ TcpConnectionManager::HandleAccept(Ptr<Socket> socket, const Address& from)
     Address peerAddr;
     if (socket->GetPeerName(peerAddr) != 0)
     {
-        // Fallback to the address from the callback if GetPeerName fails
         peerAddr = from;
     }
 
     NS_LOG_INFO("Accepted connection from " << peerAddr);
 
-    // Set up callbacks for the accepted socket
     socket->SetRecvCallback(MakeCallback(&TcpConnectionManager::HandleRead, this));
     socket->SetCloseCallbacks(MakeCallback(&TcpConnectionManager::HandlePeerClose, this),
                               MakeCallback(&TcpConnectionManager::HandlePeerError, this));
 
-    // Track the connection
     m_sockets.push_back(socket);
     m_socketBusy[socket] = false;
     m_socketToPeer[socket] = peerAddr;
-    m_peerToSocket[peerAddr] = socket;
+    ++m_peerSocketCount[peerAddr];
 
     if (!m_connectionCallback.IsNull())
     {
@@ -348,8 +266,6 @@ TcpConnectionManager::HandleRead(Ptr<Socket> socket)
             break;
         }
 
-        // Use the stored peer address for consistency with our address maps
-        // This ensures the address in the callback matches what's in m_peerToSocket
         Address peerAddr = GetPeerAddress(socket);
         if (peerAddr.IsInvalid())
         {
@@ -387,16 +303,8 @@ void
 TcpConnectionManager::HandlePeerError(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-
-    Address peer = GetPeerAddress(socket);
-    NS_LOG_ERROR("Connection error with " << peer);
-
-    if (!m_closeCallback.IsNull() && !peer.IsInvalid())
-    {
-        m_closeCallback(peer);
-    }
-
-    CleanupSocket(socket);
+    NS_LOG_ERROR("Connection error with " << GetPeerAddress(socket));
+    HandlePeerClose(socket);
 }
 
 void
@@ -409,25 +317,32 @@ TcpConnectionManager::CleanupSocket(Ptr<Socket> socket)
         return;
     }
 
-    // Clear callbacks before closing to prevent re-entrant calls
     socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
     socket->SetConnectCallback(MakeNullCallback<void, Ptr<Socket>>(),
                                MakeNullCallback<void, Ptr<Socket>>());
     socket->SetCloseCallbacks(MakeNullCallback<void, Ptr<Socket>>(),
                               MakeNullCallback<void, Ptr<Socket>>());
 
-    // Close the socket
     socket->Close();
 
-    // Remove from peer mapping
     auto peerIt = m_socketToPeer.find(socket);
     if (peerIt != m_socketToPeer.end())
     {
-        m_peerToSocket.erase(peerIt->second);
+        auto countIt = m_peerSocketCount.find(peerIt->second);
+        if (countIt != m_peerSocketCount.end())
+        {
+            if (countIt->second <= 1)
+            {
+                m_peerSocketCount.erase(countIt);
+            }
+            else
+            {
+                --countIt->second;
+            }
+        }
         m_socketToPeer.erase(peerIt);
     }
 
-    // Remove from connection ID mapping
     auto idIt = m_socketToId.find(socket);
     if (idIt != m_socketToId.end())
     {
@@ -435,7 +350,6 @@ TcpConnectionManager::CleanupSocket(Ptr<Socket> socket)
         m_socketToId.erase(idIt);
     }
 
-    // Remove from busy map and socket list
     m_socketBusy.erase(socket);
     m_sockets.remove(socket);
 }
@@ -456,7 +370,6 @@ TcpConnectionManager::Send(Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this << packet);
 
-    // Send() without address only works when connected to a single peer
     uint32_t uniqueRemotes = GetUniqueRemoteCount();
     if (uniqueRemotes == 0)
     {
@@ -501,10 +414,7 @@ TcpConnectionManager::Send(Ptr<Packet> packet, const Address& to)
 {
     NS_LOG_FUNCTION(this << packet << to);
 
-    Ptr<Socket> socket = nullptr;
-
-    // Find the socket for this peer (works for both server and client mode)
-    socket = GetIdleSocketTo(to);
+    Ptr<Socket> socket = GetIdleSocketTo(to);
     if (!socket)
     {
         NS_LOG_ERROR("No connection to peer " << to);
@@ -544,7 +454,6 @@ TcpConnectionManager::GetIdleSocket()
 Ptr<Socket>
 TcpConnectionManager::GetIdleSocketTo(const Address& peer)
 {
-    // Find an idle socket connected to the specified peer
     for (auto& socket : m_sockets)
     {
         auto peerIt = m_socketToPeer.find(socket);
@@ -565,19 +474,11 @@ TcpConnectionManager::GetIdleSocketTo(const Address& peer)
 uint32_t
 TcpConnectionManager::GetUniqueRemoteCount() const
 {
-    // In server mode (listening), we don't count as having remote connections for this purpose
     if (m_listenSocket)
     {
         return 0;
     }
-
-    // Count unique peer addresses
-    std::set<Address> uniquePeers;
-    for (const auto& pair : m_socketToPeer)
-    {
-        uniquePeers.insert(pair.second);
-    }
-    return static_cast<uint32_t>(uniquePeers.size());
+    return static_cast<uint32_t>(m_peerSocketCount.size());
 }
 
 void
@@ -613,7 +514,6 @@ TcpConnectionManager::Close()
 {
     NS_LOG_FUNCTION(this);
 
-    // Close listening socket
     if (m_listenSocket)
     {
         m_listenSocket->SetAcceptCallback(MakeNullCallback<bool, Ptr<Socket>, const Address&>(),
@@ -624,7 +524,6 @@ TcpConnectionManager::Close()
         m_listenSocket = nullptr;
     }
 
-    // Close all connection sockets
     for (auto& socket : m_sockets)
     {
         if (socket)
@@ -641,7 +540,7 @@ TcpConnectionManager::Close()
     m_sockets.clear();
     m_socketBusy.clear();
     m_socketToPeer.clear();
-    m_peerToSocket.clear();
+    m_peerSocketCount.clear();
     m_idToSocket.clear();
     m_socketToId.clear();
 }
@@ -651,38 +550,25 @@ TcpConnectionManager::Close(const Address& peer)
 {
     NS_LOG_FUNCTION(this << peer);
 
-    auto it = m_peerToSocket.find(peer);
-    if (it == m_peerToSocket.end())
+    std::list<Ptr<Socket>> socketsToClose;
+    for (auto& socket : m_sockets)
+    {
+        auto peerIt = m_socketToPeer.find(socket);
+        if (peerIt != m_socketToPeer.end() && peerIt->second == peer)
+        {
+            socketsToClose.push_back(socket);
+        }
+    }
+
+    if (socketsToClose.empty())
     {
         NS_LOG_WARN("No connection to peer " << peer);
         return;
     }
 
-    if (m_listenSocket)
+    for (auto& socket : socketsToClose)
     {
-        // Server mode: close the specific client connection
-        CleanupSocket(it->second);
-    }
-    else
-    {
-        // Client mode: close all connections to this specific peer
-        // (handles both pooled connections to same server and multi-remote mode)
-        std::list<Ptr<Socket>> socketsToClose;
-        for (auto& socket : m_sockets)
-        {
-            auto peerIt = m_socketToPeer.find(socket);
-            if (peerIt != m_socketToPeer.end() && peerIt->second == peer)
-            {
-                socketsToClose.push_back(socket);
-            }
-        }
-
-        NS_LOG_DEBUG("Client mode: closing " << socketsToClose.size() << " connections to "
-                                             << peer);
-        for (auto& socket : socketsToClose)
-        {
-            CleanupSocket(socket);
-        }
+        CleanupSocket(socket);
     }
 }
 
@@ -704,7 +590,6 @@ TcpConnectionManager::IsConnected() const
     // Returns true if we have any active connections we can send on.
     // - Client mode: connections to servers
     // - Server mode: accepted client connections
-    // Note: m_listenSocket alone doesn't count - we need actual connections to send data.
     return !m_sockets.empty();
 }
 
@@ -726,10 +611,8 @@ TcpConnectionManager::AcquireConnection()
         return INVALID_CONNECTION;
     }
 
-    // Mark as busy
     m_socketBusy[socket] = true;
 
-    // Generate and track connection ID
     ConnectionId connId = GenerateConnectionId();
     m_idToSocket[connId] = socket;
     m_socketToId[socket] = connId;
@@ -743,32 +626,29 @@ TcpConnectionManager::AcquireConnection(const Address& peer)
 {
     NS_LOG_FUNCTION(this << peer);
 
-    auto it = m_peerToSocket.find(peer);
-    if (it == m_peerToSocket.end())
+    for (auto& socket : m_sockets)
     {
-        NS_LOG_WARN("No connection to peer " << peer);
-        return INVALID_CONNECTION;
+        auto peerIt = m_socketToPeer.find(socket);
+        if (peerIt == m_socketToPeer.end() || peerIt->second != peer)
+        {
+            continue;
+        }
+        if (m_socketBusy[socket])
+        {
+            continue;
+        }
+
+        m_socketBusy[socket] = true;
+        ConnectionId connId = GenerateConnectionId();
+        m_idToSocket[connId] = socket;
+        m_socketToId[socket] = connId;
+
+        NS_LOG_DEBUG("Acquired connection " << connId << " to " << peer);
+        return connId;
     }
 
-    Ptr<Socket> socket = it->second;
-
-    // Check if already acquired
-    if (m_socketBusy[socket])
-    {
-        NS_LOG_WARN("Connection to " << peer << " is already acquired");
-        return INVALID_CONNECTION;
-    }
-
-    // Mark as busy
-    m_socketBusy[socket] = true;
-
-    // Generate and track connection ID
-    ConnectionId connId = GenerateConnectionId();
-    m_idToSocket[connId] = socket;
-    m_socketToId[socket] = connId;
-
-    NS_LOG_DEBUG("Acquired connection " << connId << " to " << peer);
-    return connId;
+    NS_LOG_WARN("No idle connection to peer " << peer);
+    return INVALID_CONNECTION;
 }
 
 bool
@@ -815,10 +695,7 @@ TcpConnectionManager::ReleaseConnection(ConnectionId connId)
 
     Ptr<Socket> socket = it->second;
 
-    // Mark as not busy
     m_socketBusy[socket] = false;
-
-    // Remove connection ID mapping
     m_socketToId.erase(socket);
     m_idToSocket.erase(it);
 

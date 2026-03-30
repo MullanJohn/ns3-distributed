@@ -105,6 +105,12 @@ OrchestratorHeader::IsResponse() const
     return m_messageType == ADMISSION_RESPONSE;
 }
 
+bool
+OrchestratorHeader::IsDataUpload() const
+{
+    return m_messageType == DATA_UPLOAD;
+}
+
 std::string
 OrchestratorHeader::GetMessageTypeName() const
 {
@@ -114,6 +120,8 @@ OrchestratorHeader::GetMessageTypeName() const
         return "ADMISSION_REQUEST";
     case ADMISSION_RESPONSE:
         return "ADMISSION_RESPONSE";
+    case DATA_UPLOAD:
+        return "DATA_UPLOAD";
     default:
         return "UNKNOWN";
     }
@@ -147,7 +155,17 @@ OrchestratorHeader::Deserialize(Buffer::Iterator start)
 {
     NS_LOG_FUNCTION(this);
 
-    m_messageType = static_cast<MessageType>(start.ReadU8());
+    uint8_t messageTypeByte = start.ReadU8();
+    if (messageTypeByte < ADMISSION_REQUEST || messageTypeByte > DATA_UPLOAD)
+    {
+        NS_LOG_WARN("Invalid OrchestratorHeader message type "
+                    << static_cast<uint32_t>(messageTypeByte) << ", clamping to ADMISSION_REQUEST");
+        m_messageType = ADMISSION_REQUEST;
+    }
+    else
+    {
+        m_messageType = static_cast<MessageType>(messageTypeByte);
+    }
     m_taskId = start.ReadNtohU64();
     m_admitted = (start.ReadU8() != 0);
     m_payloadSize = start.ReadNtohU64();

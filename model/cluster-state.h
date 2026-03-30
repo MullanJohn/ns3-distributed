@@ -23,10 +23,10 @@ class DeviceMetrics;
  * @ingroup distributed
  * @brief Centralized view of per-backend load and device metrics for decision-makers.
  *
- * ClusterState is a plain data container owned by
- * EdgeOrchestrator. It aggregates orchestrator-tracked dispatch/completion
- * counts and device-reported metrics into a single object that is passed
- * to ScalingPolicy, ClusterScheduler, and AdmissionPolicy on each call.
+ * ClusterState is a plain data container owned by EdgeOrchestrator. It aggregates
+ * orchestrator-tracked dispatch/completion counts and device-reported metrics
+ * into a single object that is passed to ScalingPolicy, ClusterScheduler, and
+ * AdmissionPolicy on each call.
  */
 class ClusterState
 {
@@ -39,6 +39,7 @@ class ClusterState
         uint32_t activeTasks{0};          //!< Dispatched but not yet completed
         uint32_t totalDispatched{0};      //!< Lifetime dispatch count
         uint32_t totalCompleted{0};       //!< Lifetime completion count
+        double commandedFrequency{0.0};   //!< Last frequency commanded by DeviceManager
         Ptr<DeviceMetrics> deviceMetrics; //!< Latest device-reported metrics (nullable)
     };
 
@@ -79,6 +80,13 @@ class ClusterState
      * @param metrics The device metrics.
      */
     void SetDeviceMetrics(uint32_t backendIdx, Ptr<DeviceMetrics> metrics);
+
+    /**
+     * @brief Set the commanded frequency for a backend.
+     * @param backendIdx The backend index.
+     * @param frequency The commanded frequency in Hz.
+     */
+    void SetCommandedFrequency(uint32_t backendIdx, double frequency);
 
     /**
      * @brief Set the active workload count.

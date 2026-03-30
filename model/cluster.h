@@ -69,10 +69,10 @@ class Cluster
     Cluster();
 
     /**
-     * @brief Add a backend server to the cluster.
+     * @brief Add a backend to the cluster.
      *
-     * @param node The server node. This node should have an OffloadServer
-     *             application installed and optionally a GpuAccelerator aggregated.
+     * @param node The backend node. This node should have an application
+     *             installed and a GpuAccelerator aggregated.
      * @param address The address clients should connect to (typically
      *                InetSocketAddress with the server's IP and port).
      * @param acceleratorType The type of accelerator on this backend (e.g., "GPU", "TPU").

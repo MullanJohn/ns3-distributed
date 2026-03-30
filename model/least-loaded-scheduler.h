@@ -11,6 +11,8 @@
 
 #include "cluster-scheduler.h"
 
+#include "ns3/random-variable-stream.h"
+
 #include <string>
 
 namespace ns3
@@ -23,7 +25,7 @@ namespace ns3
  * LeastLoadedScheduler picks the backend with the minimum number of active
  * tasks (dispatched but not yet completed), as tracked in ClusterState.
  * If the task specifies a required accelerator type, only matching backends
- * are considered. Ties are broken by lowest index.
+ * are considered. Ties are broken by uniform random selection.
  */
 class LeastLoadedScheduler : public ClusterScheduler
 {
@@ -54,6 +56,12 @@ class LeastLoadedScheduler : public ClusterScheduler
      * @return "LeastLoaded"
      */
     std::string GetName() const override;
+
+  protected:
+    void DoDispose() override;
+
+  private:
+    Ptr<UniformRandomVariable> m_tiebreaker; //!< RNG for breaking ties
 };
 
 } // namespace ns3

@@ -33,6 +33,8 @@ ClusterState::GetN() const
 const ClusterState::BackendState&
 ClusterState::Get(uint32_t idx) const
 {
+    NS_ASSERT_MSG(idx < m_backends.size(),
+                  "Backend index " << idx << " out of range (size=" << m_backends.size() << ")");
     return m_backends[idx];
 }
 
@@ -40,6 +42,9 @@ void
 ClusterState::NotifyTaskDispatched(uint32_t backendIdx)
 {
     NS_LOG_FUNCTION(this << backendIdx);
+    NS_ASSERT_MSG(backendIdx < m_backends.size(),
+                  "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
+                                   << ")");
     m_backends[backendIdx].activeTasks++;
     m_backends[backendIdx].totalDispatched++;
 }
@@ -48,6 +53,11 @@ void
 ClusterState::NotifyTaskCompleted(uint32_t backendIdx)
 {
     NS_LOG_FUNCTION(this << backendIdx);
+    NS_ASSERT_MSG(backendIdx < m_backends.size(),
+                  "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
+                                   << ")");
+    NS_ASSERT_MSG(m_backends[backendIdx].activeTasks > 0,
+                  "activeTasks underflow for backend " << backendIdx);
     m_backends[backendIdx].activeTasks--;
     m_backends[backendIdx].totalCompleted++;
 }
@@ -56,7 +66,20 @@ void
 ClusterState::SetDeviceMetrics(uint32_t backendIdx, Ptr<DeviceMetrics> metrics)
 {
     NS_LOG_FUNCTION(this << backendIdx);
+    NS_ASSERT_MSG(backendIdx < m_backends.size(),
+                  "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
+                                   << ")");
     m_backends[backendIdx].deviceMetrics = metrics;
+}
+
+void
+ClusterState::SetCommandedFrequency(uint32_t backendIdx, double frequency)
+{
+    NS_LOG_FUNCTION(this << backendIdx << frequency);
+    NS_ASSERT_MSG(backendIdx < m_backends.size(),
+                  "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
+                                   << ")");
+    m_backends[backendIdx].commandedFrequency = frequency;
 }
 
 void

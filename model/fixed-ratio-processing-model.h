@@ -28,10 +28,6 @@ namespace ns3
  * - Output transfer: outputSize / GpuAccelerator.MemoryBandwidth
  * - Total: sum of all three phases
  *
- * This model requires:
- * - Task must be a ComputeTask (returns failure otherwise)
- * - Accelerator must be a GpuAccelerator (returns failure otherwise)
- *
  * Example usage:
  * @code
  * Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();

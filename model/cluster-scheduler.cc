@@ -8,6 +8,8 @@
 
 #include "cluster-scheduler.h"
 
+#include "cluster-state.h"
+
 #include "ns3/log.h"
 
 namespace ns3
@@ -33,6 +35,20 @@ ClusterScheduler::ClusterScheduler()
 ClusterScheduler::~ClusterScheduler()
 {
     NS_LOG_FUNCTION(this);
+}
+
+bool
+ClusterScheduler::CanScheduleTask(Ptr<Task> task,
+                                  const Cluster& cluster,
+                                  const ClusterState& state) const
+{
+    NS_LOG_FUNCTION(this << task);
+    std::string required = task->GetRequiredAcceleratorType();
+    if (required.empty())
+    {
+        return cluster.GetN() > 0;
+    }
+    return !cluster.GetBackendsByType(required).empty();
 }
 
 void

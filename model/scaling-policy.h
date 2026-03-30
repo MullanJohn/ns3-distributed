@@ -27,7 +27,6 @@ namespace ns3
  * @brief Polymorphic base for accelerator metrics reported by backends.
  *
  * Standard fields are defined here; subclasses add accelerator-specific fields.
- * Uses SimpleRefCount for Ptr<> support without full ns-3 Object overhead.
  */
 class DeviceMetrics : public SimpleRefCount<DeviceMetrics>
 {
@@ -84,6 +83,12 @@ class ScalingPolicy : public Object
      */
     virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                         const std::vector<OperatingPoint>& opps) = 0;
+
+    /**
+     * @brief Get the name of this scaling policy.
+     * @return A string identifying the policy.
+     */
+    virtual std::string GetName() const = 0;
 };
 
 } // namespace ns3

@@ -340,6 +340,7 @@ PeriodicClient::GenerateFrame()
                                   << dagId << ", " << frameSize << " bytes, " << computeDemand
                                   << " FLOPS)");
 
+    task->SetState(TASK_SUBMITTED);
     m_frameSentTrace(task);
 
     ScheduleNextFrame();
@@ -433,6 +434,7 @@ PeriodicClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
             Ptr<Task> task = dag->GetTask(i);
             if (task)
             {
+                task->SetState(TASK_REJECTED);
                 m_frameRejectedTrace(task);
             }
         }
@@ -504,7 +506,16 @@ PeriodicClient::SendFullData(uint64_t dagId)
     }
 
     Ptr<DagTask> dag = it->second.dag;
-    Ptr<Packet> packet = dag->SerializeFullData();
+    Ptr<Packet> dagData = dag->SerializeFullData();
+
+    OrchestratorHeader uploadHeader;
+    uploadHeader.SetMessageType(OrchestratorHeader::DATA_UPLOAD);
+    uploadHeader.SetTaskId(dagId);
+    uploadHeader.SetPayloadSize(dagData->GetSize());
+
+    Ptr<Packet> packet = Create<Packet>();
+    packet->AddAtEnd(dagData);
+    packet->AddHeader(uploadHeader);
 
     if (!m_connMgr->Send(packet))
     {

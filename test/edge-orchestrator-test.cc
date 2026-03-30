@@ -19,8 +19,8 @@
 #include "ns3/ipv4-address-helper.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/least-loaded-scheduler.h"
-#include "ns3/offload-client.h"
-#include "ns3/offload-server.h"
+#include "ns3/periodic-client.h"
+#include "ns3/periodic-server.h"
 #include "ns3/point-to-point-helper.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
@@ -55,7 +55,6 @@ class SingleTaskEndToEndTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create 3 nodes: client, orchestrator, server
         NodeContainer nodes;
         nodes.Create(3);
         Ptr<Node> clientNode = nodes.Get(0);
@@ -90,7 +89,7 @@ class SingleTaskEndToEndTestCase : public TestCase
         serverNode->AggregateObject(gpu);
 
         uint16_t serverPort = 9000;
-        Ptr<OffloadServer> server = CreateObject<OffloadServer>();
+        Ptr<PeriodicServer> server = CreateObject<PeriodicServer>();
         server->SetAttribute("Port", UintegerValue(serverPort));
         serverNode->AddApplication(server);
         server->SetStartTime(Seconds(0.0));
@@ -112,7 +111,6 @@ class SingleTaskEndToEndTestCase : public TestCase
         orchestrator->SetStartTime(Seconds(0.0));
         orchestrator->SetStopTime(Seconds(10.0));
 
-        // Connect orchestrator traces
         orchestrator->TraceConnectWithoutContext(
             "WorkloadAdmitted",
             MakeCallback(&SingleTaskEndToEndTestCase::OnWorkloadAdmitted, this));
@@ -126,30 +124,27 @@ class SingleTaskEndToEndTestCase : public TestCase
             "TaskCompleted",
             MakeCallback(&SingleTaskEndToEndTestCase::OnTaskCompleted, this));
 
-        Ptr<OffloadClient> client = CreateObject<OffloadClient>();
+        // PeriodicClient at 1 FPS generates exactly 1 frame before stop time
+        Ptr<PeriodicClient> client = CreateObject<PeriodicClient>();
         client->SetAttribute("Remote",
                              AddressValue(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort)));
-        client->SetAttribute("MaxTasks", UintegerValue(1));
+        client->SetAttribute("FrameRate", DoubleValue(1.0));
 
-        Ptr<ExponentialRandomVariable> interArrival = CreateObject<ExponentialRandomVariable>();
-        interArrival->SetAttribute("Mean", DoubleValue(0.1));
-        client->SetAttribute("InterArrivalTime", PointerValue(interArrival));
+        Ptr<ConstantRandomVariable> frameSize = CreateObject<ConstantRandomVariable>();
+        frameSize->SetAttribute("Constant", DoubleValue(1000));
+        client->SetAttribute("FrameSize", PointerValue(frameSize));
 
-        Ptr<ExponentialRandomVariable> compute = CreateObject<ExponentialRandomVariable>();
-        compute->SetAttribute("Mean", DoubleValue(1e9));
+        Ptr<ConstantRandomVariable> compute = CreateObject<ConstantRandomVariable>();
+        compute->SetAttribute("Constant", DoubleValue(1e9));
         client->SetAttribute("ComputeDemand", PointerValue(compute));
 
-        Ptr<ExponentialRandomVariable> input = CreateObject<ExponentialRandomVariable>();
-        input->SetAttribute("Mean", DoubleValue(1000));
-        client->SetAttribute("InputSize", PointerValue(input));
-
-        Ptr<ExponentialRandomVariable> output = CreateObject<ExponentialRandomVariable>();
-        output->SetAttribute("Mean", DoubleValue(100));
+        Ptr<ConstantRandomVariable> output = CreateObject<ConstantRandomVariable>();
+        output->SetAttribute("Constant", DoubleValue(100));
         client->SetAttribute("OutputSize", PointerValue(output));
 
         clientNode->AddApplication(client);
         client->SetStartTime(Seconds(0.1));
-        client->SetStopTime(Seconds(5.0));
+        client->SetStopTime(Seconds(1.5));
 
         Simulator::Stop(Seconds(10.0));
         Simulator::Run();
@@ -217,7 +212,6 @@ class MultiBackendTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create 4 nodes: client, orchestrator, 2 servers
         NodeContainer nodes;
         nodes.Create(4);
         Ptr<Node> clientNode = nodes.Get(0);
@@ -269,13 +263,13 @@ class MultiBackendTestCase : public TestCase
         }
 
         uint16_t serverPort = 9000;
-        Ptr<OffloadServer> server0 = CreateObject<OffloadServer>();
+        Ptr<PeriodicServer> server0 = CreateObject<PeriodicServer>();
         server0->SetAttribute("Port", UintegerValue(serverPort));
         serverNode0->AddApplication(server0);
         server0->SetStartTime(Seconds(0.0));
         server0->SetStopTime(Seconds(10.0));
 
-        Ptr<OffloadServer> server1 = CreateObject<OffloadServer>();
+        Ptr<PeriodicServer> server1 = CreateObject<PeriodicServer>();
         server1->SetAttribute("Port", UintegerValue(serverPort));
         serverNode1->AddApplication(server1);
         server1->SetStartTime(Seconds(0.0));
@@ -302,30 +296,27 @@ class MultiBackendTestCase : public TestCase
             "TaskDispatched",
             MakeCallback(&MultiBackendTestCase::OnTaskDispatched, this));
 
-        Ptr<OffloadClient> client = CreateObject<OffloadClient>();
+        // 4 FPS, run for ~1s to generate 4 frames
+        Ptr<PeriodicClient> client = CreateObject<PeriodicClient>();
         client->SetAttribute("Remote",
                              AddressValue(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort)));
-        client->SetAttribute("MaxTasks", UintegerValue(4));
+        client->SetAttribute("FrameRate", DoubleValue(4.0));
 
-        Ptr<ExponentialRandomVariable> interArrival = CreateObject<ExponentialRandomVariable>();
-        interArrival->SetAttribute("Mean", DoubleValue(0.01));
-        client->SetAttribute("InterArrivalTime", PointerValue(interArrival));
+        Ptr<ConstantRandomVariable> frameSize = CreateObject<ConstantRandomVariable>();
+        frameSize->SetAttribute("Constant", DoubleValue(1000));
+        client->SetAttribute("FrameSize", PointerValue(frameSize));
 
-        Ptr<ExponentialRandomVariable> compute = CreateObject<ExponentialRandomVariable>();
-        compute->SetAttribute("Mean", DoubleValue(1e12));
+        Ptr<ConstantRandomVariable> compute = CreateObject<ConstantRandomVariable>();
+        compute->SetAttribute("Constant", DoubleValue(1e9));
         client->SetAttribute("ComputeDemand", PointerValue(compute));
 
-        Ptr<ExponentialRandomVariable> input = CreateObject<ExponentialRandomVariable>();
-        input->SetAttribute("Mean", DoubleValue(1000));
-        client->SetAttribute("InputSize", PointerValue(input));
-
-        Ptr<ExponentialRandomVariable> output = CreateObject<ExponentialRandomVariable>();
-        output->SetAttribute("Mean", DoubleValue(100));
+        Ptr<ConstantRandomVariable> output = CreateObject<ConstantRandomVariable>();
+        output->SetAttribute("Constant", DoubleValue(100));
         client->SetAttribute("OutputSize", PointerValue(output));
 
         clientNode->AddApplication(client);
         client->SetStartTime(Seconds(0.1));
-        client->SetStopTime(Seconds(5.0));
+        client->SetStopTime(Seconds(1.2));
 
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
@@ -350,10 +341,10 @@ class MultiBackendTestCase : public TestCase
                               0,
                               "Backend 1 should have received at least one task");
 
-        uint64_t totalProcessed = server0->GetTasksCompleted() + server1->GetTasksCompleted();
+        uint64_t totalProcessed = server0->GetFramesProcessed() + server1->GetFramesProcessed();
         NS_TEST_ASSERT_MSG_EQ(totalProcessed,
                               4,
-                              "Both servers should have completed 4 tasks total");
+                              "Both servers should have processed 4 frames total");
     }
 
     void OnTaskDispatched(uint64_t workloadId, uint64_t taskId, uint32_t backendIdx)

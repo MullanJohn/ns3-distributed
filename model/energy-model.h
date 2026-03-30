@@ -22,8 +22,7 @@ class Accelerator;
  * @brief Abstract base class for accelerator energy models.
  *
  * EnergyModel defines the interface for calculating power consumption
- * of computational accelerators. Concrete implementations include
- * DvfsEnergyModel for DVFS-based power modeling.
+ * of computational accelerators.
  *
  * Power consumption is modeled with two components:
  * - Static power: Always consumed when the device is powered on

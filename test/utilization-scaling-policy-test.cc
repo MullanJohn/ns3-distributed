@@ -27,7 +27,7 @@ class UtilizationScalingOppTestCase : public TestCase
 {
   public:
     UtilizationScalingOppTestCase()
-        : TestCase("UtilizationScalingPolicy selects min/max OPP with voltage from table")
+        : TestCase("UtilizationScalingPolicy selects min-max OPP with voltage from table")
     {
     }
 
@@ -39,11 +39,8 @@ class UtilizationScalingOppTestCase : public TestCase
 
         {
             ClusterState::BackendState backend;
-            Ptr<DeviceMetrics> metrics = Create<DeviceMetrics>();
-            metrics->busy = true;
-            metrics->frequency = 500e6;
-            metrics->voltage = 0.65;
-            backend.deviceMetrics = metrics;
+            backend.activeTasks = 1;
+            backend.commandedFrequency = 500e6;
 
             Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
             NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should scale up when busy");
@@ -59,12 +56,8 @@ class UtilizationScalingOppTestCase : public TestCase
 
         {
             ClusterState::BackendState backend;
-            Ptr<DeviceMetrics> metrics = Create<DeviceMetrics>();
-            metrics->busy = false;
-            metrics->queueLength = 0;
-            metrics->frequency = 1.5e9;
-            metrics->voltage = 1.05;
-            backend.deviceMetrics = metrics;
+            backend.activeTasks = 0;
+            backend.commandedFrequency = 1.5e9;
 
             Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
             NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should scale down when idle");
@@ -80,11 +73,8 @@ class UtilizationScalingOppTestCase : public TestCase
 
         {
             ClusterState::BackendState backend;
-            Ptr<DeviceMetrics> metrics = Create<DeviceMetrics>();
-            metrics->busy = true;
-            metrics->frequency = 1.5e9;
-            metrics->voltage = 1.05;
-            backend.deviceMetrics = metrics;
+            backend.activeTasks = 1;
+            backend.commandedFrequency = 1.5e9;
 
             Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
             NS_TEST_ASSERT_MSG_EQ(decision,
