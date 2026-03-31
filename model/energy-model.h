@@ -113,7 +113,7 @@ class EnergyModel : public Object
      * @brief Calculate power consumption when accelerator is active.
      *
      * @param accelerator The accelerator to calculate active power for.
-     * @param utilization Current utilization level [0.0, 1.0].
+     * @param utilization Current task-local utilization level [0.0, 1.0].
      * @return PowerState with active power values.
      */
     virtual PowerState CalculateActivePower(Ptr<Accelerator> accelerator, double utilization) = 0;

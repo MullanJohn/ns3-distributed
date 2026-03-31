@@ -86,6 +86,7 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
         return EnergyModel::PowerState();
     }
 
+    // Clamping this may not be nessecary
     utilization = std::max(0.0, std::min(1.0, utilization));
 
     double voltage = accelerator->GetVoltage();

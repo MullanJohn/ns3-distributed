@@ -122,6 +122,17 @@ class Accelerator : public Object
     virtual bool IsBusy() const;
 
     /**
+     * @brief Get the current compute utilization.
+     *
+     * Default implementation returns 0.0. GpuAccelerator overrides this
+     * with a rolling-window measurement of the fraction of time spent
+     * in the compute phase over the configured UtilizationWindow.
+     *
+     * @return Utilization in [0.0, 1.0].
+     */
+    virtual double GetUtilization() const;
+
+    /**
      * @brief Get the current operating voltage.
      *
      * Default implementation returns 1.0V. Override in subclasses that
@@ -140,6 +151,16 @@ class Accelerator : public Object
      * @return Operating frequency in Hz.
      */
     virtual double GetFrequency() const;
+
+    /**
+     * @brief Get the effective compute rate of the accelerator.
+     *
+     * Default implementation returns 0.0. Override in subclasses that
+     * model computational throughput.
+     *
+     * @return Effective compute rate in FLOP/s.
+     */
+    virtual double GetComputeRate() const;
 
     /**
      * @brief Set the operating frequency.

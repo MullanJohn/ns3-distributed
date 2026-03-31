@@ -29,7 +29,7 @@ class Accelerator;
  * - C is the effective capacitance (switching capacitance)
  * - V is the operating voltage
  * - f is the operating frequency
- * - utilization is the fraction of time the accelerator is active [0.0, 1.0]
+ * - utilization is the task-local compute utilization factor [0.0, 1.0]
  *
  * Total power = P_static + P_dynamic
  *
