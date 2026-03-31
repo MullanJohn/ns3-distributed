@@ -71,6 +71,7 @@ DeviceManager::Start(const Cluster& cluster, Ptr<ConnectionManager> backendCm, C
         if (accel)
         {
             m_operatingPoints[i] = accel->GetOperatingPoints();
+            state.SetBackendCapability(i, accel->GetComputeRate(), accel->GetFrequency());
             state.SetCommandedFrequency(i, accel->GetFrequency());
         }
     }

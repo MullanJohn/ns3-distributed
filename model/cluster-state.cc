@@ -12,6 +12,8 @@
 
 #include "ns3/log.h"
 
+#include <algorithm>
+
 namespace ns3
 {
 
@@ -39,20 +41,21 @@ ClusterState::Get(uint32_t idx) const
 }
 
 void
-ClusterState::NotifyTaskDispatched(uint32_t backendIdx)
+ClusterState::NotifyTaskDispatched(uint32_t backendIdx, double computeDemand)
 {
-    NS_LOG_FUNCTION(this << backendIdx);
+    NS_LOG_FUNCTION(this << backendIdx << computeDemand);
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
     m_backends[backendIdx].activeTasks++;
     m_backends[backendIdx].totalDispatched++;
+    m_backends[backendIdx].estimatedRemainingComputeWork += std::max(0.0, computeDemand);
 }
 
 void
-ClusterState::UndoTaskDispatched(uint32_t backendIdx)
+ClusterState::UndoTaskDispatched(uint32_t backendIdx, double computeDemand)
 {
-    NS_LOG_FUNCTION(this << backendIdx);
+    NS_LOG_FUNCTION(this << backendIdx << computeDemand);
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
@@ -62,12 +65,16 @@ ClusterState::UndoTaskDispatched(uint32_t backendIdx)
                   "totalDispatched underflow for backend " << backendIdx);
     m_backends[backendIdx].activeTasks--;
     m_backends[backendIdx].totalDispatched--;
+    m_backends[backendIdx].estimatedRemainingComputeWork =
+        std::max(0.0,
+                 m_backends[backendIdx].estimatedRemainingComputeWork -
+                     std::max(0.0, computeDemand));
 }
 
 void
-ClusterState::NotifyTaskCompleted(uint32_t backendIdx)
+ClusterState::NotifyTaskCompleted(uint32_t backendIdx, double computeDemand)
 {
-    NS_LOG_FUNCTION(this << backendIdx);
+    NS_LOG_FUNCTION(this << backendIdx << computeDemand);
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
@@ -75,6 +82,24 @@ ClusterState::NotifyTaskCompleted(uint32_t backendIdx)
                   "activeTasks underflow for backend " << backendIdx);
     m_backends[backendIdx].activeTasks--;
     m_backends[backendIdx].totalCompleted++;
+    m_backends[backendIdx].estimatedRemainingComputeWork =
+        std::max(0.0,
+                 m_backends[backendIdx].estimatedRemainingComputeWork -
+                     std::max(0.0, computeDemand));
+}
+
+void
+ClusterState::SetBackendCapability(uint32_t backendIdx,
+                                   double nominalComputeRate,
+                                   double baseFrequency)
+{
+    NS_LOG_FUNCTION(this << backendIdx << nominalComputeRate << baseFrequency);
+    NS_ASSERT_MSG(backendIdx < m_backends.size(),
+                  "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
+                                   << ")");
+    m_backends[backendIdx].nominalComputeRate = std::max(0.0, nominalComputeRate);
+    m_backends[backendIdx].baseFrequency = std::max(0.0, baseFrequency);
+    UpdateEffectiveComputeRate(backendIdx);
 }
 
 void
@@ -95,6 +120,29 @@ ClusterState::SetCommandedFrequency(uint32_t backendIdx, double frequency)
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
     m_backends[backendIdx].commandedFrequency = frequency;
+    UpdateEffectiveComputeRate(backendIdx);
+}
+
+void
+ClusterState::UpdateEffectiveComputeRate(uint32_t backendIdx)
+{
+    BackendState& backend = m_backends[backendIdx];
+
+    if (backend.nominalComputeRate <= 0.0)
+    {
+        backend.effectiveComputeRate = 0.0;
+        return;
+    }
+
+    if (backend.baseFrequency <= 0.0)
+    {
+        backend.effectiveComputeRate = backend.nominalComputeRate;
+        return;
+    }
+
+    double frequency = backend.commandedFrequency > 0.0 ? backend.commandedFrequency
+                                                        : backend.baseFrequency;
+    backend.effectiveComputeRate = backend.nominalComputeRate * (frequency / backend.baseFrequency);
 }
 
 void
@@ -111,26 +159,45 @@ ClusterState::GetActiveWorkloadCount() const
 }
 
 void
-ClusterState::ReserveTasks(uint32_t count)
+ClusterState::ReserveTasks(uint32_t count, const std::string& acceleratorType)
 {
-    NS_LOG_FUNCTION(this << count);
+    NS_LOG_FUNCTION(this << count << acceleratorType);
     m_pendingAdmissionTasks += count;
+    m_pendingAdmissionTasksByType[acceleratorType] += count;
 }
 
 void
-ClusterState::ReleaseTasks(uint32_t count)
+ClusterState::ReleaseTasks(uint32_t count, const std::string& acceleratorType)
 {
-    NS_LOG_FUNCTION(this << count);
+    NS_LOG_FUNCTION(this << count << acceleratorType);
     NS_ASSERT_MSG(m_pendingAdmissionTasks >= count,
                   "pendingAdmissionTasks underflow: have " << m_pendingAdmissionTasks
                                                            << " releasing " << count);
+
+    auto it = m_pendingAdmissionTasksByType.find(acceleratorType);
+    NS_ASSERT_MSG(it != m_pendingAdmissionTasksByType.end() && it->second >= count,
+                  "pendingAdmissionTasksByType underflow for type '"
+                      << (acceleratorType.empty() ? "any" : acceleratorType) << "'");
+
     m_pendingAdmissionTasks -= count;
+    it->second -= count;
+    if (it->second == 0)
+    {
+        m_pendingAdmissionTasksByType.erase(it);
+    }
 }
 
 uint32_t
 ClusterState::GetPendingAdmissionTasks() const
 {
     return m_pendingAdmissionTasks;
+}
+
+uint32_t
+ClusterState::GetPendingAdmissionTasksForType(const std::string& acceleratorType) const
+{
+    auto it = m_pendingAdmissionTasksByType.find(acceleratorType);
+    return it != m_pendingAdmissionTasksByType.end() ? it->second : 0;
 }
 
 void
@@ -140,6 +207,7 @@ ClusterState::Clear()
     m_backends.clear();
     m_activeWorkloads = 0;
     m_pendingAdmissionTasks = 0;
+    m_pendingAdmissionTasksByType.clear();
 }
 
 } // namespace ns3

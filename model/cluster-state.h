@@ -12,6 +12,8 @@
 #include "ns3/ptr.h"
 
 #include <cstdint>
+#include <map>
+#include <string>
 #include <vector>
 
 namespace ns3
@@ -24,9 +26,9 @@ class DeviceMetrics;
  * @brief Centralized view of per-backend load and device metrics for decision-makers.
  *
  * ClusterState is a plain data container owned by EdgeOrchestrator. It aggregates
- * orchestrator-tracked dispatch/completion counts and device-reported metrics
- * into a single object that is passed to ScalingPolicy, ClusterScheduler, and
- * AdmissionPolicy on each call.
+ * orchestrator-tracked dispatch/completion counts, derived backend capability,
+ * and device-reported metrics into a single object that is passed to
+ * ScalingPolicy, ClusterScheduler, and AdmissionPolicy on each call.
  */
 class ClusterState
 {
@@ -36,11 +38,15 @@ class ClusterState
      */
     struct BackendState
     {
-        uint32_t activeTasks{0};          //!< Dispatched but not yet completed
-        uint32_t totalDispatched{0};      //!< Lifetime dispatch count
-        uint32_t totalCompleted{0};       //!< Lifetime completion count
-        double commandedFrequency{0.0};   //!< Last frequency commanded by DeviceManager
-        Ptr<DeviceMetrics> deviceMetrics; //!< Latest device-reported metrics (nullable)
+        uint32_t activeTasks{0};                 //!< Dispatched but not yet completed
+        uint32_t totalDispatched{0};             //!< Lifetime dispatch count
+        uint32_t totalCompleted{0};              //!< Lifetime completion count
+        double nominalComputeRate{0.0};          //!< Reference compute rate in FLOP/s
+        double baseFrequency{0.0};               //!< Reference frequency in Hz
+        double effectiveComputeRate{0.0};        //!< Current compute rate estimate in FLOP/s
+        double estimatedRemainingComputeWork{0}; //!< Estimated queued compute work in FLOPs
+        double commandedFrequency{0.0};          //!< Last frequency commanded by DeviceManager
+        Ptr<DeviceMetrics> deviceMetrics;        //!< Latest device-reported metrics (nullable)
     };
 
     /**
@@ -65,20 +71,31 @@ class ClusterState
     /**
      * @brief Record that a task was dispatched to a backend.
      * @param backendIdx The backend index.
+     * @param computeDemand Estimated compute work added to the backend in FLOPs.
      */
-    void NotifyTaskDispatched(uint32_t backendIdx);
+    void NotifyTaskDispatched(uint32_t backendIdx, double computeDemand = 0.0);
 
     /**
      * @brief Roll back a dispatch notification (e.g., on send failure).
      * @param backendIdx The backend index.
+     * @param computeDemand Estimated compute work removed from the backend in FLOPs.
      */
-    void UndoTaskDispatched(uint32_t backendIdx);
+    void UndoTaskDispatched(uint32_t backendIdx, double computeDemand = 0.0);
 
     /**
      * @brief Record that a task completed on a backend.
      * @param backendIdx The backend index.
+     * @param computeDemand Estimated compute work removed from the backend in FLOPs.
      */
-    void NotifyTaskCompleted(uint32_t backendIdx);
+    void NotifyTaskCompleted(uint32_t backendIdx, double computeDemand = 0.0);
+
+    /**
+     * @brief Initialize backend capability information used by schedulers.
+     * @param backendIdx The backend index.
+     * @param nominalComputeRate Reference compute rate in FLOP/s.
+     * @param baseFrequency Reference frequency in Hz.
+     */
+    void SetBackendCapability(uint32_t backendIdx, double nominalComputeRate, double baseFrequency);
 
     /**
      * @brief Store device metrics for a backend.
@@ -89,6 +106,10 @@ class ClusterState
 
     /**
      * @brief Set the commanded frequency for a backend.
+     *
+     * Updates the backend's effective compute-rate estimate using the
+     * stored reference frequency and compute rate.
+     *
      * @param backendIdx The backend index.
      * @param frequency The commanded frequency in Hz.
      */
@@ -109,20 +130,29 @@ class ClusterState
     /**
      * @brief Reserve capacity for tasks pending admission (not yet dispatched).
      * @param count Number of tasks to reserve.
+     * @param acceleratorType Required accelerator type for the reservation. Empty = any backend.
      */
-    void ReserveTasks(uint32_t count);
+    void ReserveTasks(uint32_t count, const std::string& acceleratorType = "");
 
     /**
      * @brief Release previously reserved task capacity.
      * @param count Number of tasks to release.
+     * @param acceleratorType Required accelerator type for the reservation. Empty = any backend.
      */
-    void ReleaseTasks(uint32_t count);
+    void ReleaseTasks(uint32_t count, const std::string& acceleratorType = "");
 
     /**
-     * @brief Get the number of tasks reserved by pending admissions.
-     * @return Count of pending admission tasks.
+     * @brief Get the total number of tasks reserved by pending admissions.
+     * @return Total pending admission task count across all accelerator types.
      */
     uint32_t GetPendingAdmissionTasks() const;
+
+    /**
+     * @brief Get the number of tasks reserved for a specific accelerator type.
+     * @param acceleratorType Required accelerator type. Empty = any backend.
+     * @return Pending admission task count for the given type.
+     */
+    uint32_t GetPendingAdmissionTasksForType(const std::string& acceleratorType) const;
 
     /**
      * @brief Clear all state.
@@ -130,9 +160,17 @@ class ClusterState
     void Clear();
 
   private:
+    /**
+     * @brief Refresh the effective compute-rate estimate for a backend.
+     * @param backendIdx The backend index.
+     */
+    void UpdateEffectiveComputeRate(uint32_t backendIdx);
+
     std::vector<BackendState> m_backends; //!< Per-backend state
     uint32_t m_activeWorkloads{0};        //!< Number of active workloads
-    uint32_t m_pendingAdmissionTasks{0};  //!< Tasks admitted but not yet dispatched
+    uint32_t m_pendingAdmissionTasks{0};  //!< Total tasks admitted but not yet dispatched
+    std::map<std::string, uint32_t>
+        m_pendingAdmissionTasksByType; //!< Pending admissions grouped by required accelerator type
 };
 
 } // namespace ns3

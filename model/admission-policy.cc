@@ -8,6 +8,8 @@
 
 #include "admission-policy.h"
 
+#include "dag-task.h"
+
 #include "ns3/log.h"
 
 namespace ns3
@@ -33,6 +35,19 @@ AdmissionPolicy::AdmissionPolicy()
 AdmissionPolicy::~AdmissionPolicy()
 {
     NS_LOG_FUNCTION(this);
+}
+
+std::map<std::string, uint32_t>
+AdmissionPolicy::GetReservationTaskCounts(Ptr<DagTask> dag) const
+{
+    NS_LOG_FUNCTION(this << dag);
+
+    std::map<std::string, uint32_t> counts;
+    if (dag)
+    {
+        counts[""] = dag->GetTaskCount();
+    }
+    return counts;
 }
 
 void

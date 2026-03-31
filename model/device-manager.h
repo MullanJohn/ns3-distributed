@@ -57,7 +57,8 @@ class DeviceManager : public Object
      *
      * @param cluster The backend cluster.
      * @param backendCm The backend connection manager for sending commands.
-     * @param state The cluster state to initialize commanded frequencies.
+     * @param state The cluster state to initialize commanded frequencies and
+     * backend compute capabilities.
      */
     void Start(const Cluster& cluster, Ptr<ConnectionManager> backendCm, ClusterState& state);
 

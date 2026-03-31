@@ -16,13 +16,13 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Type-aware admission policy that rejects workloads when compatible backends are at
+ * @brief Type-aware admission policy that rejects workloads when compatible backends lack
  * capacity.
  *
- * MaxActiveTasksPolicy checks whether backends compatible with the workload's
- * required accelerator types have fewer active tasks than the configured
- * threshold. For each required type, at least one matching backend must have
- * capacity. Tasks with no required type are matched against any backend.
+ * MaxActiveTasksPolicy counts the incoming workload's tasks per required
+ * accelerator type and checks whether compatible backends have enough
+ * remaining capacity after accounting for active tasks and pending admission
+ * reservations. Tasks with no required type are matched against any backend.
  */
 class MaxActiveTasksPolicy : public AdmissionPolicy
 {
@@ -37,14 +37,21 @@ class MaxActiveTasksPolicy : public AdmissionPolicy
     ~MaxActiveTasksPolicy() override;
 
     /**
-     * @brief Admit if compatible backends have capacity for each required task type.
+     * @brief Admit if compatible backends have enough capacity for the incoming workload.
      *
-     * @param dag The workload DAG (inspected for required accelerator types).
+     * @param dag The workload DAG (inspected for per-type task counts).
      * @param cluster The cluster (used for type-based backend lookup).
-     * @param state Per-backend load and device metrics.
+     * @param state Per-backend load, metrics, and pending admission reservations.
      * @return true if capacity exists for all required types, false otherwise.
      */
     bool ShouldAdmit(Ptr<DagTask> dag, const Cluster& cluster, const ClusterState& state) override;
+
+    /**
+     * @brief Get type-scoped reservation counts for the incoming workload.
+     * @param dag The workload DAG.
+     * @return Required task counts grouped by accelerator type.
+     */
+    std::map<std::string, uint32_t> GetReservationTaskCounts(Ptr<DagTask> dag) const override;
 
     /**
      * @brief Get the policy name.
