@@ -68,6 +68,8 @@ class DeviceMetricsHeader : public Header
     bool GetBusy() const;
     void SetBusy(bool busy);
 
+    double GetUtilization() const;
+    void SetUtilization(double utilization);
     uint32_t GetQueueLength() const;
     void SetQueueLength(uint32_t queueLength);
 
@@ -87,6 +89,7 @@ class DeviceMetricsHeader : public Header
     double m_voltage{0};                   //!< Current voltage in Volts
     bool m_busy{false};                    //!< Whether accelerator is busy
     uint32_t m_queueLength{0};             //!< Tasks in queue
+    double m_utilization{0};               //!< Rolling compute utilization [0.0, 1.0]
     double m_currentPower{0};              //!< Current power in Watts
 };
 

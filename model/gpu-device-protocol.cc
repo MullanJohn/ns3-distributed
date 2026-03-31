@@ -51,6 +51,7 @@ GpuDeviceProtocol::CreateMetricsPacket(Ptr<const Accelerator> accel)
     header.SetFrequency(accel->GetFrequency());
     header.SetVoltage(accel->GetVoltage());
     header.SetBusy(accel->IsBusy());
+    header.SetUtilization(accel->GetUtilization());
     header.SetQueueLength(accel->GetQueueLength());
     header.SetCurrentPower(accel->GetCurrentPower());
 
@@ -71,6 +72,7 @@ GpuDeviceProtocol::ParseMetrics(Ptr<Packet> packet)
     metrics->frequency = header.GetFrequency();
     metrics->voltage = header.GetVoltage();
     metrics->busy = header.GetBusy();
+    metrics->utilization = header.GetUtilization();
     metrics->queueLength = header.GetQueueLength();
     metrics->currentPower = header.GetCurrentPower();
 

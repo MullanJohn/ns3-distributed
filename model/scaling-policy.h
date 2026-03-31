@@ -22,72 +22,35 @@
 namespace ns3
 {
 
-/**
- * @ingroup distributed
- * @brief Polymorphic base for accelerator metrics reported by backends.
- *
- * Standard fields are defined here; subclasses add accelerator-specific fields.
- */
 class DeviceMetrics : public SimpleRefCount<DeviceMetrics>
 {
   public:
     virtual ~DeviceMetrics() = default;
 
-    double frequency{0};     //!< Current frequency in Hz
-    double voltage{0};       //!< Current voltage in Volts
-    bool busy{false};        //!< Currently processing a task?
-    uint32_t queueLength{0}; //!< Tasks in queue (including current)
-    double currentPower{0};  //!< Current power consumption in Watts
+    double frequency{0};     //!< Current operating frequency in Hz
+    double voltage{0};       //!< Current operating voltage in Volts
+    bool busy{false};        //!< Whether the device is currently executing a task
+    double utilization{0};   //!< Rolling compute utilization [0.0, 1.0]
+    uint32_t queueLength{0}; //!< Number of queued or running tasks
+    double currentPower{0};  //!< Current total power draw in Watts
 };
 
-/**
- * @ingroup distributed
- * @brief Polymorphic base for scaling decisions.
- *
- * Standard fields are defined here; subclasses add accelerator-specific fields.
- */
 class ScalingDecision : public SimpleRefCount<ScalingDecision>
 {
   public:
     virtual ~ScalingDecision() = default;
 
-    double targetFrequency{0}; //!< Target frequency in Hz
-    double targetVoltage{0};   //!< Target voltage in Volts
+    double targetFrequency{0}; //!< Target operating frequency in Hz
+    double targetVoltage{0};   //!< Target operating voltage in Volts
 };
 
-/**
- * @ingroup distributed
- * @brief Abstract base class for DVFS scaling policies.
- *
- * ScalingPolicy decides target frequency/voltage for a backend accelerator
- * based on reported DeviceMetrics. The DeviceManager calls Decide() for
- * each backend when evaluating scaling.
- */
 class ScalingPolicy : public Object
 {
   public:
-    /**
-     * @brief Get the type ID.
-     * @return The object TypeId.
-     */
     static TypeId GetTypeId();
-
     ~ScalingPolicy() override;
-
-    /**
-     * @brief Decide on a scaling action based on backend state and available OPPs.
-     *
-     * @param backend Per-backend state including device metrics and load counters.
-     * @param opps The accelerator's operating point table, sorted by frequency ascending.
-     * @return A scaling decision, or nullptr if no change needed.
-     */
     virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                         const std::vector<OperatingPoint>& opps) = 0;
-
-    /**
-     * @brief Get the name of this scaling policy.
-     * @return A string identifying the policy.
-     */
     virtual std::string GetName() const = 0;
 };
 
