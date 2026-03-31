@@ -75,16 +75,17 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
     double inputTransferSeconds = static_cast<double>(inputSize) / memoryBandwidth;
     double computeSeconds = computeDemand / computeRate;
     double outputTransferSeconds = static_cast<double>(outputSize) / memoryBandwidth;
-    double totalSeconds = inputTransferSeconds + computeSeconds + outputTransferSeconds;
-
-    double utilization = (totalSeconds > 0) ? (computeSeconds / totalSeconds) : 1.0;
 
     NS_LOG_DEBUG("Task " << task->GetTaskId() << " processing:"
                          << " input=" << Seconds(inputTransferSeconds) << " compute="
                          << Seconds(computeSeconds) << " output=" << Seconds(outputTransferSeconds)
-                         << " total=" << Seconds(totalSeconds) << " utilization=" << utilization);
+                         << " total="
+                         << Seconds(inputTransferSeconds + computeSeconds + outputTransferSeconds));
 
-    return Result(Seconds(totalSeconds), outputSize, utilization);
+    return Result(Seconds(inputTransferSeconds),
+                  Seconds(computeSeconds),
+                  Seconds(outputTransferSeconds),
+                  outputSize);
 }
 
 } // namespace ns3

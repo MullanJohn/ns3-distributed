@@ -50,37 +50,44 @@ class ProcessingModel : public Object
     /**
      * @brief Result of processing a task.
      *
-     * Contains the calculated processing time, output size, utilization,
-     * and success status.
+     * Contains the calculated phase timings, total processing time,
+     * output size, and success status.
      */
     struct Result
     {
-        Time processingTime; //!< Total time to process the task
-        uint64_t outputSize; //!< Output data size in bytes
-        double utilization;  //!< Device utilization during processing [0.0, 1.0]
-        bool success;        //!< True if processing calculation succeeded
+        Time processingTime;     //!< Total time to process the task
+        Time inputTransferTime;  //!< Time spent transferring input on-device
+        Time computeTime;        //!< Time spent executing compute work
+        Time outputTransferTime; //!< Time spent transferring output on-device
+        uint64_t outputSize;     //!< Output data size in bytes
+        bool success;            //!< True if processing calculation succeeded
 
         /**
          * @brief Default constructor creates a failed result.
          */
         Result()
             : processingTime(Seconds(0)),
+              inputTransferTime(Seconds(0)),
+              computeTime(Seconds(0)),
+              outputTransferTime(Seconds(0)),
               outputSize(0),
-              utilization(0.0),
               success(false)
         {
         }
 
         /**
          * @brief Constructor for successful result.
-         * @param time Processing time
+         * @param inputTime Input-transfer time
+         * @param compute Input-independent compute-execution time
+         * @param outputTime Output-transfer time
          * @param output Output size in bytes
-         * @param util Device utilization [0.0, 1.0], defaults to 1.0
          */
-        Result(Time time, uint64_t output, double util = 1.0)
-            : processingTime(time),
+        Result(Time inputTime, Time compute, Time outputTime, uint64_t output)
+            : processingTime(inputTime + compute + outputTime),
+              inputTransferTime(inputTime),
+              computeTime(compute),
+              outputTransferTime(outputTime),
               outputSize(output),
-              utilization(util),
               success(true)
         {
         }
@@ -106,12 +113,12 @@ class ProcessingModel : public Object
      * @brief Calculate processing characteristics for a task.
      *
      * Implementations should examine the task properties and return
-     * the calculated processing time and output size. If the task
-     * type is not supported, return a Result with success=false.
+     * the calculated phase timings, processing time, and output size.
+     * If the task type is not supported, return a Result with success=false.
      *
      * @param task The task to process.
      * @param accelerator The accelerator providing hardware characteristics.
-     * @return Result containing processing time, output size, and success status.
+     * @return Result containing phase timings, output size, and success status.
      */
     virtual Result Process(Ptr<const Task> task, Ptr<const Accelerator> accelerator) const = 0;
 

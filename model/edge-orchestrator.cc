@@ -177,6 +177,13 @@ void
 EdgeOrchestrator::CancelAllPendingAdmissions()
 {
     NS_LOG_FUNCTION(this);
+    for (auto& [addr, dagMap] : m_pendingAdmissions)
+    {
+        for (auto& [dagId, taskCount] : dagMap)
+        {
+            m_clusterState.ReleaseTasks(taskCount);
+        }
+    }
     m_pendingAdmissions.clear();
 }
 
@@ -553,7 +560,9 @@ EdgeOrchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const 
         return false;
     }
 
-    pending.insert(id);
+    uint32_t taskCount = dag->GetTaskCount();
+    pending[id] = taskCount;
+    m_clusterState.ReserveTasks(taskCount);
 
     NS_LOG_INFO("Workload " << id << " admitted, awaiting data upload");
     SendAdmissionResponse(clientAddr, id, true);
@@ -583,10 +592,15 @@ EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t task
             auto mapIt = m_pendingAdmissions.find(clientAddr);
             if (mapIt != m_pendingAdmissions.end())
             {
-                mapIt->second.erase(taskId);
-                if (mapIt->second.empty())
+                auto admIt = mapIt->second.find(taskId);
+                if (admIt != mapIt->second.end())
                 {
-                    m_pendingAdmissions.erase(mapIt);
+                    m_clusterState.ReleaseTasks(admIt->second);
+                    mapIt->second.erase(admIt);
+                    if (mapIt->second.empty())
+                    {
+                        m_pendingAdmissions.erase(mapIt);
+                    }
                 }
             }
             RejectWorkload(0, "admission_response_send_failed");
@@ -949,18 +963,29 @@ EdgeOrchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Ad
     NS_LOG_FUNCTION(this << dagId << clientAddr);
 
     auto mapIt = m_pendingAdmissions.find(clientAddr);
-    if (mapIt == m_pendingAdmissions.end() || mapIt->second.find(dagId) == mapIt->second.end())
+    if (mapIt == m_pendingAdmissions.end())
     {
         NS_LOG_WARN("Received DATA_UPLOAD for unknown dagId " << dagId << " from " << clientAddr
                                                               << " — discarding");
         return;
     }
 
-    mapIt->second.erase(dagId);
+    auto admIt = mapIt->second.find(dagId);
+    if (admIt == mapIt->second.end())
+    {
+        NS_LOG_WARN("Received DATA_UPLOAD for unknown dagId " << dagId << " from " << clientAddr
+                                                              << " — discarding");
+        return;
+    }
+
+    uint32_t reservedTasks = admIt->second;
+    mapIt->second.erase(admIt);
     if (mapIt->second.empty())
     {
         m_pendingAdmissions.erase(mapIt);
     }
+
+    m_clusterState.ReleaseTasks(reservedTasks);
 
     uint64_t consumedBytes = 0;
     Ptr<DagTask> dag =
@@ -986,7 +1011,15 @@ EdgeOrchestrator::CleanupClient(const Address& clientAddr)
 
     m_rxBuffer.erase(clientAddr);
 
-    m_pendingAdmissions.erase(clientAddr);
+    auto pendingIt = m_pendingAdmissions.find(clientAddr);
+    if (pendingIt != m_pendingAdmissions.end())
+    {
+        for (auto& [dagId, taskCount] : pendingIt->second)
+        {
+            m_clusterState.ReleaseTasks(taskCount);
+        }
+        m_pendingAdmissions.erase(pendingIt);
+    }
 
     std::vector<uint64_t> clientWorkloads;
     for (const auto& pair : m_workloads)

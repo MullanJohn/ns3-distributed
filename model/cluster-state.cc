@@ -111,11 +111,35 @@ ClusterState::GetActiveWorkloadCount() const
 }
 
 void
+ClusterState::ReserveTasks(uint32_t count)
+{
+    NS_LOG_FUNCTION(this << count);
+    m_pendingAdmissionTasks += count;
+}
+
+void
+ClusterState::ReleaseTasks(uint32_t count)
+{
+    NS_LOG_FUNCTION(this << count);
+    NS_ASSERT_MSG(m_pendingAdmissionTasks >= count,
+                  "pendingAdmissionTasks underflow: have " << m_pendingAdmissionTasks
+                                                           << " releasing " << count);
+    m_pendingAdmissionTasks -= count;
+}
+
+uint32_t
+ClusterState::GetPendingAdmissionTasks() const
+{
+    return m_pendingAdmissionTasks;
+}
+
+void
 ClusterState::Clear()
 {
     NS_LOG_FUNCTION(this);
     m_backends.clear();
     m_activeWorkloads = 0;
+    m_pendingAdmissionTasks = 0;
 }
 
 } // namespace ns3

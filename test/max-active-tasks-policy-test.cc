@@ -172,6 +172,58 @@ class MaxActiveTasksAdmitEmptyTestCase : public TestCase
     }
 };
 
+/**
+ * @ingroup distributed-tests
+ * @brief Test that pending admission reservations reduce available capacity.
+ */
+class MaxActiveTasksPendingReservationTestCase : public TestCase
+{
+  public:
+    MaxActiveTasksPendingReservationTestCase()
+        : TestCase("MaxActiveTasksPolicy rejects when pending admissions consume remaining capacity")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        NodeContainer nodes;
+        nodes.Create(2);
+        InternetStackHelper internet;
+        internet.Install(nodes);
+
+        Cluster cluster;
+        cluster.AddBackend(nodes.Get(0), InetSocketAddress(Ipv4Address("10.0.0.1"), 9000));
+        cluster.AddBackend(nodes.Get(1), InetSocketAddress(Ipv4Address("10.0.0.2"), 9000));
+
+        ClusterState state;
+        state.Resize(2);
+
+        // Each backend at 4/5 → 2 slots available
+        for (int i = 0; i < 4; ++i)
+        {
+            state.NotifyTaskDispatched(0);
+            state.NotifyTaskDispatched(1);
+        }
+        // Reserve both remaining slots
+        state.ReserveTasks(2);
+
+        Ptr<MaxActiveTasksPolicy> policy = CreateObject<MaxActiveTasksPolicy>();
+        policy->SetAttribute("MaxActiveTasks", UintegerValue(5));
+
+        Ptr<SimpleTask> task = CreateObject<SimpleTask>();
+        task->SetTaskId(1);
+        Ptr<DagTask> dag = CreateObject<DagTask>();
+        dag->AddTask(task);
+
+        NS_TEST_ASSERT_MSG_EQ(policy->ShouldAdmit(dag, cluster, state),
+                              false,
+                              "Should reject when pending admissions consume remaining capacity");
+
+        Simulator::Destroy();
+    }
+};
+
 } // namespace
 
 TestCase*
@@ -190,6 +242,12 @@ TestCase*
 CreateMaxActiveTasksAdmitEmptyTestCase()
 {
     return new MaxActiveTasksAdmitEmptyTestCase;
+}
+
+TestCase*
+CreateMaxActiveTasksPendingReservationTestCase()
+{
+    return new MaxActiveTasksPendingReservationTestCase;
 }
 
 } // namespace ns3

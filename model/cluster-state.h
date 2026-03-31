@@ -107,6 +107,24 @@ class ClusterState
     uint32_t GetActiveWorkloadCount() const;
 
     /**
+     * @brief Reserve capacity for tasks pending admission (not yet dispatched).
+     * @param count Number of tasks to reserve.
+     */
+    void ReserveTasks(uint32_t count);
+
+    /**
+     * @brief Release previously reserved task capacity.
+     * @param count Number of tasks to release.
+     */
+    void ReleaseTasks(uint32_t count);
+
+    /**
+     * @brief Get the number of tasks reserved by pending admissions.
+     * @return Count of pending admission tasks.
+     */
+    uint32_t GetPendingAdmissionTasks() const;
+
+    /**
      * @brief Clear all state.
      */
     void Clear();
@@ -114,6 +132,7 @@ class ClusterState
   private:
     std::vector<BackendState> m_backends; //!< Per-backend state
     uint32_t m_activeWorkloads{0};        //!< Number of active workloads
+    uint32_t m_pendingAdmissionTasks{0};  //!< Tasks admitted but not yet dispatched
 };
 
 } // namespace ns3

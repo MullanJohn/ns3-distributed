@@ -69,6 +69,7 @@ TestCase* CreateUtilizationScalingOppTestCase();
 TestCase* CreateMaxActiveTasksAdmitCapacityTestCase();
 TestCase* CreateMaxActiveTasksRejectFullTestCase();
 TestCase* CreateMaxActiveTasksAdmitEmptyTestCase();
+TestCase* CreateMaxActiveTasksPendingReservationTestCase();
 
 class DistributedTestSuite : public TestSuite
 {
@@ -136,6 +137,7 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateMaxActiveTasksAdmitCapacityTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateMaxActiveTasksRejectFullTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateMaxActiveTasksAdmitEmptyTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateMaxActiveTasksPendingReservationTestCase(), TestCase::Duration::QUICK);
 }
 
 static DistributedTestSuite sDistributedTestSuite;

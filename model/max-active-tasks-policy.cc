@@ -70,7 +70,7 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
 
     for (const auto& type : requiredTypes)
     {
-        bool hasCapacity = false;
+        uint32_t totalAvailable = 0;
 
         if (type.empty())
         {
@@ -78,8 +78,7 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
             {
                 if (state.Get(i).activeTasks < m_maxActiveTasks)
                 {
-                    hasCapacity = true;
-                    break;
+                    totalAvailable += m_maxActiveTasks - state.Get(i).activeTasks;
                 }
             }
         }
@@ -89,13 +88,12 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
             {
                 if (state.Get(idx).activeTasks < m_maxActiveTasks)
                 {
-                    hasCapacity = true;
-                    break;
+                    totalAvailable += m_maxActiveTasks - state.Get(idx).activeTasks;
                 }
             }
         }
 
-        if (!hasCapacity)
+        if (totalAvailable <= state.GetPendingAdmissionTasks())
         {
             NS_LOG_DEBUG("MaxActiveTasks: no capacity for type '" << (type.empty() ? "any" : type)
                                                                   << "'");
