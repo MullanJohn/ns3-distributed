@@ -643,11 +643,6 @@ EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& cli
         return 0;
     }
 
-    if (m_deviceManager)
-    {
-        m_deviceManager->EvaluateScaling(m_clusterState);
-    }
-
     NS_LOG_INFO("Workload " << workloadId << " admitted (" << dag->GetTaskCount() << " tasks)");
 
     return workloadId;
@@ -682,12 +677,20 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
     state.taskToBackend[taskId] = backendIdx;
     state.pendingTasks++;
 
+    m_clusterState.NotifyTaskDispatched(backendIdx);
+
+    if (m_deviceManager)
+    {
+        m_deviceManager->EvaluateScaling(m_clusterState);
+    }
+
     Ptr<Packet> packet = task->Serialize(false);
 
     bool sent = m_backendConnMgr->Send(packet, backend.address);
     if (!sent)
     {
         NS_LOG_ERROR("Failed to send task to backend " << backendIdx);
+        m_clusterState.UndoTaskDispatched(backendIdx);
         m_dispatchedTasks.erase(taskId);
         state.taskToBackend.erase(taskId);
         state.pendingTasks--;
@@ -696,7 +699,6 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
 
     task->SetState(TASK_DISPATCHED);
     m_taskDispatchedTrace(workloadId, taskId, backendIdx);
-    m_clusterState.NotifyTaskDispatched(backendIdx);
     NS_LOG_INFO("Dispatched task " << taskId << " to backend " << backendIdx);
 
     return backendIdx;

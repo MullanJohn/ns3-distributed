@@ -69,6 +69,12 @@ class ClusterState
     void NotifyTaskDispatched(uint32_t backendIdx);
 
     /**
+     * @brief Roll back a dispatch notification (e.g., on send failure).
+     * @param backendIdx The backend index.
+     */
+    void UndoTaskDispatched(uint32_t backendIdx);
+
+    /**
      * @brief Record that a task completed on a backend.
      * @param backendIdx The backend index.
      */

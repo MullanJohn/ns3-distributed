@@ -50,6 +50,21 @@ ClusterState::NotifyTaskDispatched(uint32_t backendIdx)
 }
 
 void
+ClusterState::UndoTaskDispatched(uint32_t backendIdx)
+{
+    NS_LOG_FUNCTION(this << backendIdx);
+    NS_ASSERT_MSG(backendIdx < m_backends.size(),
+                  "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
+                                   << ")");
+    NS_ASSERT_MSG(m_backends[backendIdx].activeTasks > 0,
+                  "activeTasks underflow for backend " << backendIdx);
+    NS_ASSERT_MSG(m_backends[backendIdx].totalDispatched > 0,
+                  "totalDispatched underflow for backend " << backendIdx);
+    m_backends[backendIdx].activeTasks--;
+    m_backends[backendIdx].totalDispatched--;
+}
+
+void
 ClusterState::NotifyTaskCompleted(uint32_t backendIdx)
 {
     NS_LOG_FUNCTION(this << backendIdx);
