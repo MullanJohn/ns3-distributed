@@ -11,8 +11,6 @@
 
 #include "cluster-scheduler.h"
 
-#include "ns3/random-variable-stream.h"
-
 #include <string>
 
 namespace ns3
@@ -20,12 +18,13 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Scheduler that selects the backend with the fewest active tasks.
+ * @brief Scheduler that selects the backend with the lowest predicted compute burden.
  *
- * LeastLoadedScheduler picks the backend with the minimum number of active
- * tasks (dispatched but not yet completed), as tracked in ClusterState.
+ * LeastLoadedScheduler picks the backend with the minimum predicted compute
+ * burden, as tracked in ClusterState. The score combines the backend's
+ * estimated remaining compute work and current effective compute rate.
  * If the task specifies a required accelerator type, only matching backends
- * are considered. Ties are broken by uniform random selection.
+ * are considered. Ties are broken deterministically by backend index.
  */
 class LeastLoadedScheduler : public ClusterScheduler
 {
@@ -40,7 +39,7 @@ class LeastLoadedScheduler : public ClusterScheduler
     ~LeastLoadedScheduler() override;
 
     /**
-     * @brief Select the least-loaded backend for the task.
+     * @brief Select the backend with the lowest predicted compute burden.
      *
      * @param task The task to schedule.
      * @param cluster The cluster of backends.
@@ -60,8 +59,6 @@ class LeastLoadedScheduler : public ClusterScheduler
   protected:
     void DoDispose() override;
 
-  private:
-    Ptr<UniformRandomVariable> m_tiebreaker; //!< RNG for breaking ties
 };
 
 } // namespace ns3
