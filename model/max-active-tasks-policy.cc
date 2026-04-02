@@ -90,9 +90,10 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
         {
             for (uint32_t i = 0; i < state.GetN(); i++)
             {
-                if (state.Get(i).activeTasks < m_maxActiveTasks)
+                if (state.Get(i).orchestration.activeTasks < m_maxActiveTasks)
                 {
-                    totalAvailable += m_maxActiveTasks - state.Get(i).activeTasks;
+                    totalAvailable +=
+                        m_maxActiveTasks - state.Get(i).orchestration.activeTasks;
                 }
             }
         }
@@ -100,9 +101,10 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
         {
             for (uint32_t idx : cluster.GetBackendsByType(type))
             {
-                if (state.Get(idx).activeTasks < m_maxActiveTasks)
+                if (state.Get(idx).orchestration.activeTasks < m_maxActiveTasks)
                 {
-                    totalAvailable += m_maxActiveTasks - state.Get(idx).activeTasks;
+                    totalAvailable +=
+                        m_maxActiveTasks - state.Get(idx).orchestration.activeTasks;
                 }
             }
         }

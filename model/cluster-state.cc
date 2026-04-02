@@ -47,9 +47,10 @@ ClusterState::NotifyTaskDispatched(uint32_t backendIdx, double computeDemand)
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
-    m_backends[backendIdx].activeTasks++;
-    m_backends[backendIdx].totalDispatched++;
-    m_backends[backendIdx].estimatedRemainingComputeWork += std::max(0.0, computeDemand);
+    m_backends[backendIdx].orchestration.activeTasks++;
+    m_backends[backendIdx].orchestration.totalDispatched++;
+    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork +=
+        std::max(0.0, computeDemand);
 }
 
 void
@@ -59,15 +60,15 @@ ClusterState::UndoTaskDispatched(uint32_t backendIdx, double computeDemand)
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
-    NS_ASSERT_MSG(m_backends[backendIdx].activeTasks > 0,
+    NS_ASSERT_MSG(m_backends[backendIdx].orchestration.activeTasks > 0,
                   "activeTasks underflow for backend " << backendIdx);
-    NS_ASSERT_MSG(m_backends[backendIdx].totalDispatched > 0,
+    NS_ASSERT_MSG(m_backends[backendIdx].orchestration.totalDispatched > 0,
                   "totalDispatched underflow for backend " << backendIdx);
-    m_backends[backendIdx].activeTasks--;
-    m_backends[backendIdx].totalDispatched--;
-    m_backends[backendIdx].estimatedRemainingComputeWork =
+    m_backends[backendIdx].orchestration.activeTasks--;
+    m_backends[backendIdx].orchestration.totalDispatched--;
+    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork =
         std::max(0.0,
-                 m_backends[backendIdx].estimatedRemainingComputeWork -
+                 m_backends[backendIdx].orchestration.estimatedRemainingComputeWork -
                      std::max(0.0, computeDemand));
 }
 
@@ -78,13 +79,13 @@ ClusterState::NotifyTaskCompleted(uint32_t backendIdx, double computeDemand)
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
-    NS_ASSERT_MSG(m_backends[backendIdx].activeTasks > 0,
+    NS_ASSERT_MSG(m_backends[backendIdx].orchestration.activeTasks > 0,
                   "activeTasks underflow for backend " << backendIdx);
-    m_backends[backendIdx].activeTasks--;
-    m_backends[backendIdx].totalCompleted++;
-    m_backends[backendIdx].estimatedRemainingComputeWork =
+    m_backends[backendIdx].orchestration.activeTasks--;
+    m_backends[backendIdx].orchestration.totalCompleted++;
+    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork =
         std::max(0.0,
-                 m_backends[backendIdx].estimatedRemainingComputeWork -
+                 m_backends[backendIdx].orchestration.estimatedRemainingComputeWork -
                      std::max(0.0, computeDemand));
 }
 
@@ -97,8 +98,8 @@ ClusterState::SetBackendCapability(uint32_t backendIdx,
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
-    m_backends[backendIdx].nominalComputeRate = std::max(0.0, nominalComputeRate);
-    m_backends[backendIdx].baseFrequency = std::max(0.0, baseFrequency);
+    m_backends[backendIdx].device.nominalComputeRate = std::max(0.0, nominalComputeRate);
+    m_backends[backendIdx].device.baseFrequency = std::max(0.0, baseFrequency);
     UpdateEffectiveComputeRate(backendIdx);
 }
 
@@ -109,7 +110,7 @@ ClusterState::SetDeviceMetrics(uint32_t backendIdx, Ptr<DeviceMetrics> metrics)
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
-    m_backends[backendIdx].deviceMetrics = metrics;
+    m_backends[backendIdx].device.deviceMetrics = metrics;
 }
 
 void
@@ -119,30 +120,30 @@ ClusterState::SetCommandedFrequency(uint32_t backendIdx, double frequency)
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
-    m_backends[backendIdx].commandedFrequency = frequency;
+    m_backends[backendIdx].device.commandedFrequency = frequency;
     UpdateEffectiveComputeRate(backendIdx);
 }
 
 void
 ClusterState::UpdateEffectiveComputeRate(uint32_t backendIdx)
 {
-    BackendState& backend = m_backends[backendIdx];
+    auto& dev = m_backends[backendIdx].device;
 
-    if (backend.nominalComputeRate <= 0.0)
+    if (dev.nominalComputeRate <= 0.0)
     {
-        backend.effectiveComputeRate = 0.0;
+        dev.effectiveComputeRate = 0.0;
         return;
     }
 
-    if (backend.baseFrequency <= 0.0)
+    if (dev.baseFrequency <= 0.0)
     {
-        backend.effectiveComputeRate = backend.nominalComputeRate;
+        dev.effectiveComputeRate = dev.nominalComputeRate;
         return;
     }
 
-    double frequency = backend.commandedFrequency > 0.0 ? backend.commandedFrequency
-                                                        : backend.baseFrequency;
-    backend.effectiveComputeRate = backend.nominalComputeRate * (frequency / backend.baseFrequency);
+    double frequency =
+        dev.commandedFrequency > 0.0 ? dev.commandedFrequency : dev.baseFrequency;
+    dev.effectiveComputeRate = dev.nominalComputeRate * (frequency / dev.baseFrequency);
 }
 
 void

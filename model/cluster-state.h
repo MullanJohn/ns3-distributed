@@ -34,19 +34,32 @@ class ClusterState
 {
   public:
     /**
-     * @brief Per-backend state combining orchestrator-tracked load and device metrics.
+     * @brief Per-backend state split by write authority.
+     *
+     * Device fields are written exclusively by DeviceManager.
+     * Orchestration fields are written exclusively by EdgeOrchestrator.
      */
     struct BackendState
     {
-        uint32_t activeTasks{0};                 //!< Dispatched but not yet completed
-        uint32_t totalDispatched{0};             //!< Lifetime dispatch count
-        uint32_t totalCompleted{0};              //!< Lifetime completion count
-        double nominalComputeRate{0.0};          //!< Reference compute rate in FLOP/s
-        double baseFrequency{0.0};               //!< Reference frequency in Hz
-        double effectiveComputeRate{0.0};        //!< Current compute rate estimate in FLOP/s
-        double estimatedRemainingComputeWork{0}; //!< Estimated queued compute work in FLOPs
-        double commandedFrequency{0.0};          //!< Last frequency commanded by DeviceManager
-        Ptr<DeviceMetrics> deviceMetrics;        //!< Latest device-reported metrics (nullable)
+        struct Device
+        {
+            double nominalComputeRate{0.0};   //!< Reference compute rate in FLOP/s
+            double baseFrequency{0.0};        //!< Reference frequency in Hz
+            double commandedFrequency{0.0};   //!< Last frequency commanded by DeviceManager
+            double effectiveComputeRate{0.0}; //!< Current compute rate estimate in FLOP/s
+            Ptr<DeviceMetrics> deviceMetrics; //!< Latest device-reported metrics (nullable)
+        };
+
+        struct Orchestration
+        {
+            uint32_t activeTasks{0};                 //!< Dispatched but not yet completed
+            uint32_t totalDispatched{0};             //!< Lifetime dispatch count
+            uint32_t totalCompleted{0};              //!< Lifetime completion count
+            double estimatedRemainingComputeWork{0}; //!< Estimated queued compute work in FLOPs
+        };
+
+        Device device;
+        Orchestration orchestration;
     };
 
     /**

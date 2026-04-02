@@ -49,7 +49,8 @@ ConservativeScalingPolicy::~ConservativeScalingPolicy()
 }
 
 Ptr<ScalingDecision>
-ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
+ConservativeScalingPolicy::Decide(uint32_t /* backendIdx */,
+                                  const ClusterState::BackendState& backend,
                                   const std::vector<OperatingPoint>& opps)
 {
     NS_LOG_FUNCTION(this);
@@ -59,7 +60,7 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
         return nullptr;
     }
 
-    double currentFreq = backend.commandedFrequency;
+    double currentFreq = backend.device.commandedFrequency;
 
     size_t currentIdx = 0;
     double minDist = std::abs(opps[0].frequency - currentFreq);
@@ -74,9 +75,10 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
     }
 
     size_t targetIdx = 0;
-    if (backend.nominalComputeRate > 0.0 && m_targetDrainTime > 0.0)
+    if (backend.device.nominalComputeRate > 0.0 && m_targetDrainTime > 0.0)
     {
-        double drainTime = backend.estimatedRemainingComputeWork / backend.nominalComputeRate;
+        double drainTime = backend.orchestration.estimatedRemainingComputeWork /
+                           backend.device.nominalComputeRate;
         double loadRatio = std::min(drainTime / m_targetDrainTime, 1.0);
         targetIdx = static_cast<size_t>(std::round(loadRatio * (opps.size() - 1)));
     }

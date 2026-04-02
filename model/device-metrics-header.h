@@ -45,7 +45,7 @@ class DeviceMetricsHeader : public Header
     /**
      * @brief Serialized size of the header in bytes.
      */
-    static constexpr uint32_t SERIALIZED_SIZE = 30;
+    static constexpr uint32_t SERIALIZED_SIZE = 38;
 
     /**
      * @brief Get the type ID.

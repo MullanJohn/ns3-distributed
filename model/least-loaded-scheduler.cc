@@ -121,28 +121,30 @@ LeastLoadedScheduler::ScheduleTask(Ptr<Task> task,
     for (uint32_t idx : pool)
     {
         const ClusterState::BackendState& backend = state.Get(idx);
-        double queuedWork = std::max(0.0, backend.estimatedRemainingComputeWork);
+        double queuedWork =
+            std::max(0.0, backend.orchestration.estimatedRemainingComputeWork);
         double totalWork = queuedWork + incomingWork;
-        double effectiveRate = backend.effectiveComputeRate > 0.0
-                                   ? backend.effectiveComputeRate
-                                   : backend.nominalComputeRate;
+        double effectiveRate = backend.device.effectiveComputeRate > 0.0
+                                   ? backend.device.effectiveComputeRate
+                                   : backend.device.nominalComputeRate;
         double score = effectiveRate > 0.0 ? (totalWork / effectiveRate) : totalWork;
 
         if (IsBetterCandidate(score,
-                              backend.activeTasks,
+                              backend.orchestration.activeTasks,
                               idx,
                               bestScore,
                               bestActiveTasks,
                               bestIdx))
         {
             bestScore = score;
-            bestActiveTasks = backend.activeTasks;
+            bestActiveTasks = backend.orchestration.activeTasks;
             bestIdx = static_cast<int32_t>(idx);
         }
 
-        NS_LOG_DEBUG("LeastLoaded: backend " << idx << " work=" << totalWork << " rate="
-                                             << effectiveRate << " score=" << score << " active="
-                                             << backend.activeTasks);
+        NS_LOG_DEBUG("LeastLoaded: backend "
+                     << idx << " work=" << totalWork << " rate=" << effectiveRate
+                     << " score=" << score << " active="
+                     << backend.orchestration.activeTasks);
     }
 
     NS_LOG_DEBUG("LeastLoaded: scheduled task " << task->GetTaskId() << " to backend " << bestIdx

@@ -36,7 +36,8 @@ class ConservativeScalingPolicy : public ScalingPolicy
     ConservativeScalingPolicy();
     ~ConservativeScalingPolicy() override;
 
-    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
+    Ptr<ScalingDecision> Decide(uint32_t backendIdx,
+                                const ClusterState::BackendState& backend,
                                 const std::vector<OperatingPoint>& opps) override;
     std::string GetName() const override;
 

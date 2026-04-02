@@ -38,7 +38,8 @@ UtilizationScalingPolicy::~UtilizationScalingPolicy()
 }
 
 Ptr<ScalingDecision>
-UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
+UtilizationScalingPolicy::Decide(uint32_t /* backendIdx */,
+                                 const ClusterState::BackendState& backend,
                                  const std::vector<OperatingPoint>& opps)
 {
     NS_LOG_FUNCTION(this);
@@ -48,8 +49,8 @@ UtilizationScalingPolicy::Decide(const ClusterState::BackendState& backend,
         return nullptr;
     }
 
-    bool busy = backend.activeTasks > 0;
-    double currentFreq = backend.commandedFrequency;
+    bool busy = backend.orchestration.activeTasks > 0;
+    double currentFreq = backend.device.commandedFrequency;
 
     const OperatingPoint& target = busy ? opps.back() : opps.front();
 

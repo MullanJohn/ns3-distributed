@@ -134,19 +134,19 @@ DeviceManager::EvaluateScaling(ClusterState& state)
     {
         const ClusterState::BackendState& backend = state.Get(i);
 
-        Ptr<ScalingDecision> decision = m_scalingPolicy->Decide(backend, m_operatingPoints[i]);
+        Ptr<ScalingDecision> decision = m_scalingPolicy->Decide(i, backend, m_operatingPoints[i]);
 
         if (!decision)
         {
             continue;
         }
 
-        if (decision->targetFrequency == backend.commandedFrequency)
+        if (decision->targetFrequency == backend.device.commandedFrequency)
         {
             continue;
         }
 
-        double oldFreq = backend.commandedFrequency;
+        double oldFreq = backend.device.commandedFrequency;
 
         Ptr<Packet> cmdPacket = m_deviceProtocol->CreateCommandPacket(decision);
         if (!m_backendConnMgr->Send(cmdPacket, m_cluster.Get(i).address))

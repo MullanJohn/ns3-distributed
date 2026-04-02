@@ -49,7 +49,8 @@ class ScalingPolicy : public Object
   public:
     static TypeId GetTypeId();
     ~ScalingPolicy() override;
-    virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
+    virtual Ptr<ScalingDecision> Decide(uint32_t backendIdx,
+                                        const ClusterState::BackendState& backend,
                                         const std::vector<OperatingPoint>& opps) = 0;
     virtual std::string GetName() const = 0;
 };

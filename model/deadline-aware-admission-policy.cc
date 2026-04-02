@@ -135,7 +135,7 @@ DeadlineAwareAdmissionPolicy::CanMeetDeadline(Ptr<Task> task,
                                               const ClusterState::BackendState& backend,
                                               Time earliestStart) const
 {
-    double wait = backend.activeTasks * (task->GetComputeDemand() / m_computeRate);
+    double wait = backend.orchestration.activeTasks * (task->GetComputeDemand() / m_computeRate);
     double exec = task->GetComputeDemand() / m_computeRate;
     Time estimatedCompletion = earliestStart + Seconds(wait + exec);
     return estimatedCompletion <= task->GetDeadline();
