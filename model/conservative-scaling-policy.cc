@@ -8,6 +8,7 @@
 
 #include "conservative-scaling-policy.h"
 
+#include "ns3/double.h"
 #include "ns3/log.h"
 
 #include <algorithm>
@@ -23,10 +24,17 @@ NS_OBJECT_ENSURE_REGISTERED(ConservativeScalingPolicy);
 TypeId
 ConservativeScalingPolicy::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::ConservativeScalingPolicy")
-                            .SetParent<ScalingPolicy>()
-                            .SetGroupName("Distributed")
-                            .AddConstructor<ConservativeScalingPolicy>();
+    static TypeId tid =
+        TypeId("ns3::ConservativeScalingPolicy")
+            .SetParent<ScalingPolicy>()
+            .SetGroupName("Distributed")
+            .AddConstructor<ConservativeScalingPolicy>()
+            .AddAttribute("TargetDrainTime",
+                          "Estimated drain time (seconds at nominal rate) that maps to the "
+                          "highest OPP.",
+                          DoubleValue(1.0),
+                          MakeDoubleAccessor(&ConservativeScalingPolicy::m_targetDrainTime),
+                          MakeDoubleChecker<double>(0.0));
     return tid;
 }
 
@@ -51,7 +59,6 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
         return nullptr;
     }
 
-    bool busy = backend.activeTasks > 0;
     double currentFreq = backend.commandedFrequency;
 
     size_t currentIdx = 0;
@@ -66,15 +73,22 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
         }
     }
 
-    size_t targetIdx;
-
-    if (busy && currentIdx < opps.size() - 1)
+    size_t targetIdx = 0;
+    if (backend.nominalComputeRate > 0.0 && m_targetDrainTime > 0.0)
     {
-        targetIdx = currentIdx + 1;
+        double drainTime = backend.estimatedRemainingComputeWork / backend.nominalComputeRate;
+        double loadRatio = std::min(drainTime / m_targetDrainTime, 1.0);
+        targetIdx = static_cast<size_t>(std::round(loadRatio * (opps.size() - 1)));
     }
-    else if (!busy && currentIdx > 0)
+
+    size_t nextIdx;
+    if (currentIdx < targetIdx)
     {
-        targetIdx = currentIdx - 1;
+        nextIdx = currentIdx + 1;
+    }
+    else if (currentIdx > targetIdx)
+    {
+        nextIdx = currentIdx - 1;
     }
     else
     {
@@ -82,8 +96,8 @@ ConservativeScalingPolicy::Decide(const ClusterState::BackendState& backend,
     }
 
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();
-    decision->targetFrequency = opps[targetIdx].frequency;
-    decision->targetVoltage = opps[targetIdx].voltage;
+    decision->targetFrequency = opps[nextIdx].frequency;
+    decision->targetVoltage = opps[nextIdx].voltage;
     return decision;
 }
 

@@ -16,10 +16,13 @@ namespace ns3
 
 /**
  * @ingroup distributed
- * @brief Conservative DVFS scaling policy inspired by Linux conservative governor.
+ * @brief Work-proportional DVFS policy with conservative one-OPP stepping.
  *
- * This policy steps frequency up or down by one operating point per decision.
- * Frequency and voltage values come from the accelerator's OPP table.
+ * Computes a target OPP proportional to the estimated drain time of pending
+ * compute work (remaining FLOPS / nominal compute rate), then steps one OPP
+ * at a time toward that target. The TargetDrainTime attribute sets the drain
+ * time that maps to the highest OPP. Handles heterogeneous workloads
+ * naturally since heavy tasks contribute more FLOPS than lightweight ones.
  */
 class ConservativeScalingPolicy : public ScalingPolicy
 {
@@ -36,6 +39,9 @@ class ConservativeScalingPolicy : public ScalingPolicy
     Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
                                 const std::vector<OperatingPoint>& opps) override;
     std::string GetName() const override;
+
+  private:
+    double m_targetDrainTime{1.0}; //!< Drain time at nominal rate that maps to highest OPP (seconds)
 };
 
 } // namespace ns3
