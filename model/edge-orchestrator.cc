@@ -133,9 +133,19 @@ EdgeOrchestrator::CancelWorkload(uint64_t workloadId)
     WorkloadState state = std::move(it->second);
     m_workloads.erase(it);
 
-    for (const auto& tb : state.taskToBackend)
+    for (const auto& [taskId, backendIdx] : state.taskToBackend)
     {
-        m_clusterState.NotifyTaskCompleted(tb.second);
+        double computeDemand = 0.0;
+        int32_t dagIdx = state.dag ? state.dag->GetTaskIndex(taskId) : -1;
+        if (dagIdx >= 0)
+        {
+            Ptr<Task> task = state.dag->GetTask(static_cast<uint32_t>(dagIdx));
+            if (task)
+            {
+                computeDemand = task->GetComputeDemand();
+            }
+        }
+        m_clusterState.NotifyTaskCompleted(backendIdx, computeDemand);
     }
 
     m_workloadsCancelled++;
@@ -179,9 +189,12 @@ EdgeOrchestrator::CancelAllPendingAdmissions()
     NS_LOG_FUNCTION(this);
     for (auto& [addr, dagMap] : m_pendingAdmissions)
     {
-        for (auto& [dagId, taskCount] : dagMap)
+        for (auto& [dagId, pendingInfo] : dagMap)
         {
-            m_clusterState.ReleaseTasks(taskCount);
+            for (const auto& [type, count] : pendingInfo.taskCountsByType)
+            {
+                m_clusterState.ReleaseTasks(count, type);
+            }
         }
     }
     m_pendingAdmissions.clear();
@@ -560,9 +573,21 @@ EdgeOrchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const 
         return false;
     }
 
-    uint32_t taskCount = dag->GetTaskCount();
-    pending[id] = taskCount;
-    m_clusterState.ReserveTasks(taskCount);
+    PendingAdmissionInfo pendingInfo;
+    pendingInfo.taskCount = dag->GetTaskCount();
+    if (m_admissionPolicy)
+    {
+        pendingInfo.taskCountsByType = m_admissionPolicy->GetReservationTaskCounts(dag);
+    }
+    else
+    {
+        pendingInfo.taskCountsByType[""] = dag->GetTaskCount();
+    }
+    pending[id] = pendingInfo;
+    for (const auto& [type, count] : pendingInfo.taskCountsByType)
+    {
+        m_clusterState.ReserveTasks(count, type);
+    }
 
     NS_LOG_INFO("Workload " << id << " admitted, awaiting data upload");
     SendAdmissionResponse(clientAddr, id, true);
@@ -595,7 +620,10 @@ EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t task
                 auto admIt = mapIt->second.find(taskId);
                 if (admIt != mapIt->second.end())
                 {
-                    m_clusterState.ReleaseTasks(admIt->second);
+                    for (const auto& [type, count] : admIt->second.taskCountsByType)
+                    {
+                        m_clusterState.ReleaseTasks(count, type);
+                    }
                     mapIt->second.erase(admIt);
                     if (mapIt->second.empty())
                     {
@@ -691,7 +719,7 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
     state.taskToBackend[taskId] = backendIdx;
     state.pendingTasks++;
 
-    m_clusterState.NotifyTaskDispatched(backendIdx);
+    m_clusterState.NotifyTaskDispatched(backendIdx, task->GetComputeDemand());
 
     if (m_deviceManager)
     {
@@ -704,7 +732,7 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
     if (!sent)
     {
         NS_LOG_ERROR("Failed to send task to backend " << backendIdx);
-        m_clusterState.UndoTaskDispatched(backendIdx);
+        m_clusterState.UndoTaskDispatched(backendIdx, task->GetComputeDemand());
         m_dispatchedTasks.erase(taskId);
         state.taskToBackend.erase(taskId);
         state.pendingTasks--;
@@ -828,7 +856,7 @@ EdgeOrchestrator::OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t 
     uint64_t taskId = task->GetTaskId();
 
     m_scheduler->NotifyTaskCompleted(backendIdx, task);
-    m_clusterState.NotifyTaskCompleted(backendIdx);
+    m_clusterState.NotifyTaskCompleted(backendIdx, task->GetComputeDemand());
 
     if (m_deviceManager)
     {
@@ -978,14 +1006,17 @@ EdgeOrchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Ad
         return;
     }
 
-    uint32_t reservedTasks = admIt->second;
+    PendingAdmissionInfo pendingInfo = admIt->second;
     mapIt->second.erase(admIt);
     if (mapIt->second.empty())
     {
         m_pendingAdmissions.erase(mapIt);
     }
 
-    m_clusterState.ReleaseTasks(reservedTasks);
+    for (const auto& [type, count] : pendingInfo.taskCountsByType)
+    {
+        m_clusterState.ReleaseTasks(count, type);
+    }
 
     uint64_t consumedBytes = 0;
     Ptr<DagTask> dag =
@@ -1014,9 +1045,12 @@ EdgeOrchestrator::CleanupClient(const Address& clientAddr)
     auto pendingIt = m_pendingAdmissions.find(clientAddr);
     if (pendingIt != m_pendingAdmissions.end())
     {
-        for (auto& [dagId, taskCount] : pendingIt->second)
+        for (auto& [dagId, pendingInfo] : pendingIt->second)
         {
-            m_clusterState.ReleaseTasks(taskCount);
+            for (const auto& [type, count] : pendingInfo.taskCountsByType)
+            {
+                m_clusterState.ReleaseTasks(count, type);
+            }
         }
         m_pendingAdmissions.erase(pendingIt);
     }

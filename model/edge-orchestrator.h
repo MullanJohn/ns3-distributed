@@ -454,6 +454,13 @@ class EdgeOrchestrator : public Application
         uint8_t taskType;    //!< Task type for deserialization
     };
 
+    struct PendingAdmissionInfo
+    {
+        uint32_t taskCount{0}; //!< Number of tasks admitted for this workload
+        std::map<std::string, uint32_t>
+            taskCountsByType; //!< Required accelerator type → reserved task count
+    };
+
     std::unordered_map<uint64_t, DispatchedTaskInfo>
         m_dispatchedTasks;       //!< originalTaskId → dispatch info
     Cluster m_cluster;           //!< Backend cluster
@@ -478,7 +485,8 @@ class EdgeOrchestrator : public Application
     std::map<uint64_t, WorkloadState> m_workloads; //!< Active workloads
     uint64_t m_nextWorkloadId{1};                  //!< Next workload ID
 
-    std::map<Address, std::unordered_map<uint64_t, uint32_t>> m_pendingAdmissions; //!< dagId → taskCount
+    std::map<Address, std::unordered_map<uint64_t, PendingAdmissionInfo>>
+        m_pendingAdmissions; //!< dagId → pending reservation info
 
     // Statistics
     uint64_t m_workloadsAdmitted{0};  //!< Total admitted
