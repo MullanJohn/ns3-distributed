@@ -101,6 +101,31 @@ GpuAccelerator::~GpuAccelerator()
 }
 
 void
+GpuAccelerator::DoInitialize()
+{
+    NS_LOG_FUNCTION(this);
+    const auto& opps = GetOperatingPoints();
+    if (!opps.empty())
+    {
+        SetFrequency(opps[0].frequency);
+        SetVoltage(opps[0].voltage);
+    }
+    Accelerator::DoInitialize();
+}
+
+void
+GpuAccelerator::ApplyState(uint32_t stateIdx)
+{
+    NS_LOG_FUNCTION(this << stateIdx);
+    const auto& opps = GetOperatingPoints();
+    if (stateIdx < opps.size())
+    {
+        SetFrequency(opps[stateIdx].frequency);
+        SetVoltage(opps[stateIdx].voltage);
+    }
+}
+
+void
 GpuAccelerator::DoDispose()
 {
     NS_LOG_FUNCTION(this);

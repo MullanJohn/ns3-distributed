@@ -183,6 +183,17 @@ class Accelerator : public Object
     virtual void SetVoltage(double voltage);
 
     /**
+     * @brief Apply a performance state by index.
+     *
+     * Each subclass interprets the index for its hardware. For GPUs this
+     * looks up the OPP table and calls SetFrequency/SetVoltage. Default
+     * implementation is a no-op.
+     *
+     * @param stateIdx Index into the device's performance state table.
+     */
+    virtual void ApplyState(uint32_t stateIdx);
+
+    /**
      * @brief Add a discrete operating point (frequency-voltage pair).
      *
      * Points are kept sorted by frequency ascending. This defines the

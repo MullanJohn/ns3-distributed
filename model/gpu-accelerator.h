@@ -70,7 +70,10 @@ class GpuAccelerator : public Accelerator
      */
     double GetMemoryBandwidth() const;
 
+    void ApplyState(uint32_t stateIdx) override;
+
   protected:
+    void DoInitialize() override;
     void DoDispose() override;
 
   private:

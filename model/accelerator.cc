@@ -126,6 +126,12 @@ Accelerator::SetVoltage(double voltage)
 }
 
 void
+Accelerator::ApplyState(uint32_t stateIdx)
+{
+    NS_LOG_FUNCTION(this << stateIdx);
+}
+
+void
 Accelerator::AddOperatingPoint(double frequency, double voltage)
 {
     NS_LOG_FUNCTION(this << frequency << voltage);
