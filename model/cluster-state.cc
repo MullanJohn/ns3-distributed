@@ -48,8 +48,7 @@ ClusterState::NotifyTaskDispatched(uint32_t backendIdx, double computeDemand)
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
     m_backends[backendIdx].orchestration.activeTasks++;
-    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork +=
-        std::max(0.0, computeDemand);
+    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork += computeDemand;
 }
 
 void
@@ -64,8 +63,7 @@ ClusterState::UndoTaskDispatched(uint32_t backendIdx, double computeDemand)
     m_backends[backendIdx].orchestration.activeTasks--;
     m_backends[backendIdx].orchestration.estimatedRemainingComputeWork =
         std::max(0.0,
-                 m_backends[backendIdx].orchestration.estimatedRemainingComputeWork -
-                     std::max(0.0, computeDemand));
+                 m_backends[backendIdx].orchestration.estimatedRemainingComputeWork - computeDemand);
 }
 
 void
@@ -80,8 +78,7 @@ ClusterState::NotifyTaskCompleted(uint32_t backendIdx, double computeDemand)
     m_backends[backendIdx].orchestration.activeTasks--;
     m_backends[backendIdx].orchestration.estimatedRemainingComputeWork =
         std::max(0.0,
-                 m_backends[backendIdx].orchestration.estimatedRemainingComputeWork -
-                     std::max(0.0, computeDemand));
+                 m_backends[backendIdx].orchestration.estimatedRemainingComputeWork - computeDemand);
 }
 
 void
@@ -93,8 +90,8 @@ ClusterState::SetBackendCapability(uint32_t backendIdx,
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
-    m_backends[backendIdx].device.nominalComputeRate = std::max(0.0, nominalComputeRate);
-    m_backends[backendIdx].device.baseFrequency = std::max(0.0, baseFrequency);
+    m_backends[backendIdx].device.nominalComputeRate = nominalComputeRate;
+    m_backends[backendIdx].device.baseFrequency = baseFrequency;
     UpdateEffectiveComputeRate(backendIdx);
 }
 

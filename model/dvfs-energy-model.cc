@@ -13,8 +13,6 @@
 #include "ns3/double.h"
 #include "ns3/log.h"
 
-#include <algorithm>
-
 namespace ns3
 {
 
@@ -86,8 +84,6 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
         return EnergyModel::PowerState();
     }
 
-    // Clamping this may not be nessecary
-    utilization = std::max(0.0, std::min(1.0, utilization));
 
     double voltage = accelerator->GetVoltage();
     double frequency = accelerator->GetFrequency();

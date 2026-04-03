@@ -12,8 +12,6 @@
 
 #include "ns3/log.h"
 
-#include <algorithm>
-
 namespace
 {
 
@@ -113,7 +111,7 @@ LeastLoadedScheduler::ScheduleTask(Ptr<Task> task,
         return -1;
     }
 
-    double incomingWork = std::max(0.0, task->GetComputeDemand());
+    double incomingWork = task->GetComputeDemand();
     double bestScore = 0.0;
     uint32_t bestActiveTasks = 0;
     int32_t bestIdx = -1;
@@ -121,8 +119,7 @@ LeastLoadedScheduler::ScheduleTask(Ptr<Task> task,
     for (uint32_t idx : pool)
     {
         const ClusterState::BackendState& backend = state.Get(idx);
-        double queuedWork =
-            std::max(0.0, backend.orchestration.estimatedRemainingComputeWork);
+        double queuedWork = backend.orchestration.estimatedRemainingComputeWork;
         double totalWork = queuedWork + incomingWork;
         double effectiveRate = backend.device.effectiveComputeRate > 0.0
                                    ? backend.device.effectiveComputeRate
