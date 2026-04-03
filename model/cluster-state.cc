@@ -48,7 +48,6 @@ ClusterState::NotifyTaskDispatched(uint32_t backendIdx, double computeDemand)
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
     m_backends[backendIdx].orchestration.activeTasks++;
-    m_backends[backendIdx].orchestration.totalDispatched++;
     m_backends[backendIdx].orchestration.estimatedRemainingComputeWork +=
         std::max(0.0, computeDemand);
 }
@@ -62,10 +61,7 @@ ClusterState::UndoTaskDispatched(uint32_t backendIdx, double computeDemand)
                                    << ")");
     NS_ASSERT_MSG(m_backends[backendIdx].orchestration.activeTasks > 0,
                   "activeTasks underflow for backend " << backendIdx);
-    NS_ASSERT_MSG(m_backends[backendIdx].orchestration.totalDispatched > 0,
-                  "totalDispatched underflow for backend " << backendIdx);
     m_backends[backendIdx].orchestration.activeTasks--;
-    m_backends[backendIdx].orchestration.totalDispatched--;
     m_backends[backendIdx].orchestration.estimatedRemainingComputeWork =
         std::max(0.0,
                  m_backends[backendIdx].orchestration.estimatedRemainingComputeWork -
@@ -82,7 +78,6 @@ ClusterState::NotifyTaskCompleted(uint32_t backendIdx, double computeDemand)
     NS_ASSERT_MSG(m_backends[backendIdx].orchestration.activeTasks > 0,
                   "activeTasks underflow for backend " << backendIdx);
     m_backends[backendIdx].orchestration.activeTasks--;
-    m_backends[backendIdx].orchestration.totalCompleted++;
     m_backends[backendIdx].orchestration.estimatedRemainingComputeWork =
         std::max(0.0,
                  m_backends[backendIdx].orchestration.estimatedRemainingComputeWork -

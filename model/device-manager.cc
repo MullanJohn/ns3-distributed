@@ -116,8 +116,8 @@ DeviceManager::HandleMetrics(Ptr<Packet> packet, uint32_t backendIdx, ClusterSta
     Ptr<DeviceMetrics> metrics = m_deviceProtocol->ParseMetrics(packet);
     state.SetDeviceMetrics(backendIdx, metrics);
 
-    NS_LOG_DEBUG("Stored metrics for backend " << backendIdx << ": freq=" << metrics->frequency
-                                               << " busy=" << metrics->busy);
+    NS_LOG_DEBUG("Stored metrics for backend " << backendIdx << ": util=" << metrics->utilization
+                                               << " power=" << metrics->currentPower);
 }
 
 void

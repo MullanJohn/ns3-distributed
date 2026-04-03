@@ -21,17 +21,12 @@ namespace ns3
  * @ingroup distributed
  * @brief Header for device metrics reports sent from backend to orchestrator.
  *
- * DeviceMetricsHeader carries accelerator state (frequency, voltage, busy
- * status, queue length, power) from a backend to the EdgeOrchestrator's
- * DeviceManager. It is multiplexed on the same connection as task data using
- * message type 6.
+ * DeviceMetricsHeader carries accelerator telemetry from a backend
+ * to the EdgeOrchestrator's DeviceManager.
  *
- * Wire format (30 bytes):
+ * Wire format (17 bytes):
  * - messageType: 1 byte (uint8_t, always DEVICE_METRICS = 6)
- * - frequency: 8 bytes (double as uint64_t via memcpy, network byte order)
- * - voltage: 8 bytes (double as uint64_t via memcpy, network byte order)
- * - busy: 1 byte (uint8_t, 0=idle, 1=busy)
- * - queueLength: 4 bytes (uint32_t, network byte order)
+ * - utilization: 8 bytes (double as uint64_t via memcpy, network byte order)
  * - currentPower: 8 bytes (double as uint64_t via memcpy, network byte order)
  */
 class DeviceMetricsHeader : public Header
@@ -45,7 +40,7 @@ class DeviceMetricsHeader : public Header
     /**
      * @brief Serialized size of the header in bytes.
      */
-    static constexpr uint32_t SERIALIZED_SIZE = 38;
+    static constexpr uint32_t SERIALIZED_SIZE = 17;
 
     /**
      * @brief Get the type ID.
@@ -56,24 +51,40 @@ class DeviceMetricsHeader : public Header
     DeviceMetricsHeader();
     ~DeviceMetricsHeader() override;
 
+    /**
+     * @brief Get the message type.
+     * @return The message type.
+     */
     uint8_t GetMessageType() const;
+
+    /**
+     * @brief Set the message type.
+     * @param type The message type.
+     */
     void SetMessageType(uint8_t type);
 
-    double GetFrequency() const;
-    void SetFrequency(double frequency);
-
-    double GetVoltage() const;
-    void SetVoltage(double voltage);
-
-    bool GetBusy() const;
-    void SetBusy(bool busy);
-
+    /**
+     * @brief Get the rolling compute utilization.
+     * @return Utilization in [0.0, 1.0].
+     */
     double GetUtilization() const;
-    void SetUtilization(double utilization);
-    uint32_t GetQueueLength() const;
-    void SetQueueLength(uint32_t queueLength);
 
+    /**
+     * @brief Set the rolling compute utilization.
+     * @param utilization Utilization in [0.0, 1.0].
+     */
+    void SetUtilization(double utilization);
+
+    /**
+     * @brief Get the current power draw.
+     * @return Power in Watts.
+     */
     double GetCurrentPower() const;
+
+    /**
+     * @brief Set the current power draw.
+     * @param power Power in Watts.
+     */
     void SetCurrentPower(double power);
 
     // Header interface
@@ -84,11 +95,7 @@ class DeviceMetricsHeader : public Header
     void Print(std::ostream& os) const override;
 
   private:
-    uint8_t m_messageType{DEVICE_METRICS}; //!< Message type (always 4)
-    double m_frequency{0};                 //!< Current frequency in Hz
-    double m_voltage{0};                   //!< Current voltage in Volts
-    bool m_busy{false};                    //!< Whether accelerator is busy
-    uint32_t m_queueLength{0};             //!< Tasks in queue
+    uint8_t m_messageType{DEVICE_METRICS}; //!< Message type (always 6)
     double m_utilization{0};               //!< Rolling compute utilization [0.0, 1.0]
     double m_currentPower{0};              //!< Current power in Watts
 };

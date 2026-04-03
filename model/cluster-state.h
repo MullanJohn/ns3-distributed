@@ -53,8 +53,6 @@ class ClusterState
         struct Orchestration
         {
             uint32_t activeTasks{0};                 //!< Dispatched but not yet completed
-            uint32_t totalDispatched{0};             //!< Lifetime dispatch count
-            uint32_t totalCompleted{0};              //!< Lifetime completion count
             double estimatedRemainingComputeWork{0}; //!< Estimated queued compute work in FLOPs
         };
 
