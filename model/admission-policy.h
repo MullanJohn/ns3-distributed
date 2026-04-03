@@ -36,7 +36,7 @@ class DagTask;
  *
  * Example usage:
  * @code
- * Ptr<AdmissionPolicy> policy = CreateObject<AlwaysAdmitPolicy>();
+ * Ptr<AdmissionPolicy> policy = CreateObject<MaxActiveTasksPolicy>();
  *
  * if (policy->ShouldAdmit(dag, cluster, activeCount))
  * {

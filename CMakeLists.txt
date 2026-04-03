@@ -18,9 +18,7 @@ build_lib(
                  model/simple-task.cc
                  model/dag-task.cc
                  model/admission-policy.cc
-                 model/always-admit-policy.cc
                  model/max-active-tasks-policy.cc
-                 model/deadline-aware-admission-policy.cc
                  model/cluster-scheduler.cc
                  model/first-fit-scheduler.cc
                  model/least-loaded-scheduler.cc
@@ -35,7 +33,6 @@ build_lib(
                  model/fixed-ratio-processing-model.cc
                  model/queue-scheduler.cc
                  model/fifo-queue-scheduler.cc
-                 model/batching-queue-scheduler.cc
                  model/simple-task-header.cc
                  model/orchestrator-header.cc
                  model/device-metrics-header.cc
@@ -61,9 +58,7 @@ build_lib(
                  model/simple-task.h
                  model/dag-task.h
                  model/admission-policy.h
-                 model/always-admit-policy.h
                  model/max-active-tasks-policy.h
-                 model/deadline-aware-admission-policy.h
                  model/cluster-scheduler.h
                  model/first-fit-scheduler.h
                  model/least-loaded-scheduler.h
@@ -78,7 +73,6 @@ build_lib(
                  model/fixed-ratio-processing-model.h
                  model/queue-scheduler.h
                  model/fifo-queue-scheduler.h
-                 model/batching-queue-scheduler.h
                  model/simple-task-header.h
                  model/orchestrator-header.h
                  model/device-metrics-header.h
@@ -112,7 +106,6 @@ build_lib(
                  test/cluster-test.cc
                  test/fixed-ratio-processing-test.cc
                  test/fifo-queue-scheduler-test.cc
-                 test/batching-queue-scheduler-test.cc
                  test/connection-manager-test.cc
                  test/dag-task-test.cc
                  test/dag-task-serialization-test.cc
@@ -120,7 +113,6 @@ build_lib(
                  test/scaling-command-header-test.cc
                  test/least-loaded-scheduler-test.cc
                  test/edge-orchestrator-test.cc
-                 test/deadline-aware-admission-policy-test.cc
                  test/conservative-scaling-policy-test.cc
                  test/utilization-scaling-policy-test.cc
                  test/max-active-tasks-policy-test.cc
