@@ -41,7 +41,7 @@ class DeviceMetrics : public SimpleRefCount<DeviceMetrics>
  * @brief Scaling command produced by a ScalingPolicy.
  *
  * Carries the target performance state index for a backend accelerator.
- * Serialized into a ScalingCommandHeader by DeviceProtocol and sent
+ * Serialized into a ScalingCommandHeader by DeviceManager and sent
  * to the backend.
  */
 class ScalingDecision : public SimpleRefCount<ScalingDecision>

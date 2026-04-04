@@ -18,9 +18,8 @@ namespace ns3
  * @ingroup distributed
  * @brief Concrete DeviceProtocol for GPU accelerators.
  *
- * Serializes metrics using DeviceMetricsHeader (type 4) and applies
- * commands from ScalingCommandHeader (type 5) by calling
- * SetFrequency() and SetVoltage() on the accelerator.
+ * Serializes metrics using DeviceMetricsHeader (type 4) and parses
+ * received metrics packets into DeviceMetrics objects.
  */
 class GpuDeviceProtocol : public DeviceProtocol
 {
@@ -36,8 +35,6 @@ class GpuDeviceProtocol : public DeviceProtocol
 
     Ptr<Packet> CreateMetricsPacket(Ptr<const Accelerator> accel) override;
     Ptr<DeviceMetrics> ParseMetrics(Ptr<Packet> packet) override;
-    Ptr<Packet> CreateCommandPacket(Ptr<ScalingDecision> decision) override;
-    void ApplyCommand(Ptr<Packet> packet, Ptr<Accelerator> accel) override;
     std::string GetName() const override;
 };
 

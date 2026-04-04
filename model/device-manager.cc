@@ -10,6 +10,7 @@
 
 #include "accelerator.h"
 #include "device-metrics-header.h"
+#include "scaling-command-header.h"
 
 #include "ns3/log.h"
 #include "ns3/pointer.h"
@@ -35,7 +36,7 @@ DeviceManager::GetTypeId()
                           MakePointerAccessor(&DeviceManager::m_scalingPolicy),
                           MakePointerChecker<ScalingPolicy>())
             .AddAttribute("DeviceProtocol",
-                          "Protocol for metrics/command serialization",
+                          "Protocol for metrics serialization",
                           PointerValue(),
                           MakePointerAccessor(&DeviceManager::m_deviceProtocol),
                           MakePointerChecker<DeviceProtocol>())
@@ -140,7 +141,7 @@ DeviceManager::EvaluateScaling(ClusterState& state)
 {
     NS_LOG_FUNCTION(this);
 
-    if (!m_scalingPolicy || !m_deviceProtocol)
+    if (!m_scalingPolicy)
     {
         return;
     }
@@ -161,7 +162,12 @@ DeviceManager::EvaluateScaling(ClusterState& state)
             continue;
         }
 
-        Ptr<Packet> cmdPacket = m_deviceProtocol->CreateCommandPacket(decision);
+        ScalingCommandHeader header;
+        header.SetMessageType(ScalingCommandHeader::SCALING_COMMAND);
+        header.SetTargetStateIdx(decision->targetStateIdx);
+        Ptr<Packet> cmdPacket = Create<Packet>();
+        cmdPacket->AddHeader(header);
+
         if (!m_backendConnMgr->Send(cmdPacket, m_cluster.Get(i).address))
         {
             NS_LOG_WARN("Failed to send scaling command to backend " << i);

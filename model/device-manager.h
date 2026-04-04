@@ -112,7 +112,7 @@ class DeviceManager : public Object
 
   private:
     Ptr<ScalingPolicy> m_scalingPolicy;   //!< Pluggable scaling strategy
-    Ptr<DeviceProtocol> m_deviceProtocol; //!< Protocol for metrics/command serialization
+    Ptr<DeviceProtocol> m_deviceProtocol; //!< Protocol for metrics serialization
 
     Ptr<ConnectionManager> m_backendConnMgr; //!< Backend connection for sending commands
     Cluster m_cluster;                       //!< Backend cluster reference

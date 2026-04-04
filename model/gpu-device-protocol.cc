@@ -10,7 +10,7 @@
 
 #include "accelerator.h"
 #include "device-metrics-header.h"
-#include "scaling-command-header.h"
+#include "scaling-policy.h"
 
 #include "ns3/log.h"
 
@@ -69,33 +69,6 @@ GpuDeviceProtocol::ParseMetrics(Ptr<Packet> packet)
     metrics->currentPower = header.GetCurrentPower();
 
     return metrics;
-}
-
-Ptr<Packet>
-GpuDeviceProtocol::CreateCommandPacket(Ptr<ScalingDecision> decision)
-{
-    NS_LOG_FUNCTION(this);
-
-    ScalingCommandHeader header;
-    header.SetMessageType(ScalingCommandHeader::SCALING_COMMAND);
-    header.SetTargetStateIdx(decision->targetStateIdx);
-
-    Ptr<Packet> packet = Create<Packet>();
-    packet->AddHeader(header);
-    return packet;
-}
-
-void
-GpuDeviceProtocol::ApplyCommand(Ptr<Packet> packet, Ptr<Accelerator> accel)
-{
-    NS_LOG_FUNCTION(this << packet << accel);
-
-    ScalingCommandHeader header;
-    packet->RemoveHeader(header);
-
-    NS_LOG_INFO("Applying scaling command: stateIdx=" << header.GetTargetStateIdx());
-
-    accel->ApplyState(header.GetTargetStateIdx());
 }
 
 std::string
