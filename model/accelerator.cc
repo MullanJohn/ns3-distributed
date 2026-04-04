@@ -135,7 +135,7 @@ Accelerator::GetCurrentPower() const
     {
         EnergyModel::PowerState idleState =
             m_energyModel->CalculateIdlePower(const_cast<Accelerator*>(this));
-        return idleState.valid ? idleState.GetTotalPower() : 0.0;
+        return idleState.GetTotalPower();
     }
 
     return m_currentPower;
@@ -155,8 +155,7 @@ Accelerator::GetTotalEnergy() const
     {
         EnergyModel::PowerState idleState =
             m_energyModel->CalculateIdlePower(const_cast<Accelerator*>(this));
-        return (idleState.valid && now > Seconds(0)) ? idleState.GetTotalPower() * now.GetSeconds()
-                                                     : 0.0;
+        return (now > Seconds(0)) ? idleState.GetTotalPower() * now.GetSeconds() : 0.0;
     }
 
     double totalEnergy = m_totalEnergy;
@@ -186,14 +185,10 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
     if (m_lastEnergyUpdateTime.IsStrictlyNegative())
     {
         EnergyModel::PowerState idleState = m_energyModel->CalculateIdlePower(this);
-        if (idleState.valid)
+        m_currentPower = idleState.GetTotalPower();
+        if (now > Seconds(0))
         {
-            m_currentPower = idleState.GetTotalPower();
-            // Accumulate idle energy from simulation start to now
-            if (now > Seconds(0))
-            {
-                m_totalEnergy = m_currentPower * now.GetSeconds();
-            }
+            m_totalEnergy = m_currentPower * now.GetSeconds();
         }
         m_lastEnergyUpdateTime = now;
     }
@@ -210,12 +205,9 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
 
     EnergyModel::PowerState powerState = active ? m_energyModel->CalculateActivePower(this, utilization)
                                                 : m_energyModel->CalculateIdlePower(this);
-    if (powerState.valid)
-    {
-        m_currentPower = powerState.GetTotalPower();
-        m_powerTrace(m_currentPower);
-        m_energyTrace(m_totalEnergy);
-    }
+    m_currentPower = powerState.GetTotalPower();
+    m_powerTrace(m_currentPower);
+    m_energyTrace(m_totalEnergy);
     m_lastEnergyUpdateTime = now;
 }
 

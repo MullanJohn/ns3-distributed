@@ -70,7 +70,7 @@ EnergyModel::PowerState
 DvfsEnergyModel::CalculateIdlePower(Ptr<Accelerator> accelerator)
 {
     NS_LOG_FUNCTION(this << accelerator);
-    return EnergyModel::PowerState(m_staticPower, 0.0);
+    return {m_staticPower, 0.0};
 }
 
 EnergyModel::PowerState
@@ -82,7 +82,7 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
     if (!gpu)
     {
         NS_LOG_WARN("CalculateActivePower called with non-GPU accelerator");
-        return EnergyModel::PowerState();
+        return {m_staticPower, 0.0};
     }
 
     double voltage = gpu->GetVoltage();
@@ -95,7 +95,7 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
                                               << " f=" << frequency << " util=" << utilization
                                               << " -> P_dyn=" << dynamicPower);
 
-    return EnergyModel::PowerState(m_staticPower, dynamicPower);
+    return {m_staticPower, dynamicPower};
 }
 
 double
