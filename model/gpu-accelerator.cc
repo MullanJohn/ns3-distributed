@@ -125,6 +125,23 @@ GpuAccelerator::ApplyState(uint32_t stateIdx)
     }
 }
 
+uint32_t
+GpuAccelerator::GetNumPerformanceStates() const
+{
+    return static_cast<uint32_t>(GetOperatingPoints().size());
+}
+
+double
+GpuAccelerator::GetComputeRateAtState(uint32_t stateIdx) const
+{
+    const auto& opps = GetOperatingPoints();
+    if (opps.empty() || stateIdx >= opps.size())
+    {
+        return GetComputeRate();
+    }
+    return GetComputeRate() * (opps[stateIdx].frequency / m_frequency);
+}
+
 void
 GpuAccelerator::DoDispose()
 {

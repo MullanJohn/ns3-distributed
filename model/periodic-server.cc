@@ -349,10 +349,8 @@ PeriodicServer::HandleScalingCommand(Ptr<Packet> buffer)
 
     if (m_accelerator)
     {
-        m_accelerator->SetFrequency(header.GetTargetFrequency());
-        m_accelerator->SetVoltage(header.GetTargetVoltage());
-        NS_LOG_INFO("Applied scaling command: freq=" << header.GetTargetFrequency()
-                                                     << " volt=" << header.GetTargetVoltage());
+        m_accelerator->ApplyState(header.GetTargetStateIdx());
+        NS_LOG_INFO("Applied scaling command: stateIdx=" << header.GetTargetStateIdx());
     }
 }
 

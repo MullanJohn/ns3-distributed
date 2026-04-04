@@ -194,6 +194,27 @@ class Accelerator : public Object
     virtual void ApplyState(uint32_t stateIdx);
 
     /**
+     * @brief Get the number of available performance states.
+     *
+     * Default implementation returns 0 (no scaling). Override in subclasses
+     * that support multiple performance states.
+     *
+     * @return Number of performance states.
+     */
+    virtual uint32_t GetNumPerformanceStates() const;
+
+    /**
+     * @brief Get the compute rate at a given performance state.
+     *
+     * Default implementation returns the current compute rate regardless
+     * of state index. Override in subclasses that support scaling.
+     *
+     * @param stateIdx Performance state index.
+     * @return Compute rate at that state in FLOP/s.
+     */
+    virtual double GetComputeRateAtState(uint32_t stateIdx) const;
+
+    /**
      * @brief Add a discrete operating point (frequency-voltage pair).
      *
      * Points are kept sorted by frequency ascending. This defines the

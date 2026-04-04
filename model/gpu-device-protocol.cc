@@ -78,8 +78,7 @@ GpuDeviceProtocol::CreateCommandPacket(Ptr<ScalingDecision> decision)
 
     ScalingCommandHeader header;
     header.SetMessageType(ScalingCommandHeader::SCALING_COMMAND);
-    header.SetTargetFrequency(decision->targetFrequency);
-    header.SetTargetVoltage(decision->targetVoltage);
+    header.SetTargetStateIdx(decision->targetStateIdx);
 
     Ptr<Packet> packet = Create<Packet>();
     packet->AddHeader(header);
@@ -94,11 +93,9 @@ GpuDeviceProtocol::ApplyCommand(Ptr<Packet> packet, Ptr<Accelerator> accel)
     ScalingCommandHeader header;
     packet->RemoveHeader(header);
 
-    NS_LOG_INFO("Applying scaling command: freq=" << header.GetTargetFrequency()
-                                                  << " volt=" << header.GetTargetVoltage());
+    NS_LOG_INFO("Applying scaling command: stateIdx=" << header.GetTargetStateIdx());
 
-    accel->SetFrequency(header.GetTargetFrequency());
-    accel->SetVoltage(header.GetTargetVoltage());
+    accel->ApplyState(header.GetTargetStateIdx());
 }
 
 std::string

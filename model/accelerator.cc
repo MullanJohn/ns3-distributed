@@ -131,6 +131,18 @@ Accelerator::ApplyState(uint32_t stateIdx)
     NS_LOG_FUNCTION(this << stateIdx);
 }
 
+uint32_t
+Accelerator::GetNumPerformanceStates() const
+{
+    return 0;
+}
+
+double
+Accelerator::GetComputeRateAtState(uint32_t /* stateIdx */) const
+{
+    return GetComputeRate();
+}
+
 void
 Accelerator::AddOperatingPoint(double frequency, double voltage)
 {

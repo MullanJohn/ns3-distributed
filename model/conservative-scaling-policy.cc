@@ -31,7 +31,7 @@ ConservativeScalingPolicy::GetTypeId()
             .AddConstructor<ConservativeScalingPolicy>()
             .AddAttribute("TargetDrainTime",
                           "Estimated drain time (seconds at nominal rate) that maps to the "
-                          "highest OPP.",
+                          "highest performance state.",
                           DoubleValue(1.0),
                           MakeDoubleAccessor(&ConservativeScalingPolicy::m_targetDrainTime),
                           MakeDoubleChecker<double>(0.0));
@@ -50,56 +50,36 @@ ConservativeScalingPolicy::~ConservativeScalingPolicy()
 
 Ptr<ScalingDecision>
 ConservativeScalingPolicy::Decide(uint32_t /* backendIdx */,
-                                  const ClusterState::BackendState& backend,
-                                  const std::vector<OperatingPoint>& opps)
+                                  const ClusterState::BackendState& backend)
 {
     NS_LOG_FUNCTION(this);
 
-    if (opps.size() < 2)
+    if (backend.device.numPerformanceStates < 2)
     {
         return nullptr;
     }
 
-    double currentFreq = backend.device.commandedFrequency;
+    uint32_t currentIdx = backend.device.currentStateIdx;
 
-    size_t currentIdx = 0;
-    double minDist = std::abs(opps[0].frequency - currentFreq);
-    for (size_t i = 1; i < opps.size(); i++)
-    {
-        double dist = std::abs(opps[i].frequency - currentFreq);
-        if (dist < minDist)
-        {
-            minDist = dist;
-            currentIdx = i;
-        }
-    }
-
-    size_t targetIdx = 0;
+    uint32_t targetIdx = 0;
     if (backend.device.nominalComputeRate > 0.0 && m_targetDrainTime > 0.0)
     {
         double drainTime = backend.orchestration.estimatedRemainingComputeWork /
                            backend.device.nominalComputeRate;
         double loadRatio = std::min(drainTime / m_targetDrainTime, 1.0);
-        targetIdx = static_cast<size_t>(std::round(loadRatio * (opps.size() - 1)));
+        targetIdx = static_cast<uint32_t>(
+            std::round(loadRatio * (backend.device.numPerformanceStates - 1)));
     }
 
-    size_t nextIdx;
-    if (currentIdx < targetIdx)
-    {
-        nextIdx = currentIdx + 1;
-    }
-    else if (currentIdx > targetIdx)
-    {
-        nextIdx = currentIdx - 1;
-    }
-    else
+    if (currentIdx == targetIdx)
     {
         return nullptr;
     }
 
+    uint32_t nextIdx = (currentIdx < targetIdx) ? currentIdx + 1 : currentIdx - 1;
+
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();
-    decision->targetFrequency = opps[nextIdx].frequency;
-    decision->targetVoltage = opps[nextIdx].voltage;
+    decision->targetStateIdx = nextIdx;
     return decision;
 }
 

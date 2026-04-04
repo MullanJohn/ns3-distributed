@@ -71,6 +71,8 @@ class GpuAccelerator : public Accelerator
     double GetMemoryBandwidth() const;
 
     void ApplyState(uint32_t stateIdx) override;
+    uint32_t GetNumPerformanceStates() const override;
+    double GetComputeRateAtState(uint32_t stateIdx) const override;
 
   protected:
     void DoInitialize() override;

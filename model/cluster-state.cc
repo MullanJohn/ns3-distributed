@@ -82,17 +82,14 @@ ClusterState::NotifyTaskCompleted(uint32_t backendIdx, double computeDemand)
 }
 
 void
-ClusterState::SetBackendCapability(uint32_t backendIdx,
-                                   double nominalComputeRate,
-                                   double baseFrequency)
+ClusterState::SetBackendCapability(uint32_t backendIdx, double nominalComputeRate)
 {
-    NS_LOG_FUNCTION(this << backendIdx << nominalComputeRate << baseFrequency);
+    NS_LOG_FUNCTION(this << backendIdx << nominalComputeRate);
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
     m_backends[backendIdx].device.nominalComputeRate = nominalComputeRate;
-    m_backends[backendIdx].device.baseFrequency = baseFrequency;
-    UpdateEffectiveComputeRate(backendIdx);
+    m_backends[backendIdx].device.effectiveComputeRate = nominalComputeRate;
 }
 
 void
@@ -106,36 +103,29 @@ ClusterState::SetDeviceMetrics(uint32_t backendIdx, Ptr<DeviceMetrics> metrics)
 }
 
 void
-ClusterState::SetCommandedFrequency(uint32_t backendIdx, double frequency)
+ClusterState::SetCurrentState(uint32_t backendIdx,
+                              uint32_t stateIdx,
+                              double effectiveComputeRate)
 {
-    NS_LOG_FUNCTION(this << backendIdx << frequency);
+    NS_LOG_FUNCTION(this << backendIdx << stateIdx << effectiveComputeRate);
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
                   "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
                                    << ")");
-    m_backends[backendIdx].device.commandedFrequency = frequency;
-    UpdateEffectiveComputeRate(backendIdx);
+    m_backends[backendIdx].device.currentStateIdx = stateIdx;
+    m_backends[backendIdx].device.effectiveComputeRate = effectiveComputeRate;
 }
 
 void
-ClusterState::UpdateEffectiveComputeRate(uint32_t backendIdx)
+ClusterState::SetPerformanceStates(uint32_t backendIdx,
+                                   uint32_t numStates,
+                                   double maxComputeRate)
 {
-    auto& dev = m_backends[backendIdx].device;
-
-    if (dev.nominalComputeRate <= 0.0)
-    {
-        dev.effectiveComputeRate = 0.0;
-        return;
-    }
-
-    if (dev.baseFrequency <= 0.0)
-    {
-        dev.effectiveComputeRate = dev.nominalComputeRate;
-        return;
-    }
-
-    double frequency =
-        dev.commandedFrequency > 0.0 ? dev.commandedFrequency : dev.baseFrequency;
-    dev.effectiveComputeRate = dev.nominalComputeRate * (frequency / dev.baseFrequency);
+    NS_LOG_FUNCTION(this << backendIdx << numStates << maxComputeRate);
+    NS_ASSERT_MSG(backendIdx < m_backends.size(),
+                  "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
+                                   << ")");
+    m_backends[backendIdx].device.numPerformanceStates = numStates;
+    m_backends[backendIdx].device.maxComputeRate = maxComputeRate;
 }
 
 void

@@ -39,29 +39,25 @@ UtilizationScalingPolicy::~UtilizationScalingPolicy()
 
 Ptr<ScalingDecision>
 UtilizationScalingPolicy::Decide(uint32_t /* backendIdx */,
-                                 const ClusterState::BackendState& backend,
-                                 const std::vector<OperatingPoint>& opps)
+                                 const ClusterState::BackendState& backend)
 {
     NS_LOG_FUNCTION(this);
 
-    if (opps.size() < 2)
+    if (backend.device.numPerformanceStates < 2)
     {
         return nullptr;
     }
 
     bool busy = backend.orchestration.activeTasks > 0;
-    double currentFreq = backend.device.commandedFrequency;
+    uint32_t targetIdx = busy ? (backend.device.numPerformanceStates - 1) : 0;
 
-    const OperatingPoint& target = busy ? opps.back() : opps.front();
-
-    if (target.frequency == currentFreq)
+    if (targetIdx == backend.device.currentStateIdx)
     {
         return nullptr;
     }
 
     Ptr<ScalingDecision> decision = Create<ScalingDecision>();
-    decision->targetFrequency = target.frequency;
-    decision->targetVoltage = target.voltage;
+    decision->targetStateIdx = targetIdx;
     return decision;
 }
 

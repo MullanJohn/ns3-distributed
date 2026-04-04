@@ -43,11 +43,12 @@ class ClusterState
     {
         struct Device
         {
-            double nominalComputeRate{0.0};   //!< Reference compute rate in FLOP/s
-            double baseFrequency{0.0};        //!< Reference frequency in Hz
-            double commandedFrequency{0.0};   //!< Last frequency commanded by DeviceManager
-            double effectiveComputeRate{0.0}; //!< Current compute rate estimate in FLOP/s
-            Ptr<DeviceMetrics> deviceMetrics; //!< Latest device-reported metrics (nullable)
+            double nominalComputeRate{0.0};     //!< Compute rate at base state (index 0) in FLOP/s
+            uint32_t numPerformanceStates{0};   //!< Available performance states (0 = no scaling)
+            double maxComputeRate{0.0};         //!< Compute rate at highest state in FLOP/s
+            uint32_t currentStateIdx{0};        //!< Current performance state index
+            double effectiveComputeRate{0.0};   //!< Current compute rate in FLOP/s
+            Ptr<DeviceMetrics> deviceMetrics;   //!< Latest device-reported metrics (nullable)
         };
 
         struct Orchestration
@@ -103,10 +104,9 @@ class ClusterState
     /**
      * @brief Initialize backend capability information used by schedulers.
      * @param backendIdx The backend index.
-     * @param nominalComputeRate Reference compute rate in FLOP/s.
-     * @param baseFrequency Reference frequency in Hz.
+     * @param nominalComputeRate Compute rate at base state (index 0) in FLOP/s.
      */
-    void SetBackendCapability(uint32_t backendIdx, double nominalComputeRate, double baseFrequency);
+    void SetBackendCapability(uint32_t backendIdx, double nominalComputeRate);
 
     /**
      * @brief Store device metrics for a backend.
@@ -116,15 +116,20 @@ class ClusterState
     void SetDeviceMetrics(uint32_t backendIdx, Ptr<DeviceMetrics> metrics);
 
     /**
-     * @brief Set the commanded frequency for a backend.
-     *
-     * Updates the backend's effective compute-rate estimate using the
-     * stored reference frequency and compute rate.
-     *
+     * @brief Set the current performance state for a backend.
      * @param backendIdx The backend index.
-     * @param frequency The commanded frequency in Hz.
+     * @param stateIdx Performance state index.
+     * @param effectiveComputeRate Compute rate at this state in FLOP/s.
      */
-    void SetCommandedFrequency(uint32_t backendIdx, double frequency);
+    void SetCurrentState(uint32_t backendIdx, uint32_t stateIdx, double effectiveComputeRate);
+
+    /**
+     * @brief Set the performance state range for a backend.
+     * @param backendIdx The backend index.
+     * @param numStates Number of available performance states.
+     * @param maxComputeRate Compute rate at the highest state in FLOP/s.
+     */
+    void SetPerformanceStates(uint32_t backendIdx, uint32_t numStates, double maxComputeRate);
 
     /**
      * @brief Set the active workload count.
@@ -171,12 +176,6 @@ class ClusterState
     void Clear();
 
   private:
-    /**
-     * @brief Refresh the effective compute-rate estimate for a backend.
-     * @param backendIdx The backend index.
-     */
-    void UpdateEffectiveComputeRate(uint32_t backendIdx);
-
     std::vector<BackendState> m_backends; //!< Per-backend state
     uint32_t m_activeWorkloads{0};        //!< Number of active workloads
     uint32_t m_pendingAdmissionTasks{0};  //!< Total tasks admitted but not yet dispatched

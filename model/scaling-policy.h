@@ -9,7 +9,6 @@
 #ifndef SCALING_POLICY_H
 #define SCALING_POLICY_H
 
-#include "accelerator.h"
 #include "cluster-state.h"
 
 #include "ns3/object.h"
@@ -17,7 +16,6 @@
 #include "ns3/simple-ref-count.h"
 
 #include <cstdint>
-#include <vector>
 
 namespace ns3
 {
@@ -40,9 +38,9 @@ class DeviceMetrics : public SimpleRefCount<DeviceMetrics>
 
 /**
  * @ingroup distributed
- * @brief DVFS command produced by a ScalingPolicy.
+ * @brief Scaling command produced by a ScalingPolicy.
  *
- * Carries the target frequency and voltage for a backend accelerator.
+ * Carries the target performance state index for a backend accelerator.
  * Serialized into a ScalingCommandHeader by DeviceProtocol and sent
  * to the backend.
  */
@@ -51,16 +49,15 @@ class ScalingDecision : public SimpleRefCount<ScalingDecision>
   public:
     virtual ~ScalingDecision() = default;
 
-    double targetFrequency{0}; //!< Target operating frequency in Hz
-    double targetVoltage{0};   //!< Target operating voltage in Volts
+    uint32_t targetStateIdx{0}; //!< Target performance state index
 };
 
 /**
  * @ingroup distributed
- * @brief Abstract base class for DVFS scaling policies.
+ * @brief Abstract base class for scaling policies.
  *
- * ScalingPolicy decides the target operating point for a backend
- * accelerator based on per-backend state and the hardware's OPP table.
+ * ScalingPolicy decides the target performance state for a backend
+ * accelerator based on per-backend state.
  */
 class ScalingPolicy : public Object
 {
@@ -74,15 +71,13 @@ class ScalingPolicy : public Object
     ~ScalingPolicy() override;
 
     /**
-     * @brief Decide the target operating point for a backend.
+     * @brief Decide the target performance state for a backend.
      * @param backendIdx The backend index in the cluster.
      * @param backend The backend's current state.
-     * @param opps The backend's available operating points (sorted by frequency).
      * @return A scaling decision, or nullptr if no change is needed.
      */
     virtual Ptr<ScalingDecision> Decide(uint32_t backendIdx,
-                                        const ClusterState::BackendState& backend,
-                                        const std::vector<OperatingPoint>& opps) = 0;
+                                        const ClusterState::BackendState& backend) = 0;
 
     /**
      * @brief Get the policy name for logging.
