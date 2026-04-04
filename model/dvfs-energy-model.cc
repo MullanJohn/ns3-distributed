@@ -8,7 +8,7 @@
 
 #include "dvfs-energy-model.h"
 
-#include "accelerator.h"
+#include "gpu-accelerator.h"
 
 #include "ns3/double.h"
 #include "ns3/log.h"
@@ -78,15 +78,15 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
 {
     NS_LOG_FUNCTION(this << accelerator << utilization);
 
-    if (!accelerator)
+    auto gpu = DynamicCast<GpuAccelerator>(accelerator);
+    if (!gpu)
     {
-        NS_LOG_WARN("CalculateActivePower called with null accelerator");
+        NS_LOG_WARN("CalculateActivePower called with non-GPU accelerator");
         return EnergyModel::PowerState();
     }
 
-
-    double voltage = accelerator->GetVoltage();
-    double frequency = accelerator->GetFrequency();
+    double voltage = gpu->GetVoltage();
+    double frequency = gpu->GetFrequency();
 
     // Calculate dynamic power: P = C * V^2 * f * utilization
     double dynamicPower = m_effectiveCapacitance * voltage * voltage * frequency * utilization;

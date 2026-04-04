@@ -15,8 +15,6 @@
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 
-#include <algorithm>
-
 namespace ns3
 {
 
@@ -96,33 +94,9 @@ Accelerator::GetUtilization() const
 }
 
 double
-Accelerator::GetVoltage() const
-{
-    return 1.0;
-}
-
-double
-Accelerator::GetFrequency() const
-{
-    return 1.0;
-}
-
-double
 Accelerator::GetComputeRate() const
 {
     return 0.0;
-}
-
-void
-Accelerator::SetFrequency(double frequency)
-{
-    NS_LOG_FUNCTION(this << frequency);
-}
-
-void
-Accelerator::SetVoltage(double voltage)
-{
-    NS_LOG_FUNCTION(this << voltage);
 }
 
 void
@@ -141,25 +115,6 @@ double
 Accelerator::GetComputeRateAtState(uint32_t /* stateIdx */) const
 {
     return GetComputeRate();
-}
-
-void
-Accelerator::AddOperatingPoint(double frequency, double voltage)
-{
-    NS_LOG_FUNCTION(this << frequency << voltage);
-    OperatingPoint opp{frequency, voltage};
-    auto it = std::lower_bound(
-        m_operatingPoints.begin(),
-        m_operatingPoints.end(),
-        opp,
-        [](const OperatingPoint& a, const OperatingPoint& b) { return a.frequency < b.frequency; });
-    m_operatingPoints.insert(it, opp);
-}
-
-const std::vector<OperatingPoint>&
-Accelerator::GetOperatingPoints() const
-{
-    return m_operatingPoints;
 }
 
 Ptr<Node>

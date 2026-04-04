@@ -16,26 +16,11 @@
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 
-#include <vector>
-
 namespace ns3
 {
 
 class Node;
 class EnergyModel;
-
-/**
- * @ingroup distributed
- * @brief A discrete frequency-voltage operating point for an accelerator.
- *
- * Represents a single entry in the OPP (Operating Performance Point) table.
- * Sorted by frequency ascending when stored on an Accelerator.
- */
-struct OperatingPoint
-{
-    double frequency; //!< Operating frequency in Hz
-    double voltage;   //!< Operating voltage in Volts
-};
 
 /**
  * @ingroup distributed
@@ -133,26 +118,6 @@ class Accelerator : public Object
     virtual double GetUtilization() const;
 
     /**
-     * @brief Get the current operating voltage.
-     *
-     * Default implementation returns 1.0V. Override in subclasses that
-     * support DVFS or have configurable voltage.
-     *
-     * @return Operating voltage in Volts.
-     */
-    virtual double GetVoltage() const;
-
-    /**
-     * @brief Get the current operating frequency.
-     *
-     * Default implementation returns 1.0Hz. Override in subclasses that
-     * support DVFS or have configurable frequency.
-     *
-     * @return Operating frequency in Hz.
-     */
-    virtual double GetFrequency() const;
-
-    /**
      * @brief Get the effective compute rate of the accelerator.
      *
      * Default implementation returns 0.0. Override in subclasses that
@@ -161,26 +126,6 @@ class Accelerator : public Object
      * @return Effective compute rate in FLOP/s.
      */
     virtual double GetComputeRate() const;
-
-    /**
-     * @brief Set the operating frequency.
-     *
-     * Default implementation is a no-op. Override in subclasses that
-     * support DVFS.
-     *
-     * @param frequency The new frequency in Hz.
-     */
-    virtual void SetFrequency(double frequency);
-
-    /**
-     * @brief Set the operating voltage.
-     *
-     * Default implementation is a no-op. Override in subclasses that
-     * support DVFS.
-     *
-     * @param voltage The new voltage in Volts.
-     */
-    virtual void SetVoltage(double voltage);
 
     /**
      * @brief Apply a performance state by index.
@@ -213,24 +158,6 @@ class Accelerator : public Object
      * @return Compute rate at that state in FLOP/s.
      */
     virtual double GetComputeRateAtState(uint32_t stateIdx) const;
-
-    /**
-     * @brief Add a discrete operating point (frequency-voltage pair).
-     *
-     * Points are kept sorted by frequency ascending. This defines the
-     * hardware's OPP table, used by scaling policies to select valid
-     * frequency/voltage pairs.
-     *
-     * @param frequency Operating frequency in Hz.
-     * @param voltage Operating voltage in Volts.
-     */
-    void AddOperatingPoint(double frequency, double voltage);
-
-    /**
-     * @brief Get the operating point table.
-     * @return Const reference to the OPP table, sorted by frequency ascending.
-     */
-    const std::vector<OperatingPoint>& GetOperatingPoints() const;
 
     /**
      * @brief Get the node this accelerator is aggregated to.
@@ -337,8 +264,7 @@ class Accelerator : public Object
     Time m_lastEnergyUpdateTime;                   //!< Time of last energy state update
     double m_totalEnergy;                          //!< Total energy consumed in Joules
     double m_currentPower;                         //!< Current power consumption in Watts
-    double m_taskStartEnergy;                      //!< Energy at task start for per-task tracking
-    std::vector<OperatingPoint> m_operatingPoints; //!< OPP table sorted by frequency
+    double m_taskStartEnergy; //!< Energy at task start for per-task tracking
 };
 
 } // namespace ns3

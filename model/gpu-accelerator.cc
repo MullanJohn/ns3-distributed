@@ -101,14 +101,32 @@ GpuAccelerator::~GpuAccelerator()
 }
 
 void
+GpuAccelerator::AddOperatingPoint(double frequency, double voltage)
+{
+    NS_LOG_FUNCTION(this << frequency << voltage);
+    OperatingPoint opp{frequency, voltage};
+    auto it = std::lower_bound(
+        m_operatingPoints.begin(),
+        m_operatingPoints.end(),
+        opp,
+        [](const OperatingPoint& a, const OperatingPoint& b) { return a.frequency < b.frequency; });
+    m_operatingPoints.insert(it, opp);
+}
+
+const std::vector<OperatingPoint>&
+GpuAccelerator::GetOperatingPoints() const
+{
+    return m_operatingPoints;
+}
+
+void
 GpuAccelerator::DoInitialize()
 {
     NS_LOG_FUNCTION(this);
-    const auto& opps = GetOperatingPoints();
-    if (!opps.empty())
+    if (!m_operatingPoints.empty())
     {
-        SetFrequency(opps[0].frequency);
-        SetVoltage(opps[0].voltage);
+        SetFrequency(m_operatingPoints[0].frequency);
+        SetVoltage(m_operatingPoints[0].voltage);
     }
     Accelerator::DoInitialize();
 }
@@ -117,29 +135,27 @@ void
 GpuAccelerator::ApplyState(uint32_t stateIdx)
 {
     NS_LOG_FUNCTION(this << stateIdx);
-    const auto& opps = GetOperatingPoints();
-    if (stateIdx < opps.size())
+    if (stateIdx < m_operatingPoints.size())
     {
-        SetFrequency(opps[stateIdx].frequency);
-        SetVoltage(opps[stateIdx].voltage);
+        SetFrequency(m_operatingPoints[stateIdx].frequency);
+        SetVoltage(m_operatingPoints[stateIdx].voltage);
     }
 }
 
 uint32_t
 GpuAccelerator::GetNumPerformanceStates() const
 {
-    return static_cast<uint32_t>(GetOperatingPoints().size());
+    return static_cast<uint32_t>(m_operatingPoints.size());
 }
 
 double
 GpuAccelerator::GetComputeRateAtState(uint32_t stateIdx) const
 {
-    const auto& opps = GetOperatingPoints();
-    if (opps.empty() || stateIdx >= opps.size())
+    if (m_operatingPoints.empty() || stateIdx >= m_operatingPoints.size())
     {
         return GetComputeRate();
     }
-    return GetComputeRate() * (opps[stateIdx].frequency / m_frequency);
+    return GetComputeRate() * (m_operatingPoints[stateIdx].frequency / m_frequency);
 }
 
 void

@@ -18,10 +18,25 @@
 #include "ns3/nstime.h"
 #include "ns3/traced-value.h"
 
+#include <algorithm>
 #include <deque>
+#include <vector>
 
 namespace ns3
 {
+
+/**
+ * @ingroup distributed
+ * @brief A discrete frequency-voltage operating point for a GPU accelerator.
+ *
+ * Represents a single entry in the OPP (Operating Performance Point) table.
+ * Sorted by frequency ascending when stored on a GpuAccelerator.
+ */
+struct OperatingPoint
+{
+    double frequency; //!< Operating frequency in Hz
+    double voltage;   //!< Operating voltage in Volts
+};
 
 /**
  * @ingroup distributed
@@ -49,20 +64,38 @@ class GpuAccelerator : public Accelerator
     uint32_t GetQueueLength() const override;
     bool IsBusy() const override;
     double GetUtilization() const override;
-    double GetVoltage() const override;
-    double GetFrequency() const override;
-    void SetFrequency(double frequency) override;
-    void SetVoltage(double voltage) override;
+    double GetComputeRate() const override;
+    void ApplyState(uint32_t stateIdx) override;
+    uint32_t GetNumPerformanceStates() const override;
+    double GetComputeRateAtState(uint32_t stateIdx) const override;
 
     /**
-     * @brief Get effective compute rate in FLOPS.
-     *
-     * Returns the product of the raw compute rate (scaled by DVFS)
-     * and the ComputeEfficiency attribute.
-     *
-     * @return The effective compute rate.
+     * @brief Get the current operating voltage.
+     * @return Operating voltage in Volts.
      */
-    double GetComputeRate() const override;
+    double GetVoltage() const;
+
+    /**
+     * @brief Get the current operating frequency.
+     * @return Operating frequency in Hz.
+     */
+    double GetFrequency() const;
+
+    /**
+     * @brief Set the operating frequency.
+     *
+     * Scales the compute rate proportionally. If a task is in progress,
+     * only the remaining compute phase is rescaled.
+     *
+     * @param frequency The new frequency in Hz.
+     */
+    void SetFrequency(double frequency);
+
+    /**
+     * @brief Set the operating voltage.
+     * @param voltage The new voltage in Volts.
+     */
+    void SetVoltage(double voltage);
 
     /**
      * @brief Get memory bandwidth in bytes/sec.
@@ -70,9 +103,23 @@ class GpuAccelerator : public Accelerator
      */
     double GetMemoryBandwidth() const;
 
-    void ApplyState(uint32_t stateIdx) override;
-    uint32_t GetNumPerformanceStates() const override;
-    double GetComputeRateAtState(uint32_t stateIdx) const override;
+    /**
+     * @brief Add a discrete operating point (frequency-voltage pair).
+     *
+     * Points are kept sorted by frequency ascending. This defines the
+     * GPU's OPP table used by ApplyState() to translate performance
+     * state indices into frequency/voltage commands.
+     *
+     * @param frequency Operating frequency in Hz.
+     * @param voltage Operating voltage in Volts.
+     */
+    void AddOperatingPoint(double frequency, double voltage);
+
+    /**
+     * @brief Get the operating point table.
+     * @return Const reference to the OPP table, sorted by frequency ascending.
+     */
+    const std::vector<OperatingPoint>& GetOperatingPoints() const;
 
   protected:
     void DoInitialize() override;
@@ -173,6 +220,9 @@ class GpuAccelerator : public Accelerator
      * @param end Interval end.
      */
     static void AppendInterval(std::deque<TimeInterval>& intervals, Time start, Time end);
+
+    // OPP table
+    std::vector<OperatingPoint> m_operatingPoints; //!< OPP table sorted by frequency
 
     // GPU-specific attributes
     double m_computeRate;                   //!< Raw compute rate in FLOPS (scaled by DVFS)
