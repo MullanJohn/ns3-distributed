@@ -48,20 +48,6 @@ class SimpleTask : public Task
     uint8_t GetTaskType() const override;
 
     /**
-     * @brief Serialize this task to a packet using SimpleTaskHeader.
-     *
-     * @param isResponse true for response (output payload), false for request (input payload).
-     * @return A packet with SimpleTaskHeader and payload.
-     */
-    Ptr<Packet> Serialize(bool isResponse) const override;
-
-    /**
-     * @brief Get SimpleTaskHeader size.
-     * @return SimpleTaskHeader::SERIALIZED_SIZE
-     */
-    uint32_t GetSerializedHeaderSize() const override;
-
-    /**
      * @brief Deserialize a SimpleTask from a packet buffer.
      *
      * Stream-aware deserialization that handles message boundary detection.

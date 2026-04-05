@@ -55,13 +55,19 @@ std::ostream& operator<<(std::ostream& os, TaskState state);
  */
 typedef void (*TaskStateTracedCallback)(TaskState oldValue, TaskState newValue);
 
+class TaskHeader;
+
 /**
  * @ingroup distributed
  * @brief Abstract base class representing a task to be executed on an accelerator.
  *
  * Task provides a common interface for all task types. All tasks have common
- * fields for compute demand, I/O sizes, and timing metadata. Derived classes
- * must implement GetName() to identify the task type.
+ * fields for compute demand, I/O sizes, and timing metadata.
+ *
+ * Concrete subclasses must implement GetName() and GetTaskType(). They should
+ * also provide static Deserialize() and DeserializeHeader() factory methods
+ * and register them with EdgeOrchestrator::RegisterTaskType() for DAG
+ * deserialization support. See SimpleTask for a reference implementation.
  */
 class Task : public Object
 {
@@ -218,12 +224,13 @@ class Task : public Object
      * @brief Serialize this task to a packet for network transmission.
      *
      * Creates a packet containing the task's header and payload data.
-     * Each Task subclass implements this using its corresponding TaskHeader.
+     * The default implementation uses TaskHeader to serialize all
+     * common task fields. Subclasses with extra fields should override.
      *
      * @param isResponse true for response (output payload), false for request (input payload).
      * @return A packet ready for transmission.
      */
-    virtual Ptr<Packet> Serialize(bool isResponse) const = 0;
+    virtual Ptr<Packet> Serialize(bool isResponse) const;
 
     /**
      * @brief Get the serialized header size for this task type.
@@ -233,7 +240,7 @@ class Task : public Object
      *
      * @return Header size in bytes.
      */
-    virtual uint32_t GetSerializedHeaderSize() const = 0;
+    virtual uint32_t GetSerializedHeaderSize() const;
 
     /**
      * @brief Get the task type identifier.
@@ -264,6 +271,16 @@ class Task : public Object
 
   protected:
     void DoDispose() override;
+
+    /**
+     * @brief Populate task fields from a deserialized TaskHeader.
+     *
+     * Sets all common task fields from the header. Used by concrete
+     * subclass Deserialize/DeserializeHeader factory methods.
+     *
+     * @param header The deserialized header to read fields from.
+     */
+    void PopulateFromHeader(const TaskHeader& header);
 
     TracedValue<TaskState> m_state{TASK_CREATED}; //!< Lifecycle state
     uint64_t m_taskId{0};                         //!< Unique task identifier

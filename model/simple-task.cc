@@ -57,40 +57,6 @@ SimpleTask::GetTaskType() const
     return TASK_TYPE;
 }
 
-Ptr<Packet>
-SimpleTask::Serialize(bool isResponse) const
-{
-    NS_LOG_FUNCTION(this << isResponse);
-
-    TaskHeader header;
-    header.SetMessageType(isResponse ? TaskHeader::TASK_RESPONSE : TaskHeader::TASK_REQUEST);
-    header.SetTaskId(m_taskId);
-    header.SetComputeDemand(m_computeDemand);
-    header.SetInputSize(m_inputSize);
-    header.SetOutputSize(m_outputSize);
-    header.SetDeadlineNs(m_deadline.IsNegative() ? -1 : m_deadline.GetNanoSeconds());
-    header.SetPriority(m_priority);
-    header.SetAcceleratorType(GetRequiredAcceleratorType());
-
-    Ptr<Packet> packet = Create<Packet>();
-    packet->AddHeader(header);
-
-    uint64_t payloadSize = isResponse ? m_outputSize : m_inputSize;
-    if (payloadSize > 0)
-    {
-        Ptr<Packet> payload = Create<Packet>(payloadSize);
-        packet->AddAtEnd(payload);
-    }
-
-    return packet;
-}
-
-uint32_t
-SimpleTask::GetSerializedHeaderSize() const
-{
-    return TaskHeader::SERIALIZED_SIZE;
-}
-
 Ptr<Task>
 SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
 {
@@ -119,17 +85,7 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
     }
 
     Ptr<SimpleTask> task = CreateObject<SimpleTask>();
-    task->SetTaskId(header.GetTaskId());
-    task->SetComputeDemand(header.GetComputeDemand());
-    task->SetInputSize(header.GetInputSize());
-    task->SetOutputSize(header.GetOutputSize());
-    task->SetRequiredAcceleratorType(header.GetAcceleratorType());
-    task->SetPriority(header.GetPriority());
-
-    if (header.HasDeadline())
-    {
-        task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
-    }
+    task->PopulateFromHeader(header);
 
     consumedBytes = totalSize;
     return task;
@@ -152,17 +108,7 @@ SimpleTask::DeserializeHeader(Ptr<Packet> packet, uint64_t& consumedBytes)
     packet->PeekHeader(header);
 
     Ptr<SimpleTask> task = CreateObject<SimpleTask>();
-    task->SetTaskId(header.GetTaskId());
-    task->SetComputeDemand(header.GetComputeDemand());
-    task->SetInputSize(header.GetInputSize());
-    task->SetOutputSize(header.GetOutputSize());
-    task->SetRequiredAcceleratorType(header.GetAcceleratorType());
-    task->SetPriority(header.GetPriority());
-
-    if (header.HasDeadline())
-    {
-        task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
-    }
+    task->PopulateFromHeader(header);
 
     consumedBytes = TaskHeader::SERIALIZED_SIZE;
     return task;
