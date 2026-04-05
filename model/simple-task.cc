@@ -8,7 +8,7 @@
 
 #include "simple-task.h"
 
-#include "simple-task-header.h"
+#include "task-header.h"
 
 #include "ns3/log.h"
 
@@ -62,13 +62,14 @@ SimpleTask::Serialize(bool isResponse) const
 {
     NS_LOG_FUNCTION(this << isResponse);
 
-    SimpleTaskHeader header;
+    TaskHeader header;
     header.SetMessageType(isResponse ? TaskHeader::TASK_RESPONSE : TaskHeader::TASK_REQUEST);
     header.SetTaskId(m_taskId);
     header.SetComputeDemand(m_computeDemand);
     header.SetInputSize(m_inputSize);
     header.SetOutputSize(m_outputSize);
     header.SetDeadlineNs(m_deadline.IsNegative() ? -1 : m_deadline.GetNanoSeconds());
+    header.SetPriority(m_priority);
     header.SetAcceleratorType(GetRequiredAcceleratorType());
 
     Ptr<Packet> packet = Create<Packet>();
@@ -87,7 +88,7 @@ SimpleTask::Serialize(bool isResponse) const
 uint32_t
 SimpleTask::GetSerializedHeaderSize() const
 {
-    return SimpleTaskHeader::SERIALIZED_SIZE;
+    return TaskHeader::SERIALIZED_SIZE;
 }
 
 Ptr<Task>
@@ -96,19 +97,19 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
     NS_LOG_FUNCTION(packet);
     consumedBytes = 0;
 
-    if (packet->GetSize() < SimpleTaskHeader::SERIALIZED_SIZE)
+    if (packet->GetSize() < TaskHeader::SERIALIZED_SIZE)
     {
         NS_LOG_DEBUG("Not enough data for header: have " << packet->GetSize() << ", need "
-                                                         << SimpleTaskHeader::SERIALIZED_SIZE);
+                                                         << TaskHeader::SERIALIZED_SIZE);
         return nullptr;
     }
 
-    SimpleTaskHeader header;
+    TaskHeader header;
     packet->PeekHeader(header);
 
     uint64_t payloadSize =
         header.IsResponse() ? header.GetResponsePayloadSize() : header.GetRequestPayloadSize();
-    uint64_t totalSize = SimpleTaskHeader::SERIALIZED_SIZE + payloadSize;
+    uint64_t totalSize = TaskHeader::SERIALIZED_SIZE + payloadSize;
 
     if (packet->GetSize() < totalSize)
     {
@@ -123,6 +124,7 @@ SimpleTask::Deserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
     task->SetInputSize(header.GetInputSize());
     task->SetOutputSize(header.GetOutputSize());
     task->SetRequiredAcceleratorType(header.GetAcceleratorType());
+    task->SetPriority(header.GetPriority());
 
     if (header.HasDeadline())
     {
@@ -139,14 +141,14 @@ SimpleTask::DeserializeHeader(Ptr<Packet> packet, uint64_t& consumedBytes)
     NS_LOG_FUNCTION(packet);
     consumedBytes = 0;
 
-    if (packet->GetSize() < SimpleTaskHeader::SERIALIZED_SIZE)
+    if (packet->GetSize() < TaskHeader::SERIALIZED_SIZE)
     {
         NS_LOG_DEBUG("Not enough data for header: have " << packet->GetSize() << ", need "
-                                                         << SimpleTaskHeader::SERIALIZED_SIZE);
+                                                         << TaskHeader::SERIALIZED_SIZE);
         return nullptr;
     }
 
-    SimpleTaskHeader header;
+    TaskHeader header;
     packet->PeekHeader(header);
 
     Ptr<SimpleTask> task = CreateObject<SimpleTask>();
@@ -155,13 +157,14 @@ SimpleTask::DeserializeHeader(Ptr<Packet> packet, uint64_t& consumedBytes)
     task->SetInputSize(header.GetInputSize());
     task->SetOutputSize(header.GetOutputSize());
     task->SetRequiredAcceleratorType(header.GetAcceleratorType());
+    task->SetPriority(header.GetPriority());
 
     if (header.HasDeadline())
     {
         task->SetDeadline(NanoSeconds(header.GetDeadlineNs()));
     }
 
-    consumedBytes = SimpleTaskHeader::SERIALIZED_SIZE;
+    consumedBytes = TaskHeader::SERIALIZED_SIZE;
     return task;
 }
 

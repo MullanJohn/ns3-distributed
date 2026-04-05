@@ -33,7 +33,6 @@ build_lib(
                  model/fixed-ratio-processing-model.cc
                  model/queue-scheduler.cc
                  model/fifo-queue-scheduler.cc
-                 model/simple-task-header.cc
                  model/orchestrator-header.cc
                  model/device-metrics-header.cc
                  model/scaling-command-header.cc
@@ -73,7 +72,6 @@ build_lib(
                  model/fixed-ratio-processing-model.h
                  model/queue-scheduler.h
                  model/fifo-queue-scheduler.h
-                 model/simple-task-header.h
                  model/orchestrator-header.h
                  model/device-metrics-header.h
                  model/scaling-command-header.h
@@ -101,7 +99,6 @@ build_lib(
                  test/energy-model-test.cc
                  test/gpu-accelerator-queue-test.cc
                  test/task-header-test.cc
-                 test/simple-task-header-test.cc
                  test/orchestrator-header-test.cc
                  test/cluster-test.cc
                  test/fixed-ratio-processing-test.cc

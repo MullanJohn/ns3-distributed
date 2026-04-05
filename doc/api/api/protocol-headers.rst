@@ -7,12 +7,6 @@ TaskHeader
 .. doxygenclass:: ns3::TaskHeader
    :members:
 
-SimpleTaskHeader
-----------------
-
-.. doxygenclass:: ns3::SimpleTaskHeader
-   :members:
-
 OrchestratorHeader
 ------------------
 
