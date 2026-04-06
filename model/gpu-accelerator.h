@@ -98,10 +98,16 @@ class GpuAccelerator : public Accelerator
     void SetVoltage(double voltage);
 
     /**
-     * @brief Get memory bandwidth in bytes/sec.
+     * @brief Get GPU DRAM memory bandwidth in bytes/sec.
      * @return The memory bandwidth.
      */
     double GetMemoryBandwidth() const;
+
+    /**
+     * @brief Get host-device transfer bandwidth in bytes/sec (e.g. PCIe).
+     * @return The transfer bandwidth.
+     */
+    double GetTransferBandwidth() const;
 
     /**
      * @brief Add a discrete operating point (frequency-voltage pair).
@@ -227,7 +233,8 @@ class GpuAccelerator : public Accelerator
     // GPU-specific attributes
     double m_computeRate;                   //!< Raw compute rate in FLOPS (scaled by DVFS)
     double m_computeEfficiency;             //!< Fraction of peak rate achieved by workload (0,1]
-    double m_memoryBandwidth;               //!< Memory bandwidth in bytes/sec
+    double m_memoryBandwidth;               //!< GPU DRAM memory bandwidth in bytes/sec
+    double m_transferBandwidth;             //!< Host-device transfer bandwidth in bytes/sec
     double m_frequency;                     //!< Operating frequency in Hz
     double m_voltage;                       //!< Operating voltage in Volts
     Time m_utilizationWindow;               //!< Rolling window for compute utilization

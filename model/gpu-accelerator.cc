@@ -42,9 +42,14 @@ GpuAccelerator::GetTypeId()
                                           MakeDoubleAccessor(&GpuAccelerator::m_computeEfficiency),
                                           MakeDoubleChecker<double>(0.0, 1.0))
                             .AddAttribute("MemoryBandwidth",
-                                          "Memory bandwidth in bytes/sec (must be > 0)",
+                                          "GPU DRAM memory bandwidth in bytes/sec",
                                           DoubleValue(900e9),
                                           MakeDoubleAccessor(&GpuAccelerator::m_memoryBandwidth),
+                                          MakeDoubleChecker<double>(1.0))
+                            .AddAttribute("TransferBandwidth",
+                                          "Host-device transfer bandwidth in bytes/sec (e.g. PCIe)",
+                                          DoubleValue(32e9),
+                                          MakeDoubleAccessor(&GpuAccelerator::m_transferBandwidth),
                                           MakeDoubleChecker<double>(1.0))
                             .AddAttribute("ProcessingModel",
                                           "Processing model for timing calculation",
@@ -82,6 +87,7 @@ GpuAccelerator::GpuAccelerator()
     : m_computeRate(1e12),
       m_computeEfficiency(1.0),
       m_memoryBandwidth(900e9),
+      m_transferBandwidth(32e9),
       m_frequency(1.5e9),
       m_voltage(1.0),
       m_utilizationWindow(MilliSeconds(100)),
@@ -309,6 +315,12 @@ double
 GpuAccelerator::GetMemoryBandwidth() const
 {
     return m_memoryBandwidth;
+}
+
+double
+GpuAccelerator::GetTransferBandwidth() const
+{
+    return m_transferBandwidth;
 }
 
 double
