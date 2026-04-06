@@ -311,7 +311,7 @@ PeriodicClient::GenerateFrame()
 
     OrchestratorHeader orchHeader;
     orchHeader.SetMessageType(OrchestratorHeader::ADMISSION_REQUEST);
-    orchHeader.SetTaskId(dagId);
+    orchHeader.SetDagId(dagId);
     orchHeader.SetPayloadSize(metadata->GetSize());
 
     Ptr<Packet> packet = Create<Packet>();
@@ -408,9 +408,9 @@ PeriodicClient::ProcessBuffer()
 void
 PeriodicClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
 {
-    NS_LOG_FUNCTION(this << orchHeader.GetTaskId() << orchHeader.IsAdmitted());
+    NS_LOG_FUNCTION(this << orchHeader.GetDagId() << orchHeader.IsAdmitted());
 
-    uint64_t dagId = orchHeader.GetTaskId();
+    uint64_t dagId = orchHeader.GetDagId();
 
     auto it = m_pendingWorkloads.find(dagId);
     if (it == m_pendingWorkloads.end())
@@ -510,7 +510,7 @@ PeriodicClient::SendFullData(uint64_t dagId)
 
     OrchestratorHeader uploadHeader;
     uploadHeader.SetMessageType(OrchestratorHeader::DATA_UPLOAD);
-    uploadHeader.SetTaskId(dagId);
+    uploadHeader.SetDagId(dagId);
     uploadHeader.SetPayloadSize(dagData->GetSize());
 
     Ptr<Packet> packet = Create<Packet>();

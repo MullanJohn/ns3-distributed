@@ -29,7 +29,7 @@ OrchestratorHeader::GetTypeId()
 
 OrchestratorHeader::OrchestratorHeader()
     : m_messageType(ADMISSION_REQUEST), // 2
-      m_taskId(0),
+      m_dagId(0),
       m_admitted(false),
       m_payloadSize(0)
 {
@@ -55,16 +55,16 @@ OrchestratorHeader::SetMessageType(MessageType type)
 }
 
 uint64_t
-OrchestratorHeader::GetTaskId() const
+OrchestratorHeader::GetDagId() const
 {
-    return m_taskId;
+    return m_dagId;
 }
 
 void
-OrchestratorHeader::SetTaskId(uint64_t id)
+OrchestratorHeader::SetDagId(uint64_t id)
 {
     NS_LOG_FUNCTION(this << id);
-    m_taskId = id;
+    m_dagId = id;
 }
 
 bool
@@ -145,7 +145,7 @@ OrchestratorHeader::Serialize(Buffer::Iterator start) const
     NS_LOG_FUNCTION(this);
 
     start.WriteU8(static_cast<uint8_t>(m_messageType));
-    start.WriteHtonU64(m_taskId);
+    start.WriteHtonU64(m_dagId);
     start.WriteU8(m_admitted ? 1 : 0);
     start.WriteHtonU64(m_payloadSize);
 }
@@ -166,7 +166,7 @@ OrchestratorHeader::Deserialize(Buffer::Iterator start)
     {
         m_messageType = static_cast<MessageType>(messageTypeByte);
     }
-    m_taskId = start.ReadNtohU64();
+    m_dagId = start.ReadNtohU64();
     m_admitted = (start.ReadU8() != 0);
     m_payloadSize = start.ReadNtohU64();
 
@@ -176,7 +176,7 @@ OrchestratorHeader::Deserialize(Buffer::Iterator start)
 void
 OrchestratorHeader::Print(std::ostream& os) const
 {
-    os << "OrchestratorHeader(type=" << GetMessageTypeName() << ", taskId=" << m_taskId
+    os << "OrchestratorHeader(type=" << GetMessageTypeName() << ", dagId=" << m_dagId
        << ", admitted=" << (m_admitted ? "true" : "false") << ", payloadSize=" << m_payloadSize
        << ")";
 }

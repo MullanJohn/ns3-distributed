@@ -533,10 +533,10 @@ EdgeOrchestrator::ProcessClientBuffer(const Address& clientAddr)
         switch (orchHeader.GetMessageType())
         {
         case OrchestratorHeader::ADMISSION_REQUEST:
-            HandleAdmissionRequest(orchHeader.GetTaskId(), payload, clientAddr);
+            HandleAdmissionRequest(orchHeader.GetDagId(), payload, clientAddr);
             break;
         case OrchestratorHeader::DATA_UPLOAD:
-            HandleDataUpload(orchHeader.GetTaskId(), payload, clientAddr);
+            HandleDataUpload(orchHeader.GetDagId(), payload, clientAddr);
             break;
         default:
             NS_LOG_WARN("Unknown message type " << static_cast<int>(orchHeader.GetMessageType())
@@ -601,7 +601,7 @@ EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t task
 
     OrchestratorHeader response;
     response.SetMessageType(OrchestratorHeader::ADMISSION_RESPONSE);
-    response.SetTaskId(taskId);
+    response.SetDagId(taskId);
     response.SetAdmitted(admitted);
     response.SetPayloadSize(0);
 

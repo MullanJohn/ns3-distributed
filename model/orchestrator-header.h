@@ -28,7 +28,7 @@ namespace ns3
  *
  * Wire format (18 bytes):
  * - messageType: 1 byte
- * - taskId: 8 bytes (from TaskHeader for request, echoed in response)
+ * - dagId: 8 bytes (DAG identifier, echoed in response for correlation)
  * - admitted: 1 byte (for ADMISSION_RESPONSE: 0=rejected, 1=admitted)
  * - payloadSize: 8 bytes (size of following data for header-agnostic parsing)
  */
@@ -46,7 +46,7 @@ class OrchestratorHeader : public Header
     {
         ADMISSION_REQUEST = 2,  //!< Client requests admission (serialized DAG metadata follows)
         ADMISSION_RESPONSE = 3, //!< Server responds to admission (admit/reject)
-        DATA_UPLOAD = 4         //!< Phase 2: full DAG data upload (dagId in taskId field)
+        DATA_UPLOAD = 4         //!< Phase 2: full DAG data upload
     };
 
     /**
@@ -76,20 +76,20 @@ class OrchestratorHeader : public Header
     void SetMessageType(MessageType type);
 
     /**
-     * @brief Get the task ID.
+     * @brief Get the DAG ID.
      *
-     * For ADMISSION_REQUEST: matches the taskId in the following TaskHeader.
+     * For ADMISSION_REQUEST: identifies the DAG being submitted.
      * For ADMISSION_RESPONSE: echoed back to correlate with the request.
      *
-     * @return The task ID.
+     * @return The DAG ID.
      */
-    uint64_t GetTaskId() const;
+    uint64_t GetDagId() const;
 
     /**
-     * @brief Set the task ID.
-     * @param id The task ID.
+     * @brief Set the DAG ID.
+     * @param id The DAG ID.
      */
-    void SetTaskId(uint64_t id);
+    void SetDagId(uint64_t id);
 
     /**
      * @brief Check if task was admitted (for ADMISSION_RESPONSE).
@@ -155,7 +155,7 @@ class OrchestratorHeader : public Header
 
   private:
     MessageType m_messageType{ADMISSION_REQUEST}; //!< Message type
-    uint64_t m_taskId{0};                         //!< Task ID for correlation
+    uint64_t m_dagId{0};                          //!< DAG ID for correlation
     bool m_admitted{false};                       //!< Admission status (for response)
     uint64_t m_payloadSize{0};                    //!< Size of following payload bytes
 };
