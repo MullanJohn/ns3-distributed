@@ -6,7 +6,6 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/always-admit-policy.h"
 #include "ns3/cluster.h"
 #include "ns3/core-module.h"
 #include "ns3/dvfs-energy-model.h"
@@ -16,6 +15,7 @@
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/internet-module.h"
+#include "ns3/max-active-tasks-policy.h"
 #include "ns3/network-module.h"
 #include "ns3/periodic-client-helper.h"
 #include "ns3/periodic-client.h"
@@ -28,32 +28,17 @@
 //
 //  Multi-Client Distributed Computing Simulation Example
 //
-//  This example demonstrates multiple clients offloading periodic frames
-//  through a single EdgeOrchestrator to a backend.
+//  Demonstrates multiple clients offloading periodic frames through a
+//  single EdgeOrchestrator to a backend.
 //
 //  Network topology:
 //
-//       Client 0 (n0)     Client 1 (n1)     Client 2 (n2)
-//           |                 |                 |
-//           |  10.1.1.0/24    |  10.1.2.0/24    |  10.1.3.0/24
-//           |                 |                 |
-//           +-----------------+-----------------+
-//                             |
-//                    Orchestrator (n3)
-//                   +------------------+
-//                   | EdgeOrchestrator |
-//                   | Admission ctrl   |
-//                   | + scheduling     |
-//                   +--------+---------+
-//                            |  10.1.4.0/24
-//                            |
-//                      Backend (n4)
-//                   +------------------+
-//                   | PeriodicServer   |
-//                   |        |         |
-//                   |        v         |
-//                   |  GpuAccelerator  |
-//                   +------------------+
+//    Client 0 ──P2P──┐
+//    Client 1 ──P2P──┤
+//       ...          Orchestrator ──P2P── Server
+//    Client N ──P2P──┘
+//
+//  Each link is a dedicated point-to-point channel.
 //
 // ===========================================================================
 
@@ -98,6 +83,7 @@ main(int argc, char* argv[])
     double outputSize = 1e4;
     double computeRate = 1e12;
     double memoryBandwidth = 900e9;
+    double transferBandwidth = 32e9;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("numClients", "Number of client nodes", numClients);
@@ -109,7 +95,10 @@ main(int argc, char* argv[])
     cmd.AddValue("computeDemand", "Compute demand per frame in FLOPS", computeDemand);
     cmd.AddValue("outputSize", "Output size in bytes", outputSize);
     cmd.AddValue("computeRate", "GPU compute rate in FLOPS", computeRate);
-    cmd.AddValue("memoryBandwidth", "GPU memory bandwidth in bytes/sec", memoryBandwidth);
+    cmd.AddValue("memoryBandwidth", "GPU DRAM memory bandwidth in bytes/sec", memoryBandwidth);
+    cmd.AddValue("transferBandwidth",
+                 "Host-device transfer bandwidth in bytes/sec",
+                 transferBandwidth);
     cmd.Parse(argc, argv);
 
     NS_LOG_UNCOND("Multi-Client Distributed Computing Example");
@@ -164,6 +153,7 @@ main(int argc, char* argv[])
     Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
     gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
     gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+    gpu->SetAttribute("TransferBandwidth", DoubleValue(transferBandwidth));
     gpu->SetAttribute("Voltage", DoubleValue(1.0));
     gpu->SetAttribute("Frequency", DoubleValue(1.5e9));
     gpu->SetAttribute("ProcessingModel", PointerValue(model));
@@ -184,7 +174,8 @@ main(int argc, char* argv[])
                        InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
 
     Ptr<FirstFitScheduler> scheduler = CreateObject<FirstFitScheduler>();
-    Ptr<AlwaysAdmitPolicy> policy = CreateObject<AlwaysAdmitPolicy>();
+    Ptr<MaxActiveTasksPolicy> policy = CreateObject<MaxActiveTasksPolicy>();
+    policy->SetAttribute("MaxActiveTasks", UintegerValue(8));
 
     uint16_t orchPort = 8080;
     Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();

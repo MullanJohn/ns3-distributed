@@ -11,14 +11,3 @@ build_lib_example(
     LIBRARIES_TO_LINK ${libdistributed}
                       ${libpoint-to-point}
 )
-
-build_lib_example(
-    NAME distributed-periodic-evaluation
-    SOURCE_FILES distributed-periodic-evaluation.cc
-    LIBRARIES_TO_LINK ${libdistributed}
-                      ${libpoint-to-point}
-                      ${libwifi}
-                      ${libspectrum}
-                      ${libmobility}
-)
-

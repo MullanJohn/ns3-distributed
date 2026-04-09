@@ -6,7 +6,6 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/always-admit-policy.h"
 #include "ns3/cluster.h"
 #include "ns3/core-module.h"
 #include "ns3/dvfs-energy-model.h"
@@ -16,6 +15,7 @@
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/internet-module.h"
+#include "ns3/max-active-tasks-policy.h"
 #include "ns3/network-module.h"
 #include "ns3/periodic-client-helper.h"
 #include "ns3/periodic-client.h"
@@ -28,26 +28,14 @@
 //
 //  Distributed Computing Simulation Example
 //
-//  This example demonstrates periodic frame offloading from a client through
-//  an EdgeOrchestrator to a backend using the two-phase admission protocol.
+//  Demonstrates periodic frame offloading from a client through an
+//  EdgeOrchestrator to a backend using the two-phase admission protocol.
 //
 //  Network topology:
 //
-//       Client Node (n0)         Orchestrator (n1)         Backend (n2)
-//      +---------------+       +-----------------+       +------------------+
-//      |               |       |                 |       |                  |
-//      |PeriodicClient | ----> | EdgeOrchestrator| ----> | PeriodicServer   |
-//      | Sends frames  |       | Admission ctrl  |       |    Receives      |
-//      | via admission |       | + scheduling    |       |      frames      |
-//      |  protocol     | <---- |                 | <---- |        |         |
-//      |               |       |                 |       |        v         |
-//      +---------------+       +-----------------+       |  GpuAccelerator  |
-//         10.1.1.1                 10.1.1.2              |   Processes via: |
-//                                  10.1.2.1              |   1. Input xfer  |
-//                                                        |   2. Compute     |
-//                                                        |   3. Output xfer |
-//                                                        +------------------+
-//                                                           10.1.2.2
+//    Client ──P2P── Orchestrator ──P2P── Server
+//
+//  Each link is a dedicated point-to-point channel.
 //
 // ===========================================================================
 
@@ -99,6 +87,7 @@ main(int argc, char* argv[])
     double outputSize = 1e4;
     double computeRate = 1e12;
     double memoryBandwidth = 900e9;
+    double transferBandwidth = 32e9;
     double gpuVoltage = 1.0;
     double gpuFrequency = 1.5e9;
     double staticPower = 30.0;
@@ -113,7 +102,10 @@ main(int argc, char* argv[])
     cmd.AddValue("computeDemand", "Compute demand per frame in FLOPS", computeDemand);
     cmd.AddValue("outputSize", "Output size in bytes", outputSize);
     cmd.AddValue("computeRate", "GPU compute rate in FLOPS", computeRate);
-    cmd.AddValue("memoryBandwidth", "GPU memory bandwidth in bytes/sec", memoryBandwidth);
+    cmd.AddValue("memoryBandwidth", "GPU DRAM memory bandwidth in bytes/sec", memoryBandwidth);
+    cmd.AddValue("transferBandwidth",
+                 "Host-device transfer bandwidth in bytes/sec",
+                 transferBandwidth);
     cmd.AddValue("gpuVoltage", "GPU operating voltage in Volts", gpuVoltage);
     cmd.AddValue("gpuFrequency", "GPU operating frequency in Hz", gpuFrequency);
     cmd.AddValue("staticPower", "GPU static power in Watts", staticPower);
@@ -157,6 +149,7 @@ main(int argc, char* argv[])
     Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
     gpu->SetAttribute("ComputeRate", DoubleValue(computeRate));
     gpu->SetAttribute("MemoryBandwidth", DoubleValue(memoryBandwidth));
+    gpu->SetAttribute("TransferBandwidth", DoubleValue(transferBandwidth));
     gpu->SetAttribute("Voltage", DoubleValue(gpuVoltage));
     gpu->SetAttribute("Frequency", DoubleValue(gpuFrequency));
     gpu->SetAttribute("ProcessingModel", PointerValue(model));
@@ -177,7 +170,8 @@ main(int argc, char* argv[])
     cluster.AddBackend(nodes.Get(2), InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
 
     Ptr<FirstFitScheduler> scheduler = CreateObject<FirstFitScheduler>();
-    Ptr<AlwaysAdmitPolicy> policy = CreateObject<AlwaysAdmitPolicy>();
+    Ptr<MaxActiveTasksPolicy> policy = CreateObject<MaxActiveTasksPolicy>();
+    policy->SetAttribute("MaxActiveTasks", UintegerValue(8));
 
     uint16_t orchPort = 8080;
     Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();
