@@ -101,13 +101,16 @@ build_lib(
                  test/task-header-test.cc
                  test/orchestrator-header-test.cc
                  test/cluster-test.cc
+                 test/cluster-state-test.cc
                  test/fixed-ratio-processing-test.cc
                  test/fifo-queue-scheduler-test.cc
                  test/connection-manager-test.cc
                  test/dag-task-test.cc
                  test/dag-task-serialization-test.cc
+                 test/device-manager-test.cc
                  test/device-metrics-header-test.cc
                  test/scaling-command-header-test.cc
+                 test/first-fit-scheduler-test.cc
                  test/least-loaded-scheduler-test.cc
                  test/edge-orchestrator-test.cc
                  test/conservative-scaling-policy-test.cc

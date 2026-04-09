@@ -27,7 +27,7 @@ namespace
 
 /**
  * @ingroup distributed-tests
- * @brief Test TcpConnectionManager basic client-server communication
+ * @brief Test TcpConnectionManager basic client-server communication.
  */
 class TcpConnectionManagerBasicTestCase : public TestCase
 {
@@ -43,30 +43,25 @@ class TcpConnectionManagerBasicTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create 2 nodes: server and client
         NodeContainer nodes;
         nodes.Create(2);
         Ptr<Node> serverNode = nodes.Get(0);
         Ptr<Node> clientNode = nodes.Get(1);
 
-        // Create point-to-point link
         PointToPointHelper p2p;
         p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
         p2p.SetChannelAttribute("Delay", StringValue("1ms"));
         NetDeviceContainer devices = p2p.Install(nodes);
 
-        // Install internet stack
         InternetStackHelper internet;
         internet.Install(nodes);
 
-        // Assign IP addresses
         Ipv4AddressHelper ipv4;
         ipv4.SetBase("10.1.1.0", "255.255.255.0");
         Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
 
         m_serverAddr = InetSocketAddress(interfaces.GetAddress(0), m_port);
 
-        // Create server connection manager
         m_serverConn = CreateObject<TcpConnectionManager>();
         m_serverConn->SetNode(serverNode);
         m_serverConn->SetReceiveCallback(
@@ -74,28 +69,23 @@ class TcpConnectionManagerBasicTestCase : public TestCase
         m_serverConn->SetConnectionCallback(
             MakeCallback(&TcpConnectionManagerBasicTestCase::ServerNewConnection, this));
 
-        // Create client connection manager
         m_clientConn = CreateObject<TcpConnectionManager>();
         m_clientConn->SetNode(clientNode);
         m_clientConn->SetReceiveCallback(
             MakeCallback(&TcpConnectionManagerBasicTestCase::ClientReceive, this));
 
-        // Schedule operations during simulation
         Simulator::Schedule(Seconds(0.0), &TcpConnectionManagerBasicTestCase::ServerBind, this);
         Simulator::Schedule(Seconds(0.1), &TcpConnectionManagerBasicTestCase::ClientConnect, this);
         Simulator::Schedule(Seconds(0.3), &TcpConnectionManagerBasicTestCase::ClientSend, this);
 
-        // Run simulation
         Simulator::Stop(Seconds(1.0));
         Simulator::Run();
 
-        // Cleanup
         m_serverConn->Close();
         m_clientConn->Close();
 
         Simulator::Destroy();
 
-        // Verify communication occurred
         NS_TEST_ASSERT_MSG_EQ(m_serverReceived, 1, "Server should have received 1 packet");
         NS_TEST_ASSERT_MSG_EQ(m_clientReceived, 1, "Client should have received 1 response");
     }
@@ -113,14 +103,12 @@ class TcpConnectionManagerBasicTestCase : public TestCase
     void ServerReceive(Ptr<Packet> packet, const Address& from)
     {
         m_serverReceived++;
-        // Send response back
         Ptr<Packet> response = Create<Packet>(50);
         m_serverConn->Send(response, from);
     }
 
     void ServerNewConnection(const Address& peer)
     {
-        // Connection accepted
     }
 
     void ClientReceive(Ptr<Packet> packet, const Address& from)
@@ -144,7 +132,7 @@ class TcpConnectionManagerBasicTestCase : public TestCase
 
 /**
  * @ingroup distributed-tests
- * @brief Test TcpConnectionManager connection pooling
+ * @brief Test TcpConnectionManager connection pooling.
  */
 class TcpConnectionManagerPoolingTestCase : public TestCase
 {
@@ -158,41 +146,34 @@ class TcpConnectionManagerPoolingTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create 2 nodes
         NodeContainer nodes;
         nodes.Create(2);
         Ptr<Node> serverNode = nodes.Get(0);
         Ptr<Node> clientNode = nodes.Get(1);
 
-        // Create point-to-point link
         PointToPointHelper p2p;
         p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
         p2p.SetChannelAttribute("Delay", StringValue("1ms"));
         NetDeviceContainer devices = p2p.Install(nodes);
 
-        // Install internet stack
         InternetStackHelper internet;
         internet.Install(nodes);
 
-        // Assign IP addresses
         Ipv4AddressHelper ipv4;
         ipv4.SetBase("10.1.1.0", "255.255.255.0");
         Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
 
         m_serverAddr = InetSocketAddress(interfaces.GetAddress(0), m_port);
 
-        // Create server
         m_serverConn = CreateObject<TcpConnectionManager>();
         m_serverConn->SetNode(serverNode);
         m_serverConn->SetReceiveCallback(
             MakeCallback(&TcpConnectionManagerPoolingTestCase::ServerReceive, this));
 
-        // Create client with pool size 3
         m_clientConn = CreateObject<TcpConnectionManager>();
         m_clientConn->SetAttribute("PoolSize", UintegerValue(3));
         m_clientConn->SetNode(clientNode);
 
-        // Schedule operations
         Simulator::Schedule(Seconds(0.0), &TcpConnectionManagerPoolingTestCase::ServerBind, this);
         Simulator::Schedule(Seconds(0.1),
                             &TcpConnectionManagerPoolingTestCase::ClientConnect,
@@ -231,7 +212,6 @@ class TcpConnectionManagerPoolingTestCase : public TestCase
                               3,
                               "All 3 should be idle initially");
 
-        // Acquire a connection
         auto connId = m_clientConn->AcquireConnection();
         NS_TEST_ASSERT_MSG_NE(connId,
                               TcpConnectionManager::INVALID_CONNECTION,
@@ -241,7 +221,6 @@ class TcpConnectionManagerPoolingTestCase : public TestCase
                               "2 should be idle after acquire");
         NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetActiveConnectionCount(), 1, "1 should be active");
 
-        // Release
         m_clientConn->ReleaseConnection(connId);
         NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetIdleConnectionCount(),
                               3,
@@ -256,7 +235,7 @@ class TcpConnectionManagerPoolingTestCase : public TestCase
 
 /**
  * @ingroup distributed-tests
- * @brief Test TcpConnectionManager Close(peer) closes all pooled connections
+ * @brief Test TcpConnectionManager Close(peer) closes all pooled connections.
  */
 class TcpConnectionManagerClosePeerTestCase : public TestCase
 {
@@ -270,41 +249,34 @@ class TcpConnectionManagerClosePeerTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create 2 nodes
         NodeContainer nodes;
         nodes.Create(2);
         Ptr<Node> serverNode = nodes.Get(0);
         Ptr<Node> clientNode = nodes.Get(1);
 
-        // Create point-to-point link
         PointToPointHelper p2p;
         p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
         p2p.SetChannelAttribute("Delay", StringValue("1ms"));
         NetDeviceContainer devices = p2p.Install(nodes);
 
-        // Install internet stack
         InternetStackHelper internet;
         internet.Install(nodes);
 
-        // Assign IP addresses
         Ipv4AddressHelper ipv4;
         ipv4.SetBase("10.1.1.0", "255.255.255.0");
         Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
 
         m_serverAddr = InetSocketAddress(interfaces.GetAddress(0), m_port);
 
-        // Create server
         m_serverConn = CreateObject<TcpConnectionManager>();
         m_serverConn->SetNode(serverNode);
         m_serverConn->SetReceiveCallback(
             MakeCallback(&TcpConnectionManagerClosePeerTestCase::ServerReceive, this));
 
-        // Create client with pool size 3
         m_clientConn = CreateObject<TcpConnectionManager>();
         m_clientConn->SetAttribute("PoolSize", UintegerValue(3));
         m_clientConn->SetNode(clientNode);
 
-        // Schedule operations
         Simulator::Schedule(Seconds(0.0), &TcpConnectionManagerClosePeerTestCase::ServerBind, this);
         Simulator::Schedule(Seconds(0.1),
                             &TcpConnectionManagerClosePeerTestCase::ClientConnect,
@@ -337,15 +309,13 @@ class TcpConnectionManagerClosePeerTestCase : public TestCase
 
     void TestClosePeer()
     {
-        // Verify we have 3 pooled connections
         NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetConnectionCount(),
                               3,
                               "Should have 3 connections in pool before Close(peer)");
 
-        // Close using the peer address - should close ALL pooled connections
+        // Close(peer) should close every pooled connection to that peer.
         m_clientConn->Close(m_serverAddr);
 
-        // Verify all connections are closed
         NS_TEST_ASSERT_MSG_EQ(m_clientConn->GetConnectionCount(),
                               0,
                               "Close(peer) should close all pooled connections");
@@ -359,7 +329,7 @@ class TcpConnectionManagerClosePeerTestCase : public TestCase
 
 /**
  * @ingroup distributed-tests
- * @brief Test UdpConnectionManager basic communication
+ * @brief Test UdpConnectionManager basic communication.
  */
 class UdpConnectionManagerBasicTestCase : public TestCase
 {
@@ -375,42 +345,35 @@ class UdpConnectionManagerBasicTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create 2 nodes
         NodeContainer nodes;
         nodes.Create(2);
         Ptr<Node> serverNode = nodes.Get(0);
         Ptr<Node> clientNode = nodes.Get(1);
 
-        // Create point-to-point link
         PointToPointHelper p2p;
         p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
         p2p.SetChannelAttribute("Delay", StringValue("1ms"));
         NetDeviceContainer devices = p2p.Install(nodes);
 
-        // Install internet stack
         InternetStackHelper internet;
         internet.Install(nodes);
 
-        // Assign IP addresses
         Ipv4AddressHelper ipv4;
         ipv4.SetBase("10.1.1.0", "255.255.255.0");
         Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
 
         m_serverAddr = InetSocketAddress(interfaces.GetAddress(0), m_port);
 
-        // Create server
         m_serverConn = CreateObject<UdpConnectionManager>();
         m_serverConn->SetNode(serverNode);
         m_serverConn->SetReceiveCallback(
             MakeCallback(&UdpConnectionManagerBasicTestCase::ServerReceive, this));
 
-        // Create client
         m_clientConn = CreateObject<UdpConnectionManager>();
         m_clientConn->SetNode(clientNode);
         m_clientConn->SetReceiveCallback(
             MakeCallback(&UdpConnectionManagerBasicTestCase::ClientReceive, this));
 
-        // Schedule operations
         Simulator::Schedule(Seconds(0.0), &UdpConnectionManagerBasicTestCase::ServerBind, this);
         Simulator::Schedule(Seconds(0.1), &UdpConnectionManagerBasicTestCase::ClientConnect, this);
         Simulator::Schedule(Seconds(0.2), &UdpConnectionManagerBasicTestCase::ClientSend, this);
@@ -440,7 +403,6 @@ class UdpConnectionManagerBasicTestCase : public TestCase
     void ServerReceive(Ptr<Packet> packet, const Address& from)
     {
         m_serverReceived++;
-        // Send response
         Ptr<Packet> response = Create<Packet>(50);
         m_serverConn->Send(response, from);
     }
@@ -466,35 +428,7 @@ class UdpConnectionManagerBasicTestCase : public TestCase
 
 /**
  * @ingroup distributed-tests
- * @brief Test ConnectionManager properties
- */
-class ConnectionManagerPropertiesTestCase : public TestCase
-{
-  public:
-    ConnectionManagerPropertiesTestCase()
-        : TestCase("Test ConnectionManager properties")
-    {
-    }
-
-  private:
-    void DoRun() override
-    {
-        Ptr<TcpConnectionManager> tcp = CreateObject<TcpConnectionManager>();
-        Ptr<UdpConnectionManager> udp = CreateObject<UdpConnectionManager>();
-
-        NS_TEST_ASSERT_MSG_EQ(tcp->GetName(), "TCP", "TCP name should be 'TCP'");
-        NS_TEST_ASSERT_MSG_EQ(udp->GetName(), "UDP", "UDP name should be 'UDP'");
-
-        NS_TEST_ASSERT_MSG_EQ(tcp->IsReliable(), true, "TCP should be reliable");
-        NS_TEST_ASSERT_MSG_EQ(udp->IsReliable(), false, "UDP should not be reliable");
-
-        Simulator::Destroy();
-    }
-};
-
-/**
- * @ingroup distributed-tests
- * @brief Test TcpConnectionManager with IPv6 addresses
+ * @brief Test TcpConnectionManager with IPv6 addresses.
  */
 class TcpConnectionManagerIpv6TestCase : public TestCase
 {
@@ -510,23 +444,19 @@ class TcpConnectionManagerIpv6TestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create 2 nodes: server and client
         NodeContainer nodes;
         nodes.Create(2);
         Ptr<Node> serverNode = nodes.Get(0);
         Ptr<Node> clientNode = nodes.Get(1);
 
-        // Create point-to-point link
         PointToPointHelper p2p;
         p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
         p2p.SetChannelAttribute("Delay", StringValue("1ms"));
         NetDeviceContainer devices = p2p.Install(nodes);
 
-        // Install internet stack (includes IPv6)
         InternetStackHelper internet;
         internet.Install(nodes);
 
-        // Assign IPv6 addresses
         Ipv6AddressHelper ipv6;
         ipv6.SetBase(Ipv6Address("2001:db8::"), Ipv6Prefix(64));
         Ipv6InterfaceContainer interfaces = ipv6.Assign(devices);
@@ -536,34 +466,28 @@ class TcpConnectionManagerIpv6TestCase : public TestCase
         m_serverAddr = Inet6SocketAddress(serverIpv6, m_port);
         m_serverBindAddr = Inet6SocketAddress(Ipv6Address::GetAny(), m_port);
 
-        // Create server connection manager
         m_serverConn = CreateObject<TcpConnectionManager>();
         m_serverConn->SetNode(serverNode);
         m_serverConn->SetReceiveCallback(
             MakeCallback(&TcpConnectionManagerIpv6TestCase::ServerReceive, this));
 
-        // Create client connection manager
         m_clientConn = CreateObject<TcpConnectionManager>();
         m_clientConn->SetNode(clientNode);
         m_clientConn->SetReceiveCallback(
             MakeCallback(&TcpConnectionManagerIpv6TestCase::ClientReceive, this));
 
-        // Schedule operations during simulation
         Simulator::Schedule(Seconds(0.0), &TcpConnectionManagerIpv6TestCase::ServerBind, this);
         Simulator::Schedule(Seconds(0.1), &TcpConnectionManagerIpv6TestCase::ClientConnect, this);
         Simulator::Schedule(Seconds(0.3), &TcpConnectionManagerIpv6TestCase::ClientSend, this);
 
-        // Run simulation
         Simulator::Stop(Seconds(1.0));
         Simulator::Run();
 
-        // Cleanup
         m_serverConn->Close();
         m_clientConn->Close();
 
         Simulator::Destroy();
 
-        // Verify communication occurred
         NS_TEST_ASSERT_MSG_EQ(m_serverReceived, 1, "Server should have received 1 packet");
         NS_TEST_ASSERT_MSG_EQ(m_clientReceived, 1, "Client should have received 1 response");
     }
@@ -581,7 +505,6 @@ class TcpConnectionManagerIpv6TestCase : public TestCase
     void ServerReceive(Ptr<Packet> packet, const Address& from)
     {
         m_serverReceived++;
-        // Send response back
         Ptr<Packet> response = Create<Packet>(50);
         m_serverConn->Send(response, from);
     }
@@ -630,12 +553,6 @@ TestCase*
 CreateUdpConnectionManagerBasicTestCase()
 {
     return new UdpConnectionManagerBasicTestCase;
-}
-
-TestCase*
-CreateConnectionManagerPropertiesTestCase()
-{
-    return new ConnectionManagerPropertiesTestCase;
 }
 
 TestCase*

@@ -6,13 +6,10 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/accelerator.h"
 #include "ns3/cluster-state.h"
 #include "ns3/scaling-policy.h"
 #include "ns3/test.h"
 #include "ns3/utilization-scaling-policy.h"
-
-#include <vector>
 
 namespace ns3
 {
@@ -21,7 +18,7 @@ namespace
 
 /**
  * @ingroup distributed-tests
- * @brief Test that UtilizationScalingPolicy selects min/max OPP with correct voltage.
+ * @brief Test UtilizationScalingPolicy maps activeTasks to the min or max performance state.
  */
 class UtilizationScalingOppTestCase : public TestCase
 {
@@ -35,48 +32,40 @@ class UtilizationScalingOppTestCase : public TestCase
     void DoRun() override
     {
         Ptr<UtilizationScalingPolicy> policy = CreateObject<UtilizationScalingPolicy>();
-        std::vector<OperatingPoint> opps = {{500e6, 0.65}, {1.0e9, 0.85}, {1.5e9, 1.05}};
 
         {
             ClusterState::BackendState backend;
-            backend.activeTasks = 1;
-            backend.commandedFrequency = 500e6;
+            backend.device.numPerformanceStates = 3;
+            backend.device.currentStateIdx = 0;
+            backend.orchestration.activeTasks = 1;
 
-            Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
+            Ptr<ScalingDecision> decision = policy->Decide(0, backend);
             NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should scale up when busy");
-            NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetFrequency,
-                                      1.5e9,
-                                      1e-3,
-                                      "Should select max OPP frequency");
-            NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetVoltage,
-                                      1.05,
-                                      1e-6,
-                                      "Should select max OPP voltage");
+            NS_TEST_ASSERT_MSG_EQ(decision->targetStateIdx,
+                                  2,
+                                  "Should select max state index");
         }
 
         {
             ClusterState::BackendState backend;
-            backend.activeTasks = 0;
-            backend.commandedFrequency = 1.5e9;
+            backend.device.numPerformanceStates = 3;
+            backend.device.currentStateIdx = 2;
+            backend.orchestration.activeTasks = 0;
 
-            Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
+            Ptr<ScalingDecision> decision = policy->Decide(0, backend);
             NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should scale down when idle");
-            NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetFrequency,
-                                      500e6,
-                                      1e-3,
-                                      "Should select min OPP frequency");
-            NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetVoltage,
-                                      0.65,
-                                      1e-6,
-                                      "Should select min OPP voltage");
+            NS_TEST_ASSERT_MSG_EQ(decision->targetStateIdx,
+                                  0,
+                                  "Should select min state index");
         }
 
         {
             ClusterState::BackendState backend;
-            backend.activeTasks = 1;
-            backend.commandedFrequency = 1.5e9;
+            backend.device.numPerformanceStates = 3;
+            backend.device.currentStateIdx = 2;
+            backend.orchestration.activeTasks = 1;
 
-            Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
+            Ptr<ScalingDecision> decision = policy->Decide(0, backend);
             NS_TEST_ASSERT_MSG_EQ(decision,
                                   nullptr,
                                   "Should return nullptr when already at target");

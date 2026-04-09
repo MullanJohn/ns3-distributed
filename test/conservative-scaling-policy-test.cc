@@ -6,34 +6,25 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "ns3/accelerator.h"
 #include "ns3/cluster-state.h"
 #include "ns3/conservative-scaling-policy.h"
 #include "ns3/scaling-policy.h"
 #include "ns3/test.h"
-
-#include <vector>
 
 namespace ns3
 {
 namespace
 {
 
-static std::vector<OperatingPoint>
-MakeTestOpps()
-{
-    return {{500e6, 0.65}, {1.0e9, 0.85}, {1.5e9, 1.05}};
-}
-
 /**
  * @ingroup distributed-tests
- * @brief Test that ConservativeScalingPolicy steps up by one OPP.
+ * @brief Test ConservativeScalingPolicy steps up by one state.
  */
 class ConservativeStepUpTestCase : public TestCase
 {
   public:
     ConservativeStepUpTestCase()
-        : TestCase("ConservativeScalingPolicy steps frequency up by one OPP")
+        : TestCase("ConservativeScalingPolicy steps up by one state")
     {
     }
 
@@ -41,34 +32,29 @@ class ConservativeStepUpTestCase : public TestCase
     void DoRun() override
     {
         Ptr<ConservativeScalingPolicy> policy = CreateObject<ConservativeScalingPolicy>();
-        std::vector<OperatingPoint> opps = MakeTestOpps();
 
         ClusterState::BackendState backend;
-        backend.activeTasks = 1;
-        backend.commandedFrequency = 1.0e9;
+        backend.device.numPerformanceStates = 3;
+        backend.device.currentStateIdx = 1;
+        backend.device.nominalComputeRate = 1e12;
+        backend.orchestration.activeTasks = 1;
+        backend.orchestration.estimatedRemainingComputeWork = 1e12;
 
-        Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
+        Ptr<ScalingDecision> decision = policy->Decide(0, backend);
         NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should produce a scaling decision");
-        NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetFrequency,
-                                  1.5e9,
-                                  1e-3,
-                                  "Should step up to next OPP");
-        NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetVoltage,
-                                  1.05,
-                                  1e-6,
-                                  "Voltage should come from OPP table");
+        NS_TEST_ASSERT_MSG_EQ(decision->targetStateIdx, 2, "Should step up to next state");
     }
 };
 
 /**
  * @ingroup distributed-tests
- * @brief Test that ConservativeScalingPolicy steps down by one OPP.
+ * @brief Test ConservativeScalingPolicy steps down by one state.
  */
 class ConservativeStepDownTestCase : public TestCase
 {
   public:
     ConservativeStepDownTestCase()
-        : TestCase("ConservativeScalingPolicy steps frequency down by one OPP")
+        : TestCase("ConservativeScalingPolicy steps down by one state")
     {
     }
 
@@ -76,34 +62,28 @@ class ConservativeStepDownTestCase : public TestCase
     void DoRun() override
     {
         Ptr<ConservativeScalingPolicy> policy = CreateObject<ConservativeScalingPolicy>();
-        std::vector<OperatingPoint> opps = MakeTestOpps();
 
         ClusterState::BackendState backend;
-        backend.activeTasks = 0;
-        backend.commandedFrequency = 1.0e9;
+        backend.device.numPerformanceStates = 3;
+        backend.device.currentStateIdx = 1;
+        backend.device.nominalComputeRate = 1e12;
+        backend.orchestration.activeTasks = 0;
 
-        Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
+        Ptr<ScalingDecision> decision = policy->Decide(0, backend);
         NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should produce a scaling decision");
-        NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetFrequency,
-                                  500e6,
-                                  1e-3,
-                                  "Should step down to previous OPP");
-        NS_TEST_ASSERT_MSG_EQ_TOL(decision->targetVoltage,
-                                  0.65,
-                                  1e-6,
-                                  "Voltage should come from OPP table");
+        NS_TEST_ASSERT_MSG_EQ(decision->targetStateIdx, 0, "Should step down to previous state");
     }
 };
 
 /**
  * @ingroup distributed-tests
- * @brief Test that ConservativeScalingPolicy returns nullptr at max OPP when busy.
+ * @brief Test ConservativeScalingPolicy returns nullptr when already at the target state.
  */
-class ConservativeVoltageScalingTestCase : public TestCase
+class ConservativeBoundaryStateTestCase : public TestCase
 {
   public:
-    ConservativeVoltageScalingTestCase()
-        : TestCase("ConservativeScalingPolicy returns nullptr at boundary OPP")
+    ConservativeBoundaryStateTestCase()
+        : TestCase("ConservativeScalingPolicy returns nullptr at boundary state")
     {
     }
 
@@ -111,14 +91,16 @@ class ConservativeVoltageScalingTestCase : public TestCase
     void DoRun() override
     {
         Ptr<ConservativeScalingPolicy> policy = CreateObject<ConservativeScalingPolicy>();
-        std::vector<OperatingPoint> opps = MakeTestOpps();
 
         ClusterState::BackendState backend;
-        backend.activeTasks = 1;
-        backend.commandedFrequency = 1.5e9;
+        backend.device.numPerformanceStates = 3;
+        backend.device.currentStateIdx = 2;
+        backend.device.nominalComputeRate = 1e12;
+        backend.orchestration.activeTasks = 1;
+        backend.orchestration.estimatedRemainingComputeWork = 1e12;
 
-        Ptr<ScalingDecision> decision = policy->Decide(backend, opps);
-        NS_TEST_ASSERT_MSG_EQ(decision, nullptr, "Should return nullptr at max OPP");
+        Ptr<ScalingDecision> decision = policy->Decide(0, backend);
+        NS_TEST_ASSERT_MSG_EQ(decision, nullptr, "Should return nullptr at max state");
     }
 };
 
@@ -137,9 +119,9 @@ CreateConservativeStepDownTestCase()
 }
 
 TestCase*
-CreateConservativeVoltageScalingTestCase()
+CreateConservativeBoundaryStateTestCase()
 {
-    return new ConservativeVoltageScalingTestCase;
+    return new ConservativeBoundaryStateTestCase;
 }
 
 } // namespace ns3

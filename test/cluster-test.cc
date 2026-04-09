@@ -16,7 +16,7 @@ using namespace ns3;
 
 /**
  * @ingroup distributed-tests
- * @brief Test basic Cluster operations
+ * @brief Test basic Cluster operations.
  */
 class ClusterBasicTestCase : public TestCase
 {
@@ -33,7 +33,6 @@ ClusterBasicTestCase::ClusterBasicTestCase()
 void
 ClusterBasicTestCase::DoRun()
 {
-    // Test empty cluster
     Cluster cluster;
     NS_TEST_ASSERT_MSG_EQ(cluster.GetN(), 0, "Empty cluster should have 0 backends");
     NS_TEST_ASSERT_MSG_EQ(cluster.IsEmpty(), true, "Empty cluster should report IsEmpty()");
@@ -41,12 +40,10 @@ ClusterBasicTestCase::DoRun()
                           true,
                           "Empty cluster Begin() should equal End()");
 
-    // Create test nodes
     Ptr<Node> node1 = CreateObject<Node>();
     Ptr<Node> node2 = CreateObject<Node>();
     Ptr<Node> node3 = CreateObject<Node>();
 
-    // Add backends
     Address addr1 = InetSocketAddress(Ipv4Address("10.1.1.1"), 9000);
     Address addr2 = InetSocketAddress(Ipv4Address("10.1.2.1"), 9000);
     Address addr3 = InetSocketAddress(Ipv4Address("10.1.3.1"), 9001);
@@ -59,7 +56,6 @@ ClusterBasicTestCase::DoRun()
     cluster.AddBackend(node3, addr3);
     NS_TEST_ASSERT_MSG_EQ(cluster.GetN(), 3, "Cluster should have 3 backends");
 
-    // Test Get()
     const Cluster::Backend& backend0 = cluster.Get(0);
     NS_TEST_ASSERT_MSG_EQ(backend0.node, node1, "Backend 0 should have node1");
 
@@ -69,14 +65,12 @@ ClusterBasicTestCase::DoRun()
     const Cluster::Backend& backend2 = cluster.Get(2);
     NS_TEST_ASSERT_MSG_EQ(backend2.node, node3, "Backend 2 should have node3");
 
-    // Verify addresses via InetSocketAddress
     InetSocketAddress inetAddr0 = InetSocketAddress::ConvertFrom(backend0.address);
     NS_TEST_ASSERT_MSG_EQ(inetAddr0.GetPort(), 9000, "Backend 0 should have port 9000");
 
     InetSocketAddress inetAddr2 = InetSocketAddress::ConvertFrom(backend2.address);
     NS_TEST_ASSERT_MSG_EQ(inetAddr2.GetPort(), 9001, "Backend 2 should have port 9001");
 
-    // Test Clear()
     cluster.Clear();
     NS_TEST_ASSERT_MSG_EQ(cluster.GetN(), 0, "Cluster should be empty after Clear()");
     NS_TEST_ASSERT_MSG_EQ(cluster.IsEmpty(), true, "Cluster should report IsEmpty() after Clear()");
@@ -84,7 +78,7 @@ ClusterBasicTestCase::DoRun()
 
 /**
  * @ingroup distributed-tests
- * @brief Test Cluster iteration
+ * @brief Test Cluster iteration.
  */
 class ClusterIterationTestCase : public TestCase
 {
@@ -103,7 +97,6 @@ ClusterIterationTestCase::DoRun()
 {
     Cluster cluster;
 
-    // Create and add nodes
     std::vector<Ptr<Node>> nodes;
     for (uint32_t i = 0; i < 5; i++)
     {
@@ -114,7 +107,6 @@ ClusterIterationTestCase::DoRun()
         cluster.AddBackend(node, addr);
     }
 
-    // Test iteration
     uint32_t count = 0;
     for (auto it = cluster.Begin(); it != cluster.End(); ++it)
     {
@@ -123,7 +115,6 @@ ClusterIterationTestCase::DoRun()
     }
     NS_TEST_ASSERT_MSG_EQ(count, 5, "Should iterate over all 5 backends");
 
-    // Test range-based for loop
     count = 0;
     for (const auto& backend : cluster)
     {
@@ -138,18 +129,12 @@ ClusterIterationTestCase::DoRun()
 namespace ns3
 {
 
-/**
- * @brief Factory function for ClusterBasicTestCase
- */
 TestCase*
 CreateClusterBasicTestCase()
 {
     return new ClusterBasicTestCase();
 }
 
-/**
- * @brief Factory function for ClusterIterationTestCase
- */
 TestCase*
 CreateClusterIterationTestCase()
 {
