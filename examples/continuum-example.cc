@@ -11,7 +11,7 @@
 #include "ns3/dvfs-energy-model.h"
 #include "ns3/edge-orchestrator.h"
 #include "ns3/fifo-queue-scheduler.h"
-#include "ns3/first-fit-scheduler.h"
+#include "ns3/round-robin-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/internet-module.h"
@@ -169,7 +169,7 @@ main(int argc, char* argv[])
     Cluster cluster;
     cluster.AddBackend(nodes.Get(2), InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
 
-    Ptr<FirstFitScheduler> scheduler = CreateObject<FirstFitScheduler>();
+    Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
     Ptr<MaxActiveTasksPolicy> policy = CreateObject<MaxActiveTasksPolicy>();
     policy->SetAttribute("MaxActiveTasks", UintegerValue(8));
 

@@ -48,7 +48,7 @@ TestCase* CreateDeviceMetricsHeaderTestCase();
 TestCase* CreateScalingCommandHeaderTestCase();
 TestCase* CreateLeastLoadedSchedulerTestCase();
 TestCase* CreateLeastLoadedSchedulerTypeFilterTestCase();
-TestCase* CreateFirstFitSchedulerTestCase();
+TestCase* CreateRoundRobinSchedulerTestCase();
 TestCase* CreateClusterStateTestCase();
 TestCase* CreateDeviceManagerTestCase();
 TestCase* CreateSingleTaskEndToEndTestCase();
@@ -108,7 +108,7 @@ ContinuumTestSuite::ContinuumTestSuite()
     AddTestCase(CreateScalingCommandHeaderTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateLeastLoadedSchedulerTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateLeastLoadedSchedulerTypeFilterTestCase(), TestCase::Duration::QUICK);
-    AddTestCase(CreateFirstFitSchedulerTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateRoundRobinSchedulerTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateClusterStateTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateDeviceManagerTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateSingleTaskEndToEndTestCase(), TestCase::Duration::QUICK);

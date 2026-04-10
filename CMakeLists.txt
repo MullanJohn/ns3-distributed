@@ -20,7 +20,7 @@ build_lib(
                  model/admission-policy.cc
                  model/max-active-tasks-policy.cc
                  model/cluster-scheduler.cc
-                 model/first-fit-scheduler.cc
+                 model/round-robin-scheduler.cc
                  model/least-loaded-scheduler.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
@@ -59,7 +59,7 @@ build_lib(
                  model/admission-policy.h
                  model/max-active-tasks-policy.h
                  model/cluster-scheduler.h
-                 model/first-fit-scheduler.h
+                 model/round-robin-scheduler.h
                  model/least-loaded-scheduler.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
@@ -111,7 +111,7 @@ build_lib(
                  test/device-manager-test.cc
                  test/device-metrics-header-test.cc
                  test/scaling-command-header-test.cc
-                 test/first-fit-scheduler-test.cc
+                 test/round-robin-scheduler-test.cc
                  test/least-loaded-scheduler-test.cc
                  test/edge-orchestrator-test.cc
                  test/conservative-scaling-policy-test.cc

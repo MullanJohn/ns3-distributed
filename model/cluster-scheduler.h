@@ -31,7 +31,7 @@ class ClusterState;
  *
  * Example usage:
  * @code
- * Ptr<ClusterScheduler> scheduler = CreateObject<FirstFitScheduler>();
+ * Ptr<ClusterScheduler> scheduler = CreateObject<RoundRobinScheduler>();
  *
  * Ptr<Task> task = CreateObject<SimpleTask>();
  * task->SetRequiredAcceleratorType("GPU");

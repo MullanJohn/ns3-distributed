@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef FIRST_FIT_SCHEDULER_H
-#define FIRST_FIT_SCHEDULER_H
+#ifndef ROUND_ROBIN_SCHEDULER_H
+#define ROUND_ROBIN_SCHEDULER_H
 
 #include "cluster-scheduler.h"
 #include "cluster-state.h"
@@ -20,12 +20,13 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Simple scheduler that selects the first suitable backend.
+ * @brief Scheduler that dispatches tasks across backends in round-robin order.
  *
- * FirstFitScheduler iterates through backends in round-robin order and selects
- * the first one that matches the task's accelerator requirements.
+ * RoundRobinScheduler keeps a per-accelerator-type index that advances with
+ * every scheduled task, distributing workloads evenly across all matching
+ * backends in the cluster.
  */
-class FirstFitScheduler : public ClusterScheduler
+class RoundRobinScheduler : public ClusterScheduler
 {
   public:
     /**
@@ -34,14 +35,15 @@ class FirstFitScheduler : public ClusterScheduler
      */
     static TypeId GetTypeId();
 
-    FirstFitScheduler();
-    ~FirstFitScheduler() override;
+    RoundRobinScheduler();
+    ~RoundRobinScheduler() override;
 
     /**
-     * @brief Select a backend for the task using first-fit with round-robin.
+     * @brief Select a backend for the task in round-robin order.
      *
-     * Starts from the last selected index and finds the first backend that
-     * matches the task's accelerator requirement. Returns -1 if no match found.
+     * Advances the per-accelerator-type index and returns the next matching
+     * backend. Returns -1 if the cluster has no backend matching the task's
+     * accelerator requirement.
      *
      * @param task The task to schedule.
      * @param cluster The cluster of backends.
@@ -54,7 +56,7 @@ class FirstFitScheduler : public ClusterScheduler
 
     /**
      * @brief Get the scheduler name.
-     * @return "FirstFit"
+     * @return "RoundRobin"
      */
     std::string GetName() const override;
 
@@ -67,4 +69,4 @@ class FirstFitScheduler : public ClusterScheduler
 
 } // namespace ns3
 
-#endif // FIRST_FIT_SCHEDULER_H
+#endif // ROUND_ROBIN_SCHEDULER_H

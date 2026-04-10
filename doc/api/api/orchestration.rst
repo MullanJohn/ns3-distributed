@@ -25,10 +25,10 @@ ClusterScheduler
 .. doxygenclass:: ns3::ClusterScheduler
    :members:
 
-FirstFitScheduler
------------------
+RoundRobinScheduler
+-------------------
 
-.. doxygenclass:: ns3::FirstFitScheduler
+.. doxygenclass:: ns3::RoundRobinScheduler
    :members:
 
 LeastLoadedScheduler

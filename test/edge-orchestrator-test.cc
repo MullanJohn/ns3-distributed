@@ -10,7 +10,7 @@
 #include "ns3/double.h"
 #include "ns3/edge-orchestrator.h"
 #include "ns3/fifo-queue-scheduler.h"
-#include "ns3/first-fit-scheduler.h"
+#include "ns3/round-robin-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/inet-socket-address.h"
@@ -95,7 +95,7 @@ class SingleTaskEndToEndTestCase : public TestCase
         Cluster cluster;
         cluster.AddBackend(serverNode, InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
 
-        Ptr<FirstFitScheduler> scheduler = CreateObject<FirstFitScheduler>();
+        Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
 
         uint16_t orchPort = 8080;
         Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();

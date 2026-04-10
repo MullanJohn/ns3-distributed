@@ -8,8 +8,8 @@
 
 #include "ns3/cluster-state.h"
 #include "ns3/cluster.h"
-#include "ns3/first-fit-scheduler.h"
 #include "ns3/internet-stack-helper.h"
+#include "ns3/round-robin-scheduler.h"
 #include "ns3/scaling-policy.h"
 #include "ns3/simple-task.h"
 #include "ns3/test.h"
@@ -21,20 +21,20 @@ namespace
 
 /**
  * @ingroup continuum-tests
- * @brief Test FirstFitScheduler round-robin selection across untyped, typed and unmatched cases.
+ * @brief Test RoundRobinScheduler selection across untyped, typed and unmatched cases.
  */
-class FirstFitSchedulerTestCase : public TestCase
+class RoundRobinSchedulerTestCase : public TestCase
 {
   public:
-    FirstFitSchedulerTestCase()
-        : TestCase("FirstFitScheduler round-robin with type filtering")
+    RoundRobinSchedulerTestCase()
+        : TestCase("RoundRobinScheduler with type filtering")
     {
     }
 
   private:
     void DoRun() override
     {
-        Ptr<FirstFitScheduler> scheduler = CreateObject<FirstFitScheduler>();
+        Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
 
         {
             Cluster empty;
@@ -104,16 +104,16 @@ class FirstFitSchedulerTestCase : public TestCase
                               -1,
                               "Unmatched type returns -1");
 
-        NS_TEST_ASSERT_MSG_EQ(scheduler->GetName(), "FirstFit", "Scheduler name");
+        NS_TEST_ASSERT_MSG_EQ(scheduler->GetName(), "RoundRobin", "Scheduler name");
     }
 };
 
 } // namespace
 
 TestCase*
-CreateFirstFitSchedulerTestCase()
+CreateRoundRobinSchedulerTestCase()
 {
-    return new FirstFitSchedulerTestCase;
+    return new RoundRobinSchedulerTestCase;
 }
 
 } // namespace ns3
