@@ -21,7 +21,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Backend telemetry reported from accelerator to orchestrator.
  *
  * Contains only metrics the orchestrator cannot infer from its own
@@ -37,7 +37,7 @@ class DeviceMetrics : public SimpleRefCount<DeviceMetrics>
 };
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Scaling command produced by a ScalingPolicy.
  *
  * Carries the target performance state index for a backend accelerator.
@@ -53,7 +53,7 @@ class ScalingDecision : public SimpleRefCount<ScalingDecision>
 };
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for scaling policies.
  *
  * ScalingPolicy decides the target performance state for a backend

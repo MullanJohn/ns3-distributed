@@ -22,7 +22,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Task lifecycle states.
  *
  * Tracks a task from creation through submission, admission, dispatch,
@@ -58,7 +58,7 @@ typedef void (*TaskStateTracedCallback)(TaskState oldValue, TaskState newValue);
 class TaskHeader;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class representing a task to be executed on an accelerator.
  *
  * Task provides a common interface for all task types. All tasks have common

@@ -18,7 +18,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Header for device metrics reports sent from backend to orchestrator.
  *
  * DeviceMetricsHeader carries accelerator telemetry from a backend

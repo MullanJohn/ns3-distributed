@@ -17,7 +17,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test ConservativeScalingPolicy steps up by one state.
  */
 class ConservativeStepUpTestCase : public TestCase
@@ -47,7 +47,7 @@ class ConservativeStepUpTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test ConservativeScalingPolicy steps down by one state.
  */
 class ConservativeStepDownTestCase : public TestCase
@@ -76,7 +76,7 @@ class ConservativeStepDownTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test ConservativeScalingPolicy returns nullptr when already at the target state.
  */
 class ConservativeBoundaryStateTestCase : public TestCase

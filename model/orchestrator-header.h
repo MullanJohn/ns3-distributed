@@ -19,7 +19,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Minimal header for orchestrator admission protocol.
  *
  * OrchestratorHeader implements the admission phase of the two-phase protocol.

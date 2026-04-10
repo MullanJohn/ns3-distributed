@@ -62,7 +62,7 @@ Task::GetTypeId()
     static TypeId tid =
         TypeId("ns3::Task")
             .SetParent<Object>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddAttribute("InputSize",
                           "Input data size in bytes",
                           UintegerValue(0),

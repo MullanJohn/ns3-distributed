@@ -16,7 +16,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test ClusterState backend bookkeeping, reservation accounting and Clear.
  */
 class ClusterStateTestCase : public TestCase

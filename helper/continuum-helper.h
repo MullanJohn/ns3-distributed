@@ -6,14 +6,14 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef DISTRIBUTED_HELPER_H
-#define DISTRIBUTED_HELPER_H
+#ifndef CONTINUUM_HELPER_H
+#define CONTINUUM_HELPER_H
 
 /**
- * @ingroup distributed
- * @defgroup distributed-helper Distributed Computing Helpers
+ * @ingroup continuum
+ * @defgroup continuum-helper Continuum Computing Helpers
  *
- * Helper classes for configuring and installing distributed computing
+ * Helper classes for configuring and installing continuum computing
  * applications in ns-3 simulations.
  */
 
@@ -22,4 +22,4 @@
 #include "ns3/periodic-client-helper.h"
 #include "ns3/periodic-server-helper.h"
 
-#endif // DISTRIBUTED_HELPER_H
+#endif // CONTINUUM_HELPER_H

@@ -34,7 +34,7 @@ PeriodicClient::GetTypeId()
     static TypeId tid =
         TypeId("ns3::PeriodicClient")
             .SetParent<Application>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<PeriodicClient>()
             .AddAttribute("Remote",
                           "The address of the remote orchestrator",
@@ -90,6 +90,10 @@ PeriodicClient::GetTypeId()
                             "Trace fired when a frame admission is rejected",
                             MakeTraceSourceAccessor(&PeriodicClient::m_frameRejectedTrace),
                             "ns3::PeriodicClient::FrameRejectedTracedCallback")
+            .AddTraceSource("FrameViolated",
+                            "Trace fired when a processed frame exceeds its deadline budget",
+                            MakeTraceSourceAccessor(&PeriodicClient::m_frameViolatedTrace),
+                            "ns3::PeriodicClient::FrameViolatedTracedCallback")
             .AddTraceSource(
                 "FrameDropped",
                 "Trace fired when a frame is dropped because the previous frame is still pending",
@@ -475,9 +479,24 @@ PeriodicClient::HandleTaskResponse()
             Time latency = Simulator::Now() - it->second.submitTime;
             m_responsesReceived++;
 
-            NS_LOG_INFO("PeriodicClient " << m_clientId << " received result for frame (task "
-                                          << taskId << ", latency=" << latency.GetMilliSeconds()
-                                          << "ms)");
+            Time budget = m_deadlineBudget.IsStrictlyPositive()
+                              ? m_deadlineBudget
+                              : Seconds(1.0 / m_frameRate);
+
+            if (latency > budget)
+            {
+                NS_LOG_INFO("PeriodicClient " << m_clientId << " deadline violated for task "
+                                              << taskId << " (latency="
+                                              << latency.GetMilliSeconds() << "ms, budget="
+                                              << budget.GetMilliSeconds() << "ms)");
+                m_frameViolatedTrace(task, latency);
+            }
+            else
+            {
+                NS_LOG_INFO("PeriodicClient " << m_clientId << " received result for frame (task "
+                                              << taskId << ", latency="
+                                              << latency.GetMilliSeconds() << "ms)");
+            }
 
             m_frameProcessedTrace(task, latency);
 

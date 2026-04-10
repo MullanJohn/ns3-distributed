@@ -17,7 +17,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief FIFO (First-In-First-Out) task queue scheduler.
  *
  * FifoQueueScheduler processes tasks in strict first-in-first-out order.

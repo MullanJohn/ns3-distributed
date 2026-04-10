@@ -26,7 +26,7 @@ DvfsEnergyModel::GetTypeId()
     static TypeId tid =
         TypeId("ns3::DvfsEnergyModel")
             .SetParent<EnergyModel>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<DvfsEnergyModel>()
             .AddAttribute("EffectiveCapacitance",
                           "Effective capacitance in Farads (C in P = C*V^2*f)",

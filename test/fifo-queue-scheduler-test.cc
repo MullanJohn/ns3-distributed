@@ -17,7 +17,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test FifoQueueScheduler enqueue, dequeue, peek, empty and clear behaviour.
  */
 class FifoQueueSchedulerTestCase : public TestCase

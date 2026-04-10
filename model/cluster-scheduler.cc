@@ -22,7 +22,7 @@ TypeId
 ClusterScheduler::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::ClusterScheduler").SetParent<Object>().SetGroupName("Distributed");
+        TypeId("ns3::ClusterScheduler").SetParent<Object>().SetGroupName("Continuum");
     // Note: No AddConstructor because this is an abstract class
     return tid;
 }

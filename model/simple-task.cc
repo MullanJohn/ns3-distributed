@@ -23,7 +23,7 @@ SimpleTask::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::SimpleTask")
                             .SetParent<Task>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<SimpleTask>();
     return tid;
 }

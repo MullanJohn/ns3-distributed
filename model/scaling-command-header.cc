@@ -22,7 +22,7 @@ ScalingCommandHeader::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::ScalingCommandHeader")
                             .SetParent<Header>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<ScalingCommandHeader>();
     return tid;
 }

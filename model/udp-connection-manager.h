@@ -17,7 +17,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief UDP implementation of ConnectionManager.
  *
  * UdpConnectionManager provides unreliable, unordered datagram delivery

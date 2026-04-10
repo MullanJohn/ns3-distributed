@@ -20,7 +20,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for task queue scheduling policies.
  *
  * QueueScheduler defines the interface for managing task queues within

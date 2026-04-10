@@ -25,7 +25,7 @@ class ClusterState;
 class DagTask;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for admission control policies.
  *
  * AdmissionPolicy determines whether a workload should be accepted for execution.

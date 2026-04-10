@@ -59,7 +59,7 @@ LeastLoadedScheduler::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::LeastLoadedScheduler")
                             .SetParent<ClusterScheduler>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<LeastLoadedScheduler>();
     return tid;
 }

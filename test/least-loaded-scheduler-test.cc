@@ -20,7 +20,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test LeastLoadedScheduler selects the backend with the shortest estimated completion time.
  */
 class LeastLoadedSchedulerTestCase : public TestCase
@@ -80,7 +80,7 @@ class LeastLoadedSchedulerTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test LeastLoadedScheduler filters by required accelerator type.
  */
 class LeastLoadedSchedulerTypeFilterTestCase : public TestCase

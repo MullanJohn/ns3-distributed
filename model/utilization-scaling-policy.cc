@@ -22,7 +22,7 @@ UtilizationScalingPolicy::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::UtilizationScalingPolicy")
                             .SetParent<ScalingPolicy>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<UtilizationScalingPolicy>();
     return tid;
 }

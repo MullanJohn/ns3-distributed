@@ -15,7 +15,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Concrete task implementation using the common Task fields.
  *
  * SimpleTask is the basic concrete implementation of Task, providing

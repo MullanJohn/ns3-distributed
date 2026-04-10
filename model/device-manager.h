@@ -25,7 +25,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Manages performance scaling for backend accelerators in the orchestrator.
  *
  * DeviceManager is a concrete component of EdgeOrchestrator. It evaluates a

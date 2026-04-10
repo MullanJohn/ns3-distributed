@@ -26,7 +26,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test TcpConnectionManager basic client-server communication.
  */
 class TcpConnectionManagerBasicTestCase : public TestCase
@@ -131,7 +131,7 @@ class TcpConnectionManagerBasicTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test TcpConnectionManager connection pooling.
  */
 class TcpConnectionManagerPoolingTestCase : public TestCase
@@ -234,7 +234,7 @@ class TcpConnectionManagerPoolingTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test TcpConnectionManager Close(peer) closes all pooled connections.
  */
 class TcpConnectionManagerClosePeerTestCase : public TestCase
@@ -328,7 +328,7 @@ class TcpConnectionManagerClosePeerTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test UdpConnectionManager basic communication.
  */
 class UdpConnectionManagerBasicTestCase : public TestCase
@@ -427,7 +427,7 @@ class UdpConnectionManagerBasicTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test TcpConnectionManager with IPv6 addresses.
  */
 class TcpConnectionManagerIpv6TestCase : public TestCase

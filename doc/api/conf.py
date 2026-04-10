@@ -8,10 +8,10 @@ extensions = [
 ]
 
 breathe_projects = {
-    "distributed": "_build/doxygen/xml",
+    "continuum": "_build/doxygen/xml",
 }
 
-breathe_default_project = "distributed"
+breathe_default_project = "continuum"
 
 exclude_patterns = ["_build"]
 

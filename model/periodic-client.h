@@ -28,7 +28,7 @@ namespace ns3
 class Packet;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Periodic client that generates frames at a fixed rate for remote processing.
  *
  * PeriodicClient models a device that captures frames
@@ -133,6 +133,13 @@ class PeriodicClient : public Application
     typedef void (*FrameRejectedTracedCallback)(Ptr<const Task> task);
 
     /**
+     * @brief TracedCallback signature for frame deadline violation events.
+     * @param task The completed task whose latency exceeded the deadline budget.
+     * @param latency End-to-end latency from submission to response.
+     */
+    typedef void (*FrameViolatedTracedCallback)(Ptr<const Task> task, Time latency);
+
+    /**
      * @brief TracedCallback signature for frame dropped events.
      * @param frameNumber The sequence number of the dropped frame.
      */
@@ -204,6 +211,7 @@ class PeriodicClient : public Application
     TracedCallback<Ptr<const Task>> m_frameSentTrace;            //!< Frame sent
     TracedCallback<Ptr<const Task>, Time> m_frameProcessedTrace; //!< Frame processed
     TracedCallback<Ptr<const Task>> m_frameRejectedTrace;        //!< Frame rejected
+    TracedCallback<Ptr<const Task>, Time> m_frameViolatedTrace;  //!< Deadline violated
     TracedCallback<uint64_t> m_frameDroppedTrace;                //!< Frame dropped
 };
 

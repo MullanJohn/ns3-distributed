@@ -21,7 +21,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief TCP implementation of ConnectionManager with optional connection pooling.
  *
  * TcpConnectionManager provides reliable, ordered delivery using TCP sockets.

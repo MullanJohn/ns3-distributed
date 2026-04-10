@@ -24,7 +24,7 @@ DeviceMetricsHeader::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::DeviceMetricsHeader")
                             .SetParent<Header>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<DeviceMetricsHeader>();
     return tid;
 }

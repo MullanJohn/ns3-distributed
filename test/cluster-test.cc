@@ -15,7 +15,7 @@
 using namespace ns3;
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test basic Cluster operations.
  */
 class ClusterBasicTestCase : public TestCase
@@ -77,7 +77,7 @@ ClusterBasicTestCase::DoRun()
 }
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test Cluster iteration.
  */
 class ClusterIterationTestCase : public TestCase

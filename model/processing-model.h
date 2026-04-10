@@ -21,7 +21,7 @@ namespace ns3
 class Accelerator; // Forward declaration
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for compute processing models.
  *
  * ProcessingModel defines the interface for calculating task processing

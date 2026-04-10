@@ -21,7 +21,7 @@ namespace ns3
 class ClusterState;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for task scheduling policies.
  *
  * ClusterScheduler determines which backend in a cluster should execute a given task.

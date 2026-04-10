@@ -24,7 +24,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test GpuAccelerator submits, runs and completes a single task.
  */
 class GpuAcceleratorTestCase : public TestCase
@@ -97,7 +97,7 @@ class GpuAcceleratorTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test GpuAccelerator fails a task when no QueueScheduler is configured.
  */
 class GpuAcceleratorNoSchedulerTestCase : public TestCase
@@ -160,7 +160,7 @@ class GpuAcceleratorNoSchedulerTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test GpuAccelerator SetFrequency scales the compute rate proportionally.
  */
 class GpuAcceleratorFrequencyScalingTestCase : public TestCase
@@ -210,7 +210,7 @@ class GpuAcceleratorFrequencyScalingTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test GpuAccelerator rolling utilization tracks the compute phase.
  */
 class GpuAcceleratorUtilizationTestCase : public TestCase
@@ -262,7 +262,7 @@ class GpuAcceleratorUtilizationTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test GpuAccelerator rescales only the remaining compute phase on mid-task DVFS.
  */
 class GpuAcceleratorInFlightFrequencyScalingTestCase : public TestCase
@@ -318,7 +318,7 @@ class GpuAcceleratorInFlightFrequencyScalingTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test GpuAccelerator ApplyState resolves an OPP-table index to frequency and voltage.
  */
 class GpuAcceleratorApplyStateTestCase : public TestCase

@@ -16,7 +16,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DeviceMetricsHeader serialization round-trip.
  */
 class DeviceMetricsHeaderTestCase : public TestCase

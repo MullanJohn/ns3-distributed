@@ -17,7 +17,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Helper to create and configure PeriodicClient applications.
  *
  * This helper simplifies the creation and configuration of PeriodicClient

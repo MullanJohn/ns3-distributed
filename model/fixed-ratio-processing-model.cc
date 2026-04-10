@@ -24,7 +24,7 @@ FixedRatioProcessingModel::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::FixedRatioProcessingModel")
                             .SetParent<ProcessingModel>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<FixedRatioProcessingModel>();
     return tid;
 }

@@ -58,7 +58,7 @@ DeserializeHeaderWithTypePrefix(Ptr<Packet> packet, uint64_t& consumedBytes)
 }
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DagTask metadata serialize/deserialize round-trip preserves structure and data edges.
  */
 class DagTaskSerializeMetadataTestCase : public TestCase
@@ -164,7 +164,7 @@ class DagTaskSerializeMetadataTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DagTask full-data serialize/deserialize round-trip on a linear chain.
  */
 class DagTaskSerializeFullDataTestCase : public TestCase
@@ -236,7 +236,7 @@ class DagTaskSerializeFullDataTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DagTask deserialize returns nullptr on empty or truncated packets.
  */
 class DagTaskDeserializeFailureTestCase : public TestCase

@@ -16,7 +16,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Helper to create and configure EdgeOrchestrator applications.
  *
  * This helper simplifies the creation and configuration of EdgeOrchestrator

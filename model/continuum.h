@@ -6,11 +6,11 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef DISTRIBUTED_H
-#define DISTRIBUTED_H
+#ifndef CONTINUUM_H
+#define CONTINUUM_H
 
 /**
- * @defgroup distributed Distributed Computing Module
+ * @defgroup continuum Continuum Computing Module
  *
  * This module provides classes for simulating distributed computing workloads
  * in ns-3. It models task offloading from clients to servers with hardware
@@ -41,23 +41,24 @@
 #include "ns3/processing-model.h"
 
 // Queue management
-#include "ns3/batching-queue-scheduler.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/queue-scheduler.h"
 
-// Connection manaager
+// Connection manager
 #include "ns3/connection-manager.h"
 #include "ns3/tcp-connection-manager.h"
 #include "ns3/udp-connection-manager.h"
 
 // Orchestration
 #include "ns3/admission-policy.h"
-#include "ns3/always-admit-policy.h"
 #include "ns3/cluster-scheduler.h"
+#include "ns3/conservative-scaling-policy.h"
 #include "ns3/cluster-state.h"
 #include "ns3/cluster.h"
 #include "ns3/edge-orchestrator.h"
 #include "ns3/first-fit-scheduler.h"
+#include "ns3/least-loaded-scheduler.h"
+#include "ns3/max-active-tasks-policy.h"
 #include "ns3/orchestrator-header.h"
 
 // Device management
@@ -74,6 +75,6 @@
 #include "ns3/periodic-server.h"
 
 // Helpers
-#include "ns3/distributed-helper.h"
+#include "ns3/continuum-helper.h"
 
-#endif // DISTRIBUTED_H
+#endif // CONTINUUM_H

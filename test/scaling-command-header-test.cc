@@ -16,7 +16,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test ScalingCommandHeader serialization round-trip.
  */
 class ScalingCommandHeaderTestCase : public TestCase

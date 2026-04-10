@@ -23,7 +23,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test GpuAccelerator processes multiple tasks queued back-to-back.
  */
 class GpuAcceleratorQueueTestCase : public TestCase

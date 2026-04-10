@@ -22,7 +22,7 @@ OrchestratorHeader::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::OrchestratorHeader")
                             .SetParent<Header>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<OrchestratorHeader>();
     return tid;
 }

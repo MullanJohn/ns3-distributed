@@ -19,7 +19,7 @@ namespace ns3
 class Accelerator;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief DVFS-based energy model for accelerators.
  *
  * DvfsEnergyModel implements the standard DVFS power equation:

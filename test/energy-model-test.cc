@@ -23,7 +23,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DvfsEnergyModel computes static and dynamic power components.
  */
 class DvfsEnergyModelTestCase : public TestCase
@@ -60,7 +60,7 @@ class DvfsEnergyModelTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test Accelerator accumulates total energy over the duration of a task.
  */
 class AcceleratorEnergyTrackingTestCase : public TestCase
@@ -109,7 +109,7 @@ class AcceleratorEnergyTrackingTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test Accelerator accrues static energy while idle.
  */
 class AcceleratorIdleStaticEnergyTestCase : public TestCase
@@ -148,7 +148,7 @@ class AcceleratorIdleStaticEnergyTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test Accelerator dynamic energy is gated by task-local compute utilization.
  */
 class AcceleratorTaskUtilizationEnergyTestCase : public TestCase
@@ -196,7 +196,7 @@ class AcceleratorTaskUtilizationEnergyTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test Accelerator fires CurrentPower, TotalEnergy and TaskEnergy traces with the expected values.
  */
 class AcceleratorEnergyTracesTestCase : public TestCase
@@ -273,7 +273,7 @@ class AcceleratorEnergyTracesTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test Accelerator runs tasks and reports zero power when no EnergyModel is attached.
  */
 class EnergyModelNotConfiguredTestCase : public TestCase

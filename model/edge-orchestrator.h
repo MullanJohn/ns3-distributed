@@ -33,7 +33,7 @@ namespace ns3
 class DeviceManager;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Orchestrator for edge computing workloads with admission control and scheduling.
  *
  * EdgeOrchestrator manages the execution of computational tasks on a cluster

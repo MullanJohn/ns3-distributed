@@ -6,13 +6,13 @@ endif()
 set(examples_as_tests_sources)
 if(${ENABLE_EXAMPLES})
     set(examples_as_tests_sources
-        #test/distributed-examples-test-suite.cc
+        #test/continuum-examples-test-suite.cc
         )
 endif()
 
 build_lib(
-    LIBNAME distributed
-    SOURCE_FILES model/distributed.cc
+    LIBNAME continuum
+    SOURCE_FILES model/continuum.cc
                  model/task-header.cc
                  model/task.cc
                  model/simple-task.cc
@@ -47,11 +47,11 @@ build_lib(
                  model/periodic-server.cc
                  model/cluster.cc
                  model/cluster-state.cc
-                 helper/distributed-helper.cc
+                 helper/continuum-helper.cc
                  helper/edge-orchestrator-helper.cc
                  helper/periodic-client-helper.cc
                  helper/periodic-server-helper.cc
-    HEADER_FILES model/distributed.h
+    HEADER_FILES model/continuum.h
                  model/task-header.h
                  model/task.h
                  model/simple-task.h
@@ -86,7 +86,7 @@ build_lib(
                  model/periodic-server.h
                  model/cluster.h
                  model/cluster-state.h
-                 helper/distributed-helper.h
+                 helper/continuum-helper.h
                  helper/edge-orchestrator-helper.h
                  helper/periodic-client-helper.h
                  helper/periodic-server-helper.h
@@ -94,7 +94,8 @@ build_lib(
                       ${libnetwork}
                       ${libinternet}
                       ${libpoint-to-point}
-    TEST_SOURCES test/distributed-test-suite.cc
+                      ${libcsma}
+    TEST_SOURCES test/continuum-test-suite.cc
                  test/gpu-accelerator-test.cc
                  test/energy-model-test.cc
                  test/gpu-accelerator-queue-test.cc

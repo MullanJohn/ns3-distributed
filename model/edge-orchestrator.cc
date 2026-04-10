@@ -29,7 +29,7 @@ EdgeOrchestrator::GetTypeId()
     static TypeId tid =
         TypeId("ns3::EdgeOrchestrator")
             .SetParent<Application>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<EdgeOrchestrator>()
             .AddAttribute("Port",
                           "Port on which to listen for incoming connections",

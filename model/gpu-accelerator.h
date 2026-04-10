@@ -26,7 +26,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief A discrete frequency-voltage operating point for a GPU accelerator.
  *
  * Represents a single entry in the OPP (Operating Performance Point) table.
@@ -39,7 +39,7 @@ struct OperatingPoint
 };
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief GPU accelerator for processing computational tasks.
  *
  * GpuAccelerator models a GPU processing unit. Task processing time

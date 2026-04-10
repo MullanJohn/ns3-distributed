@@ -27,7 +27,7 @@ ConservativeScalingPolicy::GetTypeId()
     static TypeId tid =
         TypeId("ns3::ConservativeScalingPolicy")
             .SetParent<ScalingPolicy>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<ConservativeScalingPolicy>()
             .AddAttribute("TargetDrainTime",
                           "Estimated drain time (seconds at nominal rate) that maps to the "

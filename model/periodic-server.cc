@@ -31,7 +31,7 @@ PeriodicServer::GetTypeId()
     static TypeId tid =
         TypeId("ns3::PeriodicServer")
             .SetParent<Application>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<PeriodicServer>()
             .AddAttribute("Port",
                           "Port on which to listen for incoming connections",

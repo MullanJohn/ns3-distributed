@@ -17,7 +17,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Scheduler that selects the backend with the lowest predicted compute burden.
  *
  * LeastLoadedScheduler picks the backend with the minimum predicted compute

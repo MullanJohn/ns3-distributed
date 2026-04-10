@@ -15,7 +15,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Work-proportional DVFS policy with conservative one-OPP stepping.
  *
  * Computes a target OPP proportional to the estimated drain time of pending

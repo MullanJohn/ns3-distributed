@@ -15,7 +15,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Type-aware admission policy that rejects workloads when compatible backends lack
  * capacity.
  *

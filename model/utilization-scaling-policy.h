@@ -15,7 +15,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Utilization-based DVFS scaling policy inspired by Linux ondemand governor.
  *
  * Simple binary policy using the accelerator's OPP table:

@@ -21,7 +21,7 @@ TypeId
 ScalingPolicy::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::ScalingPolicy").SetParent<Object>().SetGroupName("Distributed");
+        TypeId("ns3::ScalingPolicy").SetParent<Object>().SetGroupName("Continuum");
     return tid;
 }
 

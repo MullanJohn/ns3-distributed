@@ -20,7 +20,7 @@ class Accelerator;
 class DeviceMetrics;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for device metrics protocols.
  *
  * DeviceProtocol encapsulates how accelerator metrics are serialized into

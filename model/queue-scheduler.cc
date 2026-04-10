@@ -21,7 +21,7 @@ TypeId
 QueueScheduler::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::QueueScheduler").SetParent<Object>().SetGroupName("Distributed");
+        TypeId("ns3::QueueScheduler").SetParent<Object>().SetGroupName("Continuum");
     return tid;
 }
 

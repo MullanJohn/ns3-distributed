@@ -28,7 +28,7 @@ GpuAccelerator::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::GpuAccelerator")
                             .SetParent<Accelerator>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<GpuAccelerator>()
                             .AddAttribute("ComputeRate",
                                           "Compute rate in FLOPS (must be > 0)",

@@ -17,7 +17,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test UtilizationScalingPolicy maps activeTasks to the min or max performance state.
  */
 class UtilizationScalingOppTestCase : public TestCase

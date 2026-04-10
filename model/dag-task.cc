@@ -25,7 +25,7 @@ DagTask::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::DagTask")
                             .SetParent<Object>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<DagTask>();
     return tid;
 }

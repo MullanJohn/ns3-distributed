@@ -22,7 +22,7 @@ namespace ns3
 class DeviceMetrics;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Centralized view of per-backend load and device metrics for decision-makers.
  *
  * ClusterState is a plain data container owned by EdgeOrchestrator. It aggregates

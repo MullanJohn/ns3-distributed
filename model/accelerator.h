@@ -23,7 +23,7 @@ class Node;
 class EnergyModel;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for computational accelerators.
  *
  * Accelerator defines the interface for hardware that processes computational

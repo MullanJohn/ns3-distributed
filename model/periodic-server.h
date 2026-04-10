@@ -25,7 +25,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Periodic backend server that processes frames on an accelerator.
  *
  * PeriodicServer receives frames from an EdgeOrchestrator, submits them

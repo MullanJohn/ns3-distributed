@@ -33,7 +33,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test EdgeOrchestrator admission, dispatch, completion and response on a single task.
  */
 class SingleTaskEndToEndTestCase : public TestCase
@@ -191,7 +191,7 @@ class SingleTaskEndToEndTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test EdgeOrchestrator dispatches across multiple backends via LeastLoadedScheduler.
  */
 class MultiBackendTestCase : public TestCase

@@ -16,7 +16,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test TaskHeader serialization round-trip.
  */
 class TaskHeaderSerializationTestCase : public TestCase
@@ -70,7 +70,7 @@ class TaskHeaderSerializationTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test TaskHeader payload size calculation.
  */
 class TaskHeaderPayloadSizeTestCase : public TestCase

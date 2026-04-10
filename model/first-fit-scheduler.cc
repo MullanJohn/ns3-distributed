@@ -21,7 +21,7 @@ FirstFitScheduler::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::FirstFitScheduler")
                             .SetParent<ClusterScheduler>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<FirstFitScheduler>();
     return tid;
 }

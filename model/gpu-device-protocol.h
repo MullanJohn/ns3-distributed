@@ -15,7 +15,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Concrete DeviceProtocol for GPU accelerators.
  *
  * Serializes metrics using DeviceMetricsHeader (type 4) and parses

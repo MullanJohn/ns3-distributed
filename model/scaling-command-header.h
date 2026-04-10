@@ -18,7 +18,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Header for scaling commands sent from orchestrator to backend.
  *
  * ScalingCommandHeader carries a target performance state index from

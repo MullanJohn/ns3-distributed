@@ -18,7 +18,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Header for task offload packets.
  *
  * TaskHeader serializes task metadata for transmission between

@@ -19,7 +19,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DagTask dependency tracking, ready-set propagation and completion via a diamond DAG.
  */
 class DagTaskDependencyTestCase : public TestCase
@@ -85,7 +85,7 @@ class DagTaskDependencyTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DagTask cycle detection.
  */
 class DagTaskCycleDetectionTestCase : public TestCase
@@ -119,7 +119,7 @@ class DagTaskCycleDetectionTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DagTask accumulates predecessor outputs into a successor's input on completion.
  */
 class DagTaskDataAccumulationTestCase : public TestCase

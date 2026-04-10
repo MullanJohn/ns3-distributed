@@ -17,7 +17,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test OrchestratorHeader serialization round-trip for ADMISSION_REQUEST.
  */
 class OrchestratorHeaderRequestTestCase : public TestCase
@@ -57,7 +57,7 @@ class OrchestratorHeaderRequestTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test OrchestratorHeader serialization round-trip for ADMISSION_RESPONSE.
  */
 class OrchestratorHeaderResponseTestCase : public TestCase

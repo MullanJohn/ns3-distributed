@@ -6,11 +6,11 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "distributed.h"
+#include "continuum.h"
 
 /**
- * @file distributed.cc
- * @ingroup distributed
+ * @file continuum.cc
+ * @ingroup continuum
  *
  * This file exists for CMake build system compatibility.
  * All model functionality is provided by the individual model classes:

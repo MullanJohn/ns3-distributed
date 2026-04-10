@@ -21,7 +21,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Represents a cluster of backend server nodes for distributed computing.
  *
  * A Cluster holds references to server nodes and their addresses. It provides

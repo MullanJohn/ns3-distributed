@@ -23,7 +23,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test MaxActiveTasksPolicy admits when at least one backend has capacity.
  */
 class MaxActiveTasksAdmitCapacityTestCase : public TestCase
@@ -85,7 +85,7 @@ class MaxActiveTasksAdmitCapacityTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test MaxActiveTasksPolicy rejects when all backends are at capacity.
  */
 class MaxActiveTasksRejectFullTestCase : public TestCase
@@ -133,7 +133,7 @@ class MaxActiveTasksRejectFullTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test MaxActiveTasksPolicy counts pending admission reservations against capacity.
  */
 class MaxActiveTasksPendingReservationTestCase : public TestCase
@@ -184,7 +184,7 @@ class MaxActiveTasksPendingReservationTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test MaxActiveTasksPolicy rejects when the incoming workload size exceeds remaining capacity.
  */
 class MaxActiveTasksIncomingWorkloadSizeTestCase : public TestCase
@@ -238,7 +238,7 @@ class MaxActiveTasksIncomingWorkloadSizeTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test MaxActiveTasksPolicy keeps pending reservations scoped to their accelerator type.
  */
 class MaxActiveTasksTypeScopedReservationTestCase : public TestCase

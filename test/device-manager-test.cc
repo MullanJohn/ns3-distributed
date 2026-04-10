@@ -30,7 +30,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test DeviceManager Start, HandleMetrics, EvaluateScaling and the StateChanged trace.
  */
 class DeviceManagerTestCase : public TestCase

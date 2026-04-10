@@ -21,7 +21,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test FixedRatioProcessingModel computes input, compute and output phase timings.
  */
 class FixedRatioProcessingModelTestCase : public TestCase

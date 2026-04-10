@@ -19,7 +19,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Simple scheduler that selects the first suitable backend.
  *
  * FirstFitScheduler iterates through backends in round-robin order and selects

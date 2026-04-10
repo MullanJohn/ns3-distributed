@@ -21,7 +21,7 @@ TypeId
 DeviceProtocol::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::DeviceProtocol").SetParent<Object>().SetGroupName("Distributed");
+        TypeId("ns3::DeviceProtocol").SetParent<Object>().SetGroupName("Continuum");
     return tid;
 }
 

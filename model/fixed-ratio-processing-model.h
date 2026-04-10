@@ -15,7 +15,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Processing model using three-phase timing for ComputeTask on GpuAccelerator.
  *
  * FixedRatioProcessingModel calculates processing time using a three-phase

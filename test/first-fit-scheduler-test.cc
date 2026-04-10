@@ -20,7 +20,7 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test FirstFitScheduler round-robin selection across untyped, typed and unmatched cases.
  */
 class FirstFitSchedulerTestCase : public TestCase

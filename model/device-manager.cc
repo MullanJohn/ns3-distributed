@@ -28,7 +28,7 @@ DeviceManager::GetTypeId()
     static TypeId tid =
         TypeId("ns3::DeviceManager")
             .SetParent<Object>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<DeviceManager>()
             .AddAttribute("ScalingPolicy",
                           "Pluggable scaling strategy",

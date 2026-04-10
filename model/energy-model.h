@@ -18,7 +18,7 @@ namespace ns3
 class Accelerator;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for accelerator energy models.
  *
  * EnergyModel defines the interface for calculating power consumption

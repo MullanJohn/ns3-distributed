@@ -26,7 +26,7 @@ GpuDeviceProtocol::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::GpuDeviceProtocol")
                             .SetParent<DeviceProtocol>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<GpuDeviceProtocol>();
     return tid;
 }

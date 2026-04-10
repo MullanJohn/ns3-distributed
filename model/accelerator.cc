@@ -27,7 +27,7 @@ Accelerator::GetTypeId()
     static TypeId tid =
         TypeId("ns3::Accelerator")
             .SetParent<Object>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddAttribute("EnergyModel",
                           "Energy model for power consumption calculation",
                           PointerValue(),

@@ -63,14 +63,14 @@ TestCase* CreateMaxActiveTasksPendingReservationTestCase();
 TestCase* CreateMaxActiveTasksIncomingWorkloadSizeTestCase();
 TestCase* CreateMaxActiveTasksTypeScopedReservationTestCase();
 
-class DistributedTestSuite : public TestSuite
+class ContinuumTestSuite : public TestSuite
 {
   public:
-    DistributedTestSuite();
+    ContinuumTestSuite();
 };
 
-DistributedTestSuite::DistributedTestSuite()
-    : TestSuite("distributed", Type::UNIT)
+ContinuumTestSuite::ContinuumTestSuite()
+    : TestSuite("continuum", Type::UNIT)
 {
     AddTestCase(CreateGpuAcceleratorTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateGpuAcceleratorNoSchedulerTestCase(), TestCase::Duration::QUICK);
@@ -124,6 +124,6 @@ DistributedTestSuite::DistributedTestSuite()
     AddTestCase(CreateMaxActiveTasksTypeScopedReservationTestCase(), TestCase::Duration::QUICK);
 }
 
-static DistributedTestSuite sDistributedTestSuite;
+static ContinuumTestSuite sContinuumTestSuite;
 
 } // namespace ns3

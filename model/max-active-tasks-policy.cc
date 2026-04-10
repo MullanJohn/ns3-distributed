@@ -49,7 +49,7 @@ MaxActiveTasksPolicy::GetTypeId()
     static TypeId tid =
         TypeId("ns3::MaxActiveTasksPolicy")
             .SetParent<AdmissionPolicy>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<MaxActiveTasksPolicy>()
             .AddAttribute("MaxActiveTasks",
                           "Maximum active tasks per backend before rejection",
