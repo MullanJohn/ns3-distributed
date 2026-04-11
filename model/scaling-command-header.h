@@ -22,7 +22,7 @@ namespace ns3
  * @brief Header for scaling commands sent from orchestrator to backend.
  *
  * ScalingCommandHeader carries a target performance state index from
- * the EdgeOrchestrator's DeviceManager to a backend. It is multiplexed
+ * the Orchestrator's DeviceManager to a backend. It is multiplexed
  * on the same connection as task data using message type 5.
  *
  * Wire format (5 bytes):

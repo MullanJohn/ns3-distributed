@@ -25,7 +25,7 @@ class DeviceMetrics;
  * @ingroup continuum
  * @brief Centralized view of per-backend load and device metrics for decision-makers.
  *
- * ClusterState is a plain data container owned by EdgeOrchestrator. It aggregates
+ * ClusterState is a plain data container owned by Orchestrator. It aggregates
  * orchestrator-tracked dispatch/completion counts, derived backend capability,
  * and device-reported metrics into a single object that is passed to
  * ScalingPolicy, ClusterScheduler, and AdmissionPolicy on each call.
@@ -37,7 +37,7 @@ class ClusterState
      * @brief Per-backend state split by write authority.
      *
      * Device fields are written exclusively by DeviceManager.
-     * Orchestration fields are written exclusively by EdgeOrchestrator.
+     * Orchestration fields are written exclusively by Orchestrator.
      */
     struct BackendState
     {

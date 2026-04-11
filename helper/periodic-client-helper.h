@@ -21,7 +21,7 @@ namespace ns3
  * @brief Helper to create and configure PeriodicClient applications.
  *
  * This helper simplifies the creation and configuration of PeriodicClient
- * applications that offload frames to an EdgeOrchestrator via the
+ * applications that offload frames to an Orchestrator via the
  * two-phase admission protocol.
  */
 class PeriodicClientHelper : public ApplicationHelper
@@ -34,13 +34,13 @@ class PeriodicClientHelper : public ApplicationHelper
 
     /**
      * @brief Construct helper with target orchestrator address.
-     * @param orchestratorAddress Address of the EdgeOrchestrator.
+     * @param orchestratorAddress Address of the Orchestrator.
      */
     explicit PeriodicClientHelper(const Address& orchestratorAddress);
 
     /**
      * @brief Set the remote orchestrator address.
-     * @param addr Address of the EdgeOrchestrator.
+     * @param addr Address of the Orchestrator.
      */
     void SetOrchestratorAddress(const Address& addr);
 

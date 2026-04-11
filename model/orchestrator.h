@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef EDGE_ORCHESTRATOR_H
-#define EDGE_ORCHESTRATOR_H
+#ifndef ORCHESTRATOR_H
+#define ORCHESTRATOR_H
 
 #include "admission-policy.h"
 #include "cluster-scheduler.h"
@@ -36,7 +36,7 @@ class DeviceManager;
  * @ingroup continuum
  * @brief Orchestrator for edge computing workloads with admission control and scheduling.
  *
- * EdgeOrchestrator manages the execution of computational tasks on a cluster
+ * Orchestrator manages the execution of computational tasks on a cluster
  * of backend workers. It provides:
  * - Admission control via pluggable AdmissionPolicy
  * - Task scheduling via pluggable Scheduler
@@ -48,13 +48,13 @@ class DeviceManager;
  *
  * Example usage:
  * @code
- * Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();
+ * Ptr<Orchestrator> orchestrator = CreateObject<Orchestrator>();
  * orchestrator->SetCluster(cluster);
  * orchestrator->SetAttribute("Scheduler", PointerValue(scheduler));
  * orchestrator->SetAttribute("AdmissionPolicy", PointerValue(policy));
  * @endcode
  */
-class EdgeOrchestrator : public Application
+class Orchestrator : public Application
 {
   public:
     /**
@@ -121,8 +121,8 @@ class EdgeOrchestrator : public Application
      */
     static TypeId GetTypeId();
 
-    EdgeOrchestrator();
-    ~EdgeOrchestrator() override;
+    Orchestrator();
+    ~Orchestrator() override;
 
     /**
      * @brief Set the cluster of backend workers.
@@ -507,4 +507,4 @@ class EdgeOrchestrator : public Application
 
 } // namespace ns3
 
-#endif // EDGE_ORCHESTRATOR_H
+#endif // ORCHESTRATOR_H

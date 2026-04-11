@@ -29,7 +29,7 @@ namespace ns3
  *
  * Implementations MUST serialize messageType (1 byte) followed by taskId
  * (8 bytes, network byte order) as the first 9 bytes. This common prefix
- * enables the EdgeOrchestrator to peek the taskId for response routing
+ * enables the Orchestrator to peek the taskId for response routing
  * without knowing the concrete header type.
  *
  * Example usage:

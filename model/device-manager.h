@@ -28,14 +28,14 @@ namespace ns3
  * @ingroup continuum
  * @brief Manages performance scaling for backend accelerators in the orchestrator.
  *
- * DeviceManager is a concrete component of EdgeOrchestrator. It evaluates a
+ * DeviceManager is a concrete component of Orchestrator. It evaluates a
  * pluggable ScalingPolicy using per-backend state from ClusterState, and sends
  * ScalingCommandHeader packets to backends via the orchestrator's worker
  * ConnectionManager.
  *
- * Metrics arrive via HandleMetrics() (called by EdgeOrchestrator when a type-4
+ * Metrics arrive via HandleMetrics() (called by Orchestrator when a type-4
  * packet arrives). Scaling is evaluated via EvaluateScaling() (called by
- * EdgeOrchestrator on task events).
+ * Orchestrator on task events).
  */
 class DeviceManager : public Object
 {
@@ -64,7 +64,7 @@ class DeviceManager : public Object
     /**
      * @brief Store metrics received from a backend.
      *
-     * Called by EdgeOrchestrator when a type-4 packet arrives.
+     * Called by Orchestrator when a type-4 packet arrives.
      *
      * @param packet The metrics packet (DeviceMetricsHeader).
      * @param backendIdx The backend index in the cluster.
@@ -89,7 +89,7 @@ class DeviceManager : public Object
     /**
      * @brief Evaluate scaling decisions for all backends.
      *
-     * Called by EdgeOrchestrator on task events. For each backend,
+     * Called by Orchestrator on task events. For each backend,
      * runs ScalingPolicy::Decide() and sends command packets
      * if the performance state changed.
      *

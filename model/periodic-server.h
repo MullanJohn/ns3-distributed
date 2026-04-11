@@ -28,7 +28,7 @@ namespace ns3
  * @ingroup continuum
  * @brief Periodic backend server that processes frames on an accelerator.
  *
- * PeriodicServer receives frames from an EdgeOrchestrator, submits them
+ * PeriodicServer receives frames from an Orchestrator, submits them
  * to the Accelerator aggregated on the node and sends processing results back when frames complete.
  *
  * Example usage:

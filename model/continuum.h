@@ -55,7 +55,7 @@
 #include "ns3/conservative-scaling-policy.h"
 #include "ns3/cluster-state.h"
 #include "ns3/cluster.h"
-#include "ns3/edge-orchestrator.h"
+#include "ns3/orchestrator.h"
 #include "ns3/round-robin-scheduler.h"
 #include "ns3/least-loaded-scheduler.h"
 #include "ns3/max-active-tasks-policy.h"

@@ -42,13 +42,13 @@ build_lib(
                  model/device-protocol.cc
                  model/gpu-device-protocol.cc
                  model/device-manager.cc
-                 model/edge-orchestrator.cc
+                 model/orchestrator.cc
                  model/periodic-client.cc
                  model/periodic-server.cc
                  model/cluster.cc
                  model/cluster-state.cc
                  helper/continuum-helper.cc
-                 helper/edge-orchestrator-helper.cc
+                 helper/orchestrator-helper.cc
                  helper/periodic-client-helper.cc
                  helper/periodic-server-helper.cc
     HEADER_FILES model/continuum.h
@@ -81,13 +81,13 @@ build_lib(
                  model/device-protocol.h
                  model/gpu-device-protocol.h
                  model/device-manager.h
-                 model/edge-orchestrator.h
+                 model/orchestrator.h
                  model/periodic-client.h
                  model/periodic-server.h
                  model/cluster.h
                  model/cluster-state.h
                  helper/continuum-helper.h
-                 helper/edge-orchestrator-helper.h
+                 helper/orchestrator-helper.h
                  helper/periodic-client-helper.h
                  helper/periodic-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
@@ -113,7 +113,7 @@ build_lib(
                  test/scaling-command-header-test.cc
                  test/round-robin-scheduler-test.cc
                  test/least-loaded-scheduler-test.cc
-                 test/edge-orchestrator-test.cc
+                 test/orchestrator-test.cc
                  test/conservative-scaling-policy-test.cc
                  test/utilization-scaling-policy-test.cc
                  test/max-active-tasks-policy-test.cc

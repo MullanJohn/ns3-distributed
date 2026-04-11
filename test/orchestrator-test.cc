@@ -8,7 +8,7 @@
 
 #include "ns3/cluster.h"
 #include "ns3/double.h"
-#include "ns3/edge-orchestrator.h"
+#include "ns3/orchestrator.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/round-robin-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
@@ -34,13 +34,13 @@ namespace
 
 /**
  * @ingroup continuum-tests
- * @brief Test EdgeOrchestrator admission, dispatch, completion and response on a single task.
+ * @brief Test Orchestrator admission, dispatch, completion and response on a single task.
  */
 class SingleTaskEndToEndTestCase : public TestCase
 {
   public:
     SingleTaskEndToEndTestCase()
-        : TestCase("EdgeOrchestrator single task end-to-end"),
+        : TestCase("Orchestrator single task end-to-end"),
           m_workloadsAdmitted(0),
           m_workloadsCompleted(0),
           m_tasksDispatched(0),
@@ -98,7 +98,7 @@ class SingleTaskEndToEndTestCase : public TestCase
         Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
 
         uint16_t orchPort = 8080;
-        Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();
+        Ptr<Orchestrator> orchestrator = CreateObject<Orchestrator>();
         orchestrator->SetAttribute("Port", UintegerValue(orchPort));
         orchestrator->SetAttribute("Scheduler", PointerValue(scheduler));
         orchestrator->SetCluster(cluster);
@@ -192,13 +192,13 @@ class SingleTaskEndToEndTestCase : public TestCase
 
 /**
  * @ingroup continuum-tests
- * @brief Test EdgeOrchestrator dispatches across multiple backends via LeastLoadedScheduler.
+ * @brief Test Orchestrator dispatches across multiple backends via LeastLoadedScheduler.
  */
 class MultiBackendTestCase : public TestCase
 {
   public:
     MultiBackendTestCase()
-        : TestCase("EdgeOrchestrator dispatches to multiple backends")
+        : TestCase("Orchestrator dispatches to multiple backends")
     {
     }
 
@@ -282,7 +282,7 @@ class MultiBackendTestCase : public TestCase
         Ptr<LeastLoadedScheduler> scheduler = CreateObject<LeastLoadedScheduler>();
 
         uint16_t orchPort = 8080;
-        Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();
+        Ptr<Orchestrator> orchestrator = CreateObject<Orchestrator>();
         orchestrator->SetAttribute("Port", UintegerValue(orchPort));
         orchestrator->SetAttribute("Scheduler", PointerValue(scheduler));
         orchestrator->SetCluster(cluster);

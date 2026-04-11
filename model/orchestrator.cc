@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "edge-orchestrator.h"
+#include "orchestrator.h"
 
 #include "device-manager.h"
 #include "simple-task.h"
@@ -19,76 +19,76 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("EdgeOrchestrator");
+NS_LOG_COMPONENT_DEFINE("Orchestrator");
 
-NS_OBJECT_ENSURE_REGISTERED(EdgeOrchestrator);
+NS_OBJECT_ENSURE_REGISTERED(Orchestrator);
 
 TypeId
-EdgeOrchestrator::GetTypeId()
+Orchestrator::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::EdgeOrchestrator")
+        TypeId("ns3::Orchestrator")
             .SetParent<Application>()
             .SetGroupName("Continuum")
-            .AddConstructor<EdgeOrchestrator>()
+            .AddConstructor<Orchestrator>()
             .AddAttribute("Port",
                           "Port on which to listen for incoming connections",
                           UintegerValue(8080),
-                          MakeUintegerAccessor(&EdgeOrchestrator::m_port),
+                          MakeUintegerAccessor(&Orchestrator::m_port),
                           MakeUintegerChecker<uint16_t>())
             .AddAttribute("Scheduler",
                           "Task scheduler for backend selection",
                           PointerValue(),
-                          MakePointerAccessor(&EdgeOrchestrator::m_scheduler),
+                          MakePointerAccessor(&Orchestrator::m_scheduler),
                           MakePointerChecker<ClusterScheduler>())
             .AddAttribute("AdmissionPolicy",
                           "Admission policy for workload acceptance (nullptr = always admit)",
                           PointerValue(),
-                          MakePointerAccessor(&EdgeOrchestrator::m_admissionPolicy),
+                          MakePointerAccessor(&Orchestrator::m_admissionPolicy),
                           MakePointerChecker<AdmissionPolicy>())
             .AddAttribute("ClientConnectionManager",
                           "Connection manager for client transport (defaults to TCP)",
                           PointerValue(),
-                          MakePointerAccessor(&EdgeOrchestrator::m_clientConnMgr),
+                          MakePointerAccessor(&Orchestrator::m_clientConnMgr),
                           MakePointerChecker<ConnectionManager>())
             .AddAttribute("BackendConnectionManager",
                           "Connection manager for backend transport (defaults to TCP)",
                           PointerValue(),
-                          MakePointerAccessor(&EdgeOrchestrator::m_backendConnMgr),
+                          MakePointerAccessor(&Orchestrator::m_backendConnMgr),
                           MakePointerChecker<ConnectionManager>())
             .AddAttribute("DeviceManager",
                           "DVFS device manager for backend scaling (optional)",
                           PointerValue(),
-                          MakePointerAccessor(&EdgeOrchestrator::m_deviceManager),
+                          MakePointerAccessor(&Orchestrator::m_deviceManager),
                           MakePointerChecker<DeviceManager>())
             .AddTraceSource("WorkloadAdmitted",
                             "A workload has been admitted for execution",
-                            MakeTraceSourceAccessor(&EdgeOrchestrator::m_workloadAdmittedTrace),
-                            "ns3::EdgeOrchestrator::WorkloadAdmittedTracedCallback")
+                            MakeTraceSourceAccessor(&Orchestrator::m_workloadAdmittedTrace),
+                            "ns3::Orchestrator::WorkloadAdmittedTracedCallback")
             .AddTraceSource("WorkloadRejected",
                             "A workload has been rejected",
-                            MakeTraceSourceAccessor(&EdgeOrchestrator::m_workloadRejectedTrace),
-                            "ns3::EdgeOrchestrator::WorkloadRejectedTracedCallback")
+                            MakeTraceSourceAccessor(&Orchestrator::m_workloadRejectedTrace),
+                            "ns3::Orchestrator::WorkloadRejectedTracedCallback")
             .AddTraceSource("WorkloadCancelled",
                             "A workload has been cancelled",
-                            MakeTraceSourceAccessor(&EdgeOrchestrator::m_workloadCancelledTrace),
-                            "ns3::EdgeOrchestrator::WorkloadCancelledTracedCallback")
+                            MakeTraceSourceAccessor(&Orchestrator::m_workloadCancelledTrace),
+                            "ns3::Orchestrator::WorkloadCancelledTracedCallback")
             .AddTraceSource("TaskDispatched",
                             "A task has been dispatched to a backend",
-                            MakeTraceSourceAccessor(&EdgeOrchestrator::m_taskDispatchedTrace),
-                            "ns3::EdgeOrchestrator::TaskDispatchedTracedCallback")
+                            MakeTraceSourceAccessor(&Orchestrator::m_taskDispatchedTrace),
+                            "ns3::Orchestrator::TaskDispatchedTracedCallback")
             .AddTraceSource("TaskCompleted",
                             "A task has been completed by a backend",
-                            MakeTraceSourceAccessor(&EdgeOrchestrator::m_taskCompletedTrace),
-                            "ns3::EdgeOrchestrator::TaskCompletedTracedCallback")
+                            MakeTraceSourceAccessor(&Orchestrator::m_taskCompletedTrace),
+                            "ns3::Orchestrator::TaskCompletedTracedCallback")
             .AddTraceSource("WorkloadCompleted",
                             "A workload has been fully completed",
-                            MakeTraceSourceAccessor(&EdgeOrchestrator::m_workloadCompletedTrace),
-                            "ns3::EdgeOrchestrator::WorkloadCompletedTracedCallback");
+                            MakeTraceSourceAccessor(&Orchestrator::m_workloadCompletedTrace),
+                            "ns3::Orchestrator::WorkloadCompletedTracedCallback");
     return tid;
 }
 
-EdgeOrchestrator::EdgeOrchestrator()
+Orchestrator::Orchestrator()
     : m_admissionPolicy(nullptr),
       m_scheduler(nullptr),
       m_deviceManager(nullptr),
@@ -99,13 +99,13 @@ EdgeOrchestrator::EdgeOrchestrator()
     NS_LOG_FUNCTION(this);
 }
 
-EdgeOrchestrator::~EdgeOrchestrator()
+Orchestrator::~Orchestrator()
 {
     NS_LOG_FUNCTION(this);
 }
 
 uint64_t
-EdgeOrchestrator::PeekTaskId(Ptr<Packet> buffer)
+Orchestrator::PeekTaskId(Ptr<Packet> buffer)
 {
     uint8_t prefix[9];
     buffer->CopyData(prefix, 9);
@@ -118,7 +118,7 @@ EdgeOrchestrator::PeekTaskId(Ptr<Packet> buffer)
 }
 
 bool
-EdgeOrchestrator::CancelWorkload(uint64_t workloadId)
+Orchestrator::CancelWorkload(uint64_t workloadId)
 {
     NS_LOG_FUNCTION(this << workloadId);
 
@@ -156,7 +156,7 @@ EdgeOrchestrator::CancelWorkload(uint64_t workloadId)
 }
 
 void
-EdgeOrchestrator::RejectWorkload(uint32_t taskCount, const std::string& reason)
+Orchestrator::RejectWorkload(uint32_t taskCount, const std::string& reason)
 {
     NS_LOG_FUNCTION(this << taskCount << reason);
     m_workloadsRejected++;
@@ -164,7 +164,7 @@ EdgeOrchestrator::RejectWorkload(uint32_t taskCount, const std::string& reason)
 }
 
 void
-EdgeOrchestrator::CleanupConnectionManager(Ptr<ConnectionManager>& connMgr)
+Orchestrator::CleanupConnectionManager(Ptr<ConnectionManager>& connMgr)
 {
     NS_LOG_FUNCTION(this);
 
@@ -184,7 +184,7 @@ EdgeOrchestrator::CleanupConnectionManager(Ptr<ConnectionManager>& connMgr)
 }
 
 void
-EdgeOrchestrator::CancelAllPendingAdmissions()
+Orchestrator::CancelAllPendingAdmissions()
 {
     NS_LOG_FUNCTION(this);
     for (auto& [addr, dagMap] : m_pendingAdmissions)
@@ -201,7 +201,7 @@ EdgeOrchestrator::CancelAllPendingAdmissions()
 }
 
 std::map<Address, Ptr<Packet>>::iterator
-EdgeOrchestrator::AppendToBuffer(std::map<Address, Ptr<Packet>>& bufferMap,
+Orchestrator::AppendToBuffer(std::map<Address, Ptr<Packet>>& bufferMap,
                                  const Address& addr,
                                  Ptr<Packet> packet)
 {
@@ -218,7 +218,7 @@ EdgeOrchestrator::AppendToBuffer(std::map<Address, Ptr<Packet>>& bufferMap,
 }
 
 void
-EdgeOrchestrator::DoDispose()
+Orchestrator::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
@@ -241,20 +241,20 @@ EdgeOrchestrator::DoDispose()
 }
 
 void
-EdgeOrchestrator::SetCluster(const Cluster& cluster)
+Orchestrator::SetCluster(const Cluster& cluster)
 {
     NS_LOG_FUNCTION(this);
     m_cluster = cluster;
 }
 
 const Cluster&
-EdgeOrchestrator::GetCluster() const
+Orchestrator::GetCluster() const
 {
     return m_cluster;
 }
 
 void
-EdgeOrchestrator::RegisterTaskType(uint8_t taskType,
+Orchestrator::RegisterTaskType(uint8_t taskType,
                                    DeserializerCallback fullDeserializer,
                                    DeserializerCallback metadataDeserializer)
 {
@@ -263,7 +263,7 @@ EdgeOrchestrator::RegisterTaskType(uint8_t taskType,
 }
 
 Ptr<Task>
-EdgeOrchestrator::DispatchDeserializeImpl(Ptr<Packet> packet,
+Orchestrator::DispatchDeserializeImpl(Ptr<Packet> packet,
                                           uint64_t& consumedBytes,
                                           bool metadataOnly)
 {
@@ -300,67 +300,67 @@ EdgeOrchestrator::DispatchDeserializeImpl(Ptr<Packet> packet,
 }
 
 Ptr<Task>
-EdgeOrchestrator::DispatchDeserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
+Orchestrator::DispatchDeserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
 {
     NS_LOG_FUNCTION(this << packet);
     return DispatchDeserializeImpl(packet, consumedBytes, false);
 }
 
 Ptr<Task>
-EdgeOrchestrator::DispatchDeserializeMetadata(Ptr<Packet> packet, uint64_t& consumedBytes)
+Orchestrator::DispatchDeserializeMetadata(Ptr<Packet> packet, uint64_t& consumedBytes)
 {
     NS_LOG_FUNCTION(this << packet);
     return DispatchDeserializeImpl(packet, consumedBytes, true);
 }
 
 uint64_t
-EdgeOrchestrator::GetWorkloadsAdmitted() const
+Orchestrator::GetWorkloadsAdmitted() const
 {
     return m_workloadsAdmitted;
 }
 
 uint64_t
-EdgeOrchestrator::GetWorkloadsRejected() const
+Orchestrator::GetWorkloadsRejected() const
 {
     return m_workloadsRejected;
 }
 
 uint64_t
-EdgeOrchestrator::GetWorkloadsCompleted() const
+Orchestrator::GetWorkloadsCompleted() const
 {
     return m_workloadsCompleted;
 }
 
 uint32_t
-EdgeOrchestrator::GetActiveWorkloadCount() const
+Orchestrator::GetActiveWorkloadCount() const
 {
     return static_cast<uint32_t>(m_workloads.size());
 }
 
 uint64_t
-EdgeOrchestrator::GetWorkloadsCancelled() const
+Orchestrator::GetWorkloadsCancelled() const
 {
     return m_workloadsCancelled;
 }
 
 Ptr<ClusterScheduler>
-EdgeOrchestrator::GetScheduler() const
+Orchestrator::GetScheduler() const
 {
     return m_scheduler;
 }
 
 Ptr<AdmissionPolicy>
-EdgeOrchestrator::GetAdmissionPolicy() const
+Orchestrator::GetAdmissionPolicy() const
 {
     return m_admissionPolicy;
 }
 
 void
-EdgeOrchestrator::StartApplication()
+Orchestrator::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
-    NS_ABORT_MSG_IF(!m_scheduler, "No Scheduler configured for EdgeOrchestrator");
+    NS_ABORT_MSG_IF(!m_scheduler, "No Scheduler configured for Orchestrator");
 
     if (!m_clientConnMgr)
     {
@@ -372,25 +372,25 @@ EdgeOrchestrator::StartApplication()
     }
 
     m_clientConnMgr->SetNode(GetNode());
-    m_clientConnMgr->SetReceiveCallback(MakeCallback(&EdgeOrchestrator::HandleReceive, this));
+    m_clientConnMgr->SetReceiveCallback(MakeCallback(&Orchestrator::HandleReceive, this));
 
     Ptr<TcpConnectionManager> tcpClientMgr = DynamicCast<TcpConnectionManager>(m_clientConnMgr);
     if (tcpClientMgr)
     {
-        tcpClientMgr->SetCloseCallback(MakeCallback(&EdgeOrchestrator::HandleClientClose, this));
+        tcpClientMgr->SetCloseCallback(MakeCallback(&Orchestrator::HandleClientClose, this));
     }
 
     m_clientConnMgr->Bind(m_port);
-    NS_LOG_INFO("EdgeOrchestrator listening on port " << m_port);
+    NS_LOG_INFO("Orchestrator listening on port " << m_port);
 
     m_backendConnMgr->SetNode(GetNode());
     m_backendConnMgr->SetReceiveCallback(
-        MakeCallback(&EdgeOrchestrator::HandleBackendResponse, this));
+        MakeCallback(&Orchestrator::HandleBackendResponse, this));
 
     Ptr<TcpConnectionManager> tcpBackendMgr = DynamicCast<TcpConnectionManager>(m_backendConnMgr);
     if (tcpBackendMgr)
     {
-        tcpBackendMgr->SetCloseCallback(MakeCallback(&EdgeOrchestrator::HandleBackendClose, this));
+        tcpBackendMgr->SetCloseCallback(MakeCallback(&Orchestrator::HandleBackendClose, this));
     }
 
     if (m_taskTypeRegistry.empty())
@@ -415,7 +415,7 @@ EdgeOrchestrator::StartApplication()
 }
 
 void
-EdgeOrchestrator::StopApplication()
+Orchestrator::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -437,7 +437,7 @@ EdgeOrchestrator::StopApplication()
 }
 
 void
-EdgeOrchestrator::HandleReceive(Ptr<Packet> packet, const Address& from)
+Orchestrator::HandleReceive(Ptr<Packet> packet, const Address& from)
 {
     NS_LOG_FUNCTION(this << packet << from);
 
@@ -453,7 +453,7 @@ EdgeOrchestrator::HandleReceive(Ptr<Packet> packet, const Address& from)
 }
 
 void
-EdgeOrchestrator::HandleClientClose(const Address& clientAddr)
+Orchestrator::HandleClientClose(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
     NS_LOG_INFO("Client disconnected: " << clientAddr);
@@ -461,7 +461,7 @@ EdgeOrchestrator::HandleClientClose(const Address& clientAddr)
 }
 
 void
-EdgeOrchestrator::HandleBackendClose(const Address& backendAddr)
+Orchestrator::HandleBackendClose(const Address& backendAddr)
 {
     NS_LOG_FUNCTION(this << backendAddr);
     NS_LOG_WARN("Backend disconnected: " << backendAddr);
@@ -498,7 +498,7 @@ EdgeOrchestrator::HandleBackendClose(const Address& backendAddr)
 }
 
 void
-EdgeOrchestrator::ProcessClientBuffer(const Address& clientAddr)
+Orchestrator::ProcessClientBuffer(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 
@@ -552,7 +552,7 @@ EdgeOrchestrator::ProcessClientBuffer(const Address& clientAddr)
 }
 
 bool
-EdgeOrchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const Address& clientAddr)
+Orchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << id << clientAddr);
 
@@ -595,7 +595,7 @@ EdgeOrchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const 
 }
 
 void
-EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t taskId, bool admitted)
+Orchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t taskId, bool admitted)
 {
     NS_LOG_FUNCTION(this << clientAddr << taskId << admitted);
 
@@ -641,7 +641,7 @@ EdgeOrchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t task
 }
 
 bool
-EdgeOrchestrator::CheckAdmission(Ptr<DagTask> dag)
+Orchestrator::CheckAdmission(Ptr<DagTask> dag)
 {
     NS_LOG_FUNCTION(this);
 
@@ -655,7 +655,7 @@ EdgeOrchestrator::CheckAdmission(Ptr<DagTask> dag)
 }
 
 uint64_t
-EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& clientAddr)
+Orchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << dag);
 
@@ -691,7 +691,7 @@ EdgeOrchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& cli
 }
 
 int32_t
-EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
+Orchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
 {
     NS_LOG_FUNCTION(this << workloadId << task->GetTaskId());
 
@@ -747,7 +747,7 @@ EdgeOrchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
 }
 
 void
-EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
+Orchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
 {
     NS_LOG_FUNCTION(this << packet << from);
 
@@ -841,7 +841,7 @@ EdgeOrchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
 }
 
 void
-EdgeOrchestrator::OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t backendIdx)
+Orchestrator::OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t backendIdx)
 {
     NS_LOG_FUNCTION(this << workloadId << task->GetTaskId() << backendIdx);
 
@@ -895,7 +895,7 @@ EdgeOrchestrator::OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t 
 }
 
 bool
-EdgeOrchestrator::ProcessDagReadyTasks(uint64_t workloadId)
+Orchestrator::ProcessDagReadyTasks(uint64_t workloadId)
 {
     NS_LOG_FUNCTION(this << workloadId);
 
@@ -930,7 +930,7 @@ EdgeOrchestrator::ProcessDagReadyTasks(uint64_t workloadId)
 }
 
 void
-EdgeOrchestrator::CompleteWorkload(uint64_t workloadId)
+Orchestrator::CompleteWorkload(uint64_t workloadId)
 {
     NS_LOG_FUNCTION(this << workloadId);
 
@@ -959,7 +959,7 @@ EdgeOrchestrator::CompleteWorkload(uint64_t workloadId)
 }
 
 bool
-EdgeOrchestrator::SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> dag)
+Orchestrator::SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> dag)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 
@@ -986,7 +986,7 @@ EdgeOrchestrator::SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> d
 }
 
 void
-EdgeOrchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr)
+Orchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << dagId << clientAddr);
 
@@ -1021,7 +1021,7 @@ EdgeOrchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Ad
     uint64_t consumedBytes = 0;
     Ptr<DagTask> dag =
         DagTask::DeserializeFullData(payload,
-                                     MakeCallback(&EdgeOrchestrator::DispatchDeserialize, this),
+                                     MakeCallback(&Orchestrator::DispatchDeserialize, this),
                                      consumedBytes);
 
     if (dag)
@@ -1036,7 +1036,7 @@ EdgeOrchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Ad
 }
 
 void
-EdgeOrchestrator::CleanupClient(const Address& clientAddr)
+Orchestrator::CleanupClient(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 
@@ -1072,7 +1072,7 @@ EdgeOrchestrator::CleanupClient(const Address& clientAddr)
 }
 
 void
-EdgeOrchestrator::HandleAdmissionRequest(uint64_t dagId,
+Orchestrator::HandleAdmissionRequest(uint64_t dagId,
                                          Ptr<Packet> dagPacket,
                                          const Address& clientAddr)
 {
@@ -1081,7 +1081,7 @@ EdgeOrchestrator::HandleAdmissionRequest(uint64_t dagId,
     uint64_t consumedBytes = 0;
     Ptr<DagTask> dag = DagTask::DeserializeMetadata(
         dagPacket,
-        MakeCallback(&EdgeOrchestrator::DispatchDeserializeMetadata, this),
+        MakeCallback(&Orchestrator::DispatchDeserializeMetadata, this),
         consumedBytes);
     if (!dag)
     {

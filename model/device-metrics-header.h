@@ -22,7 +22,7 @@ namespace ns3
  * @brief Header for device metrics reports sent from backend to orchestrator.
  *
  * DeviceMetricsHeader carries accelerator telemetry from a backend
- * to the EdgeOrchestrator's DeviceManager.
+ * to the Orchestrator's DeviceManager.
  *
  * Wire format (17 bytes):
  * - messageType: 1 byte (uint8_t, always DEVICE_METRICS = 6)

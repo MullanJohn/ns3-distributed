@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef EDGE_ORCHESTRATOR_HELPER_H
-#define EDGE_ORCHESTRATOR_HELPER_H
+#ifndef ORCHESTRATOR_HELPER_H
+#define ORCHESTRATOR_HELPER_H
 
 #include "ns3/application-helper.h"
 #include "ns3/cluster.h"
@@ -17,25 +17,25 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Helper to create and configure EdgeOrchestrator applications.
+ * @brief Helper to create and configure Orchestrator applications.
  *
- * This helper simplifies the creation and configuration of EdgeOrchestrator
+ * This helper simplifies the creation and configuration of Orchestrator
  * applications. It extends ApplicationHelper with cluster configuration
  * that is applied during installation.
  */
-class EdgeOrchestratorHelper : public ApplicationHelper
+class OrchestratorHelper : public ApplicationHelper
 {
   public:
     /**
-     * @brief Construct helper with default EdgeOrchestrator type.
+     * @brief Construct helper with default Orchestrator type.
      */
-    EdgeOrchestratorHelper();
+    OrchestratorHelper();
 
     /**
      * @brief Construct helper with specified port.
      * @param port Port number to listen on.
      */
-    explicit EdgeOrchestratorHelper(uint16_t port);
+    explicit OrchestratorHelper(uint16_t port);
 
     /**
      * @brief Set the port to listen on.
@@ -58,4 +58,4 @@ class EdgeOrchestratorHelper : public ApplicationHelper
 
 } // namespace ns3
 
-#endif // EDGE_ORCHESTRATOR_HELPER_H
+#endif // ORCHESTRATOR_HELPER_H

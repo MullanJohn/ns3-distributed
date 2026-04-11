@@ -18,7 +18,7 @@
  */
 
 // Helper headers
-#include "ns3/edge-orchestrator-helper.h"
+#include "ns3/orchestrator-helper.h"
 #include "ns3/periodic-client-helper.h"
 #include "ns3/periodic-server-helper.h"
 

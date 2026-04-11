@@ -66,7 +66,7 @@ class TaskHeader;
  *
  * Concrete subclasses must implement GetName() and GetTaskType(). They should
  * also provide static Deserialize() and DeserializeHeader() factory methods
- * and register them with EdgeOrchestrator::RegisterTaskType() for DAG
+ * and register them with Orchestrator::RegisterTaskType() for DAG
  * deserialization support. See SimpleTask for a reference implementation.
  */
 class Task : public Object
@@ -246,7 +246,7 @@ class Task : public Object
      * @brief Get the task type identifier.
      *
      * Returns a stable 1-byte identifier for this task type. Used by DAG
-     * serialization and the EdgeOrchestrator's task type registry to dispatch
+     * serialization and the Orchestrator's task type registry to dispatch
      * deserialization to the correct callback.
      *
      * @return The task type identifier.

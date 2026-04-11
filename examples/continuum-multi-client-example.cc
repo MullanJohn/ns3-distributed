@@ -9,7 +9,7 @@
 #include "ns3/cluster.h"
 #include "ns3/core-module.h"
 #include "ns3/dvfs-energy-model.h"
-#include "ns3/edge-orchestrator.h"
+#include "ns3/orchestrator.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/round-robin-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
@@ -29,7 +29,7 @@
 //  Multi-Client Distributed Computing Simulation Example
 //
 //  Demonstrates multiple clients offloading periodic frames through a
-//  single EdgeOrchestrator to a backend.
+//  single Orchestrator to a backend.
 //
 //  Network topology:
 //
@@ -178,7 +178,7 @@ main(int argc, char* argv[])
     policy->SetAttribute("MaxActiveTasks", UintegerValue(8));
 
     uint16_t orchPort = 8080;
-    Ptr<EdgeOrchestrator> orchestrator = CreateObject<EdgeOrchestrator>();
+    Ptr<Orchestrator> orchestrator = CreateObject<Orchestrator>();
     orchestrator->SetAttribute("Port", UintegerValue(orchPort));
     orchestrator->SetAttribute("Scheduler", PointerValue(scheduler));
     orchestrator->SetAttribute("AdmissionPolicy", PointerValue(policy));

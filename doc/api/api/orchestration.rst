@@ -1,10 +1,10 @@
 Orchestration
 =============
 
-EdgeOrchestrator
-----------------
+Orchestrator
+------------
 
-.. doxygenclass:: ns3::EdgeOrchestrator
+.. doxygenclass:: ns3::Orchestrator
    :members:
 
 Cluster
