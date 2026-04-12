@@ -10,9 +10,9 @@
 #define CONTINUUM_H
 
 /**
- * @defgroup continuum Continuum Computing Module
+ * @defgroup continuum Computing Continuum Module
  *
- * This module provides classes for simulating distributed computing workloads
+ * This module provides classes for simulating computing continuum workloads
  * in ns-3. It models task offloading from clients to servers with hardware
  * accelerators.
  *
@@ -69,6 +69,11 @@
 #include "ns3/scaling-command-header.h"
 #include "ns3/scaling-policy.h"
 #include "ns3/utilization-scaling-policy.h"
+
+// Client submission policies
+#include "ns3/always-submit-policy.h"
+#include "ns3/client-submission-policy.h"
+#include "ns3/drop-while-pending-submission-policy.h"
 
 // Applications
 #include "ns3/periodic-client.h"

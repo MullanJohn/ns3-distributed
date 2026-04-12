@@ -31,8 +31,8 @@ namespace ns3
  * @code
  * Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
  *
- * Ptr<ComputeTask> task1 = CreateObject<ComputeTask>();
- * Ptr<ComputeTask> task2 = CreateObject<ComputeTask>();
+ * Ptr<SimpleTask> task1 = CreateObject<SimpleTask>();
+ * Ptr<SimpleTask> task2 = CreateObject<SimpleTask>();
  *
  * scheduler->Enqueue(task1);
  * scheduler->Enqueue(task2);
@@ -102,7 +102,7 @@ class QueueScheduler : public Object
     /**
      * @brief Get the name of this scheduling algorithm.
      *
-     * @return A string identifying the scheduler (e.g., "FIFO", "Batching").
+     * @return A string identifying the scheduler (e.g., "FIFO").
      */
     virtual std::string GetName() const = 0;
 

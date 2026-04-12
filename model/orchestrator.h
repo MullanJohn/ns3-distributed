@@ -24,7 +24,6 @@
 
 #include <map>
 #include <unordered_map>
-#include <unordered_map>
 #include <utility>
 
 namespace ns3

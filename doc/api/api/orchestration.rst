@@ -43,20 +43,8 @@ AdmissionPolicy
 .. doxygenclass:: ns3::AdmissionPolicy
    :members:
 
-AlwaysAdmitPolicy
------------------
-
-.. doxygenclass:: ns3::AlwaysAdmitPolicy
-   :members:
-
 MaxActiveTasksPolicy
 --------------------
 
 .. doxygenclass:: ns3::MaxActiveTasksPolicy
-   :members:
-
-DeadlineAwareAdmissionPolicy
------------------------------
-
-.. doxygenclass:: ns3::DeadlineAwareAdmissionPolicy
    :members:

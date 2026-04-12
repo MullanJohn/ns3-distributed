@@ -29,16 +29,16 @@ class DagTask;
  * @brief Abstract base class for admission control policies.
  *
  * AdmissionPolicy determines whether a workload should be accepted for execution.
-
+ *
  * Implementations are stateless - the orchestrator tracks active workloads
- * and passes the count to ShouldAdmit(). This follows real-world patterns
- * from Kubernetes and Spark where admission controllers are stateless.
+ * and passes per-backend state to ShouldAdmit(). This follows real-world
+ * patterns from Kubernetes and Spark where admission controllers are stateless.
  *
  * Example usage:
  * @code
  * Ptr<AdmissionPolicy> policy = CreateObject<MaxActiveTasksPolicy>();
  *
- * if (policy->ShouldAdmit(dag, cluster, activeCount))
+ * if (policy->ShouldAdmit(dag, cluster, state))
  * {
  *     // Accept workload...
  * }

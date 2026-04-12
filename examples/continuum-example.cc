@@ -26,7 +26,7 @@
 
 // ===========================================================================
 //
-//  Distributed Computing Simulation Example
+//  Computing Continuum Simulation Example
 //
 //  Demonstrates periodic frame offloading from a client through an
 //  Orchestrator to a backend using the two-phase admission protocol.
@@ -41,7 +41,7 @@
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("DistributedExample");
+NS_LOG_COMPONENT_DEFINE("ContinuumExample");
 
 static void
 FrameSent(Ptr<const Task> task)
@@ -114,7 +114,7 @@ main(int argc, char* argv[])
                  effectiveCapacitance);
     cmd.Parse(argc, argv);
 
-    NS_LOG_UNCOND("Single-Client Distributed Computing Example");
+    NS_LOG_UNCOND("Single-Client Computing Continuum Example");
     NS_LOG_UNCOND("Topology: Client -> Orchestrator -> Backend");
     NS_LOG_UNCOND("Frame rate: " << frameRate << " FPS");
     NS_LOG_UNCOND("");

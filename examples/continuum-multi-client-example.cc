@@ -26,7 +26,7 @@
 
 // ===========================================================================
 //
-//  Multi-Client Distributed Computing Simulation Example
+//  Multi-Client Computing Continuum Simulation Example
 //
 //  Demonstrates multiple clients offloading periodic frames through a
 //  single Orchestrator to a backend.
@@ -44,7 +44,7 @@
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("DistributedMultiClientExample");
+NS_LOG_COMPONENT_DEFINE("ContinuumMultiClientExample");
 
 static void
 FrameSent(Ptr<const Task> task)
@@ -101,7 +101,7 @@ main(int argc, char* argv[])
                  transferBandwidth);
     cmd.Parse(argc, argv);
 
-    NS_LOG_UNCOND("Multi-Client Distributed Computing Example");
+    NS_LOG_UNCOND("Multi-Client Computing Continuum Example");
     NS_LOG_UNCOND("Topology: Clients -> Orchestrator -> Backend");
     NS_LOG_UNCOND("Clients: " << numClients << ", Frame rate: " << frameRate << " FPS");
     NS_LOG_UNCOND("");

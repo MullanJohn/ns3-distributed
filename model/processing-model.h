@@ -36,7 +36,7 @@ class Accelerator; // Forward declaration
  * gpu->SetAttribute("MemoryBandwidth", DoubleValue(900e9));
  * gpu->SetAttribute("ProcessingModel", PointerValue(model));
  *
- * Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+ * Ptr<SimpleTask> task = CreateObject<SimpleTask>();
  * task->SetComputeDemand(1e9);
  * task->SetInputSize(1e6);
  * task->SetOutputSize(1e6);

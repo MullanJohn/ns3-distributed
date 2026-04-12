@@ -11,9 +11,9 @@
 
 /**
  * @ingroup continuum
- * @defgroup continuum-helper Continuum Computing Helpers
+ * @defgroup continuum-helper Computing Continuum Helpers
  *
- * Helper classes for configuring and installing continuum computing
+ * Helper classes for configuring and installing computing continuum
  * applications in ns-3 simulations.
  */
 

@@ -16,11 +16,11 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Processing model using three-phase timing for ComputeTask on GpuAccelerator.
+ * @brief Processing model using three-phase timing on GpuAccelerator.
  *
  * FixedRatioProcessingModel calculates processing time using a three-phase
- * model (input transfer, compute, output transfer) based on ComputeTask
- * properties and GpuAccelerator hardware characteristics.
+ * model (input transfer, compute, output transfer) based on Task properties
+ * and GpuAccelerator hardware characteristics.
  *
  * Processing time calculation:
  * - Input transfer: inputSize / GpuAccelerator.TransferBandwidth
