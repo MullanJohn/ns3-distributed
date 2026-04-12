@@ -43,6 +43,9 @@ build_lib(
                  model/gpu-device-protocol.cc
                  model/device-manager.cc
                  model/orchestrator.cc
+                 model/client-submission-policy.cc
+                 model/always-submit-policy.cc
+                 model/drop-while-pending-submission-policy.cc
                  model/periodic-client.cc
                  model/periodic-server.cc
                  model/cluster.cc
@@ -82,6 +85,9 @@ build_lib(
                  model/gpu-device-protocol.h
                  model/device-manager.h
                  model/orchestrator.h
+                 model/client-submission-policy.h
+                 model/always-submit-policy.h
+                 model/drop-while-pending-submission-policy.h
                  model/periodic-client.h
                  model/periodic-server.h
                  model/cluster.h
@@ -117,5 +123,6 @@ build_lib(
                  test/conservative-scaling-policy-test.cc
                  test/utilization-scaling-policy-test.cc
                  test/max-active-tasks-policy-test.cc
+                 test/drop-while-pending-submission-policy-test.cc
                  ${examples_as_tests_sources}
 )

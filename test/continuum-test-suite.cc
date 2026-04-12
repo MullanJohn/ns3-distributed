@@ -62,6 +62,7 @@ TestCase* CreateMaxActiveTasksRejectFullTestCase();
 TestCase* CreateMaxActiveTasksPendingReservationTestCase();
 TestCase* CreateMaxActiveTasksIncomingWorkloadSizeTestCase();
 TestCase* CreateMaxActiveTasksTypeScopedReservationTestCase();
+TestCase* CreateDropWhilePendingSubmissionPolicyTestCase();
 
 class ContinuumTestSuite : public TestSuite
 {
@@ -122,6 +123,7 @@ ContinuumTestSuite::ContinuumTestSuite()
     AddTestCase(CreateMaxActiveTasksPendingReservationTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateMaxActiveTasksIncomingWorkloadSizeTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateMaxActiveTasksTypeScopedReservationTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateDropWhilePendingSubmissionPolicyTestCase(), TestCase::Duration::QUICK);
 }
 
 static ContinuumTestSuite sContinuumTestSuite;

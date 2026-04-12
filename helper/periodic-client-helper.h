@@ -11,7 +11,9 @@
 
 #include "ns3/address.h"
 #include "ns3/application-helper.h"
+#include "ns3/client-submission-policy.h"
 #include "ns3/nstime.h"
+#include "ns3/ptr.h"
 
 namespace ns3
 {
@@ -91,6 +93,16 @@ class PeriodicClientHelper : public ApplicationHelper
      * @param budget Communication budget (T_ul + T_dl estimate).
      */
     void SetCommunicationBudget(Time budget);
+
+    /**
+     * @brief Set the client submission policy.
+     *
+     * When unset, the client installs a DropWhilePendingSubmissionPolicy at
+     * startup, matching the historical drop-if-pending behaviour.
+     *
+     * @param policy The submission policy to install on the client.
+     */
+    void SetSubmissionPolicy(Ptr<ClientSubmissionPolicy> policy);
 };
 
 } // namespace ns3

@@ -8,6 +8,7 @@
 
 #include "periodic-client.h"
 
+#include "drop-while-pending-submission-policy.h"
 #include "simple-task.h"
 #include "tcp-connection-manager.h"
 
@@ -46,6 +47,12 @@ PeriodicClient::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&PeriodicClient::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
+            .AddAttribute("SubmissionPolicy",
+                          "Policy deciding whether to submit each scheduled frame "
+                          "(defaults to DropWhilePendingSubmissionPolicy)",
+                          PointerValue(),
+                          MakePointerAccessor(&PeriodicClient::m_submissionPolicy),
+                          MakePointerChecker<ClientSubmissionPolicy>())
             .AddAttribute("FrameRate",
                           "Frames per second",
                           DoubleValue(30.0),
@@ -104,6 +111,7 @@ PeriodicClient::GetTypeId()
 
 PeriodicClient::PeriodicClient()
     : m_connMgr(nullptr),
+      m_submissionPolicy(nullptr),
       m_frameRate(30.0),
       m_deadlineBudget(Seconds(0)),
       m_commBudget(Seconds(0)),
@@ -114,6 +122,11 @@ PeriodicClient::PeriodicClient()
       m_nextDagId(1),
       m_totalTx(0),
       m_totalRx(0),
+      m_framesRejected(0),
+      m_framesViolated(0),
+      m_lastViolationFrame(0),
+      m_lastViolationTime(Seconds(0)),
+      m_lastRejectionTime(Seconds(0)),
       m_rxBuffer(Create<Packet>()),
       m_responsesReceived(0)
 {
@@ -138,6 +151,7 @@ PeriodicClient::DoDispose()
         m_connMgr = nullptr;
     }
 
+    m_submissionPolicy = nullptr;
     m_rxBuffer = nullptr;
     m_frameSize = nullptr;
     m_computeDemand = nullptr;
@@ -200,6 +214,11 @@ PeriodicClient::StartApplication()
     if (!m_connMgr)
     {
         m_connMgr = CreateObject<TcpConnectionManager>();
+    }
+
+    if (!m_submissionPolicy)
+    {
+        m_submissionPolicy = CreateObject<DropWhilePendingSubmissionPolicy>();
     }
 
     m_connMgr->SetNode(GetNode());
@@ -279,11 +298,24 @@ PeriodicClient::GenerateFrame()
 
     m_frameCount++;
 
-    if (!m_pendingWorkloads.empty())
+    ClientSubmissionPolicy::ClientState st;
+    st.pendingCount = static_cast<uint32_t>(m_pendingWorkloads.size());
+    st.submissionCount = m_frameCount;
+    st.submissionsSent = m_framesSent;
+    st.submissionsDropped = m_framesDropped;
+    st.submissionsViolated = m_framesViolated;
+    st.submissionsRejected = m_framesRejected;
+    st.lastViolationIndex = m_lastViolationFrame;
+    st.lastViolationTime = m_lastViolationTime;
+    st.lastRejectionTime = m_lastRejectionTime;
+    st.now = Simulator::Now();
+    st.submissionRate = m_frameRate;
+
+    if (!m_submissionPolicy->ShouldSubmit(st))
     {
         m_framesDropped++;
         NS_LOG_INFO("PeriodicClient " << m_clientId << " dropped frame " << m_frameCount
-                                      << " (previous frame still pending)");
+                                      << " (policy=" << m_submissionPolicy->GetName() << ")");
         m_frameDroppedTrace(m_frameCount);
         ScheduleNextFrame();
         return;
@@ -439,6 +471,8 @@ PeriodicClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
             if (task)
             {
                 task->SetState(TASK_REJECTED);
+                m_framesRejected++;
+                m_lastRejectionTime = Simulator::Now();
                 m_frameRejectedTrace(task);
             }
         }
@@ -489,6 +523,9 @@ PeriodicClient::HandleTaskResponse()
                                               << taskId << " (latency="
                                               << latency.GetMilliSeconds() << "ms, budget="
                                               << budget.GetMilliSeconds() << "ms)");
+                m_framesViolated++;
+                m_lastViolationFrame = m_frameCount;
+                m_lastViolationTime = Simulator::Now();
                 m_frameViolatedTrace(task, latency);
             }
             else
@@ -545,6 +582,8 @@ PeriodicClient::SendFullData(uint64_t dagId)
             Ptr<Task> task = dag->GetTask(i);
             if (task)
             {
+                m_framesRejected++;
+                m_lastRejectionTime = Simulator::Now();
                 m_frameRejectedTrace(task);
             }
         }

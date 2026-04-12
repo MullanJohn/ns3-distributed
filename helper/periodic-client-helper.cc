@@ -11,6 +11,7 @@
 #include "ns3/address.h"
 #include "ns3/double.h"
 #include "ns3/nstime.h"
+#include "ns3/pointer.h"
 #include "ns3/string.h"
 
 #include <sstream>
@@ -83,6 +84,12 @@ void
 PeriodicClientHelper::SetCommunicationBudget(Time budget)
 {
     m_factory.Set("CommunicationBudget", TimeValue(budget));
+}
+
+void
+PeriodicClientHelper::SetSubmissionPolicy(Ptr<ClientSubmissionPolicy> policy)
+{
+    m_factory.Set("SubmissionPolicy", PointerValue(policy));
 }
 
 } // namespace ns3

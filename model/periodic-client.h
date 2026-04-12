@@ -9,6 +9,7 @@
 #ifndef PERIODIC_CLIENT_H
 #define PERIODIC_CLIENT_H
 
+#include "client-submission-policy.h"
 #include "connection-manager.h"
 #include "dag-task.h"
 #include "orchestrator-header.h"
@@ -174,6 +175,7 @@ class PeriodicClient : public Application
     // Transport
     Ptr<ConnectionManager> m_connMgr; //!< Connection manager for transport
     Address m_peer;                   //!< Remote orchestrator address
+    Ptr<ClientSubmissionPolicy> m_submissionPolicy; //!< Policy deciding whether to submit each tick
 
     // Configuration
     double m_frameRate;                        //!< Frames per second
@@ -193,6 +195,11 @@ class PeriodicClient : public Application
     uint64_t m_nextDagId;           //!< Next DAG ID
     uint64_t m_totalTx;             //!< Total bytes transmitted
     uint64_t m_totalRx;             //!< Total bytes received
+    uint64_t m_framesRejected;      //!< Frames rejected by the orchestrator
+    uint64_t m_framesViolated;      //!< Completed frames whose latency exceeded the deadline budget
+    uint64_t m_lastViolationFrame;  //!< Frame index of the most recent violation (0 = never)
+    Time m_lastViolationTime;       //!< Simulation time of the most recent violation
+    Time m_lastRejectionTime;       //!< Simulation time of the most recent rejection
 
     // Pending workload state
     struct PendingWorkload
