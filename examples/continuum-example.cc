@@ -28,7 +28,7 @@
 //
 //  Computing Continuum Simulation Example
 //
-//  Demonstrates periodic frame offloading from a client through an
+//  Demonstrates periodic task offloading from a client through an
 //  Orchestrator to a backend using the two-phase admission protocol.
 //
 //  Network topology:
@@ -44,19 +44,19 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("ContinuumExample");
 
 static void
-FrameSent(Ptr<const Task> task)
+TaskSent(Ptr<const Task> task)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [Client] Frame " << task->GetTaskId() << " sent"
+                  << " [Client] Task " << task->GetTaskId() << " sent"
                   << " (input=" << task->GetInputSize() / 1024.0 << " KB"
                   << ", compute=" << task->GetComputeDemand() / 1e9 << " GFLOP)");
 }
 
 static void
-FrameProcessed(Ptr<const Task> task, Time latency)
+TaskProcessed(Ptr<const Task> task, Time latency)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [Client] Frame " << task->GetTaskId() << " response received"
+                  << " [Client] Task " << task->GetTaskId() << " response received"
                   << " (latency=" << latency.As(Time::MS) << ")");
 }
 
@@ -64,14 +64,14 @@ static void
 GpuTaskStarted(Ptr<const Task> task)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [GPU] Frame " << task->GetTaskId() << " started processing");
+                  << " [GPU] Task " << task->GetTaskId() << " started processing");
 }
 
 static void
 GpuTaskCompleted(Ptr<const Task> task, Time duration)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [GPU] Frame " << task->GetTaskId() << " completed"
+                  << " [GPU] Task " << task->GetTaskId() << " completed"
                   << " (processing=" << duration.As(Time::MS) << ")");
 }
 
@@ -81,8 +81,8 @@ main(int argc, char* argv[])
     std::string dataRate = "100Mbps";
     std::string delay = "5ms";
     double simTime = 2.0;
-    double frameRate = 10.0;
-    double meanFrameSize = 1e5;
+    double taskRate = 10.0;
+    double meanInputSize = 1e5;
     double computeDemand = 5e9;
     double outputSize = 1e4;
     double computeRate = 1e12;
@@ -97,9 +97,9 @@ main(int argc, char* argv[])
     cmd.AddValue("dataRate", "Link data rate", dataRate);
     cmd.AddValue("delay", "Link delay", delay);
     cmd.AddValue("simTime", "Simulation time in seconds", simTime);
-    cmd.AddValue("frameRate", "Frames per second", frameRate);
-    cmd.AddValue("meanFrameSize", "Mean frame size in bytes", meanFrameSize);
-    cmd.AddValue("computeDemand", "Compute demand per frame in FLOPS", computeDemand);
+    cmd.AddValue("taskRate", "Tasks per second", taskRate);
+    cmd.AddValue("meanInputSize", "Mean input size in bytes", meanInputSize);
+    cmd.AddValue("computeDemand", "Compute demand per task in FLOPS", computeDemand);
     cmd.AddValue("outputSize", "Output size in bytes", outputSize);
     cmd.AddValue("computeRate", "GPU compute rate in FLOPS", computeRate);
     cmd.AddValue("memoryBandwidth", "GPU DRAM memory bandwidth in bytes/sec", memoryBandwidth);
@@ -116,7 +116,7 @@ main(int argc, char* argv[])
 
     NS_LOG_UNCOND("Single-Client Computing Continuum Example");
     NS_LOG_UNCOND("Topology: Client -> Orchestrator -> Backend");
-    NS_LOG_UNCOND("Frame rate: " << frameRate << " FPS");
+    NS_LOG_UNCOND("Task rate: " << taskRate << " Hz");
     NS_LOG_UNCOND("");
 
     NodeContainer nodes;
@@ -184,16 +184,16 @@ main(int argc, char* argv[])
     orchestrator->SetStopTime(Seconds(simTime + 1.0));
 
     OffloadClientHelper clientHelper(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort));
-    clientHelper.SetFrameRate(frameRate);
-    clientHelper.SetMeanFrameSize(meanFrameSize);
+    clientHelper.SetTaskRate(taskRate);
+    clientHelper.SetMeanInputSize(meanInputSize);
     clientHelper.SetComputeDemand(computeDemand);
     clientHelper.SetOutputSize(outputSize);
 
     ApplicationContainer clientApps = clientHelper.Install(nodes.Get(0));
 
     Ptr<OffloadClient> client = DynamicCast<OffloadClient>(clientApps.Get(0));
-    client->TraceConnectWithoutContext("FrameSent", MakeCallback(&FrameSent));
-    client->TraceConnectWithoutContext("FrameProcessed", MakeCallback(&FrameProcessed));
+    client->TraceConnectWithoutContext("TaskSent", MakeCallback(&TaskSent));
+    client->TraceConnectWithoutContext("TaskProcessed", MakeCallback(&TaskProcessed));
 
     clientApps.Start(Seconds(0.1));
     clientApps.Stop(Seconds(simTime));
@@ -205,12 +205,12 @@ main(int argc, char* argv[])
 
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("=== Summary ===");
-    NS_LOG_UNCOND("Frames sent:         " << client->GetFramesSent());
+    NS_LOG_UNCOND("Tasks sent:          " << client->GetTasksSent());
     NS_LOG_UNCOND("Responses received:  " << client->GetResponsesReceived());
-    NS_LOG_UNCOND("Frames dropped:      " << client->GetFramesDropped());
+    NS_LOG_UNCOND("Tasks dropped:       " << client->GetTasksDropped());
     NS_LOG_UNCOND("Workloads admitted:  " << orchestrator->GetWorkloadsAdmitted());
     NS_LOG_UNCOND("Workloads completed: " << orchestrator->GetWorkloadsCompleted());
-    NS_LOG_UNCOND("Frames processed:    " << server->GetFramesProcessed());
+    NS_LOG_UNCOND("Tasks processed:     " << server->GetTasksProcessed());
     NS_LOG_UNCOND("Client TX bytes:     " << client->GetTotalTx());
     NS_LOG_UNCOND("Client RX bytes:     " << client->GetTotalRx());
     NS_LOG_UNCOND("");

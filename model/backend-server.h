@@ -26,10 +26,11 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Backend server that processes frames on an accelerator.
+ * @brief Backend server that processes tasks on an accelerator.
  *
- * BackendServer receives frames from an Orchestrator, submits them
- * to the Accelerator aggregated on the node and sends processing results back when frames complete.
+ * BackendServer receives tasks from an Orchestrator, submits them to the
+ * Accelerator aggregated on the node, and sends processing results back when
+ * tasks complete.
  *
  * Example usage:
  * @code
@@ -52,16 +53,16 @@ class BackendServer : public Application
     ~BackendServer() override;
 
     /**
-     * @brief Get the number of frames received.
-     * @return Number of frames received.
+     * @brief Get the number of tasks received.
+     * @return Number of tasks received.
      */
-    uint64_t GetFramesReceived() const;
+    uint64_t GetTasksReceived() const;
 
     /**
-     * @brief Get the number of frames processed.
-     * @return Number of frames completed and response sent.
+     * @brief Get the number of tasks processed.
+     * @return Number of tasks completed and response sent.
      */
-    uint64_t GetFramesProcessed() const;
+    uint64_t GetTasksProcessed() const;
 
     /**
      * @brief Get the total bytes received.
@@ -76,17 +77,17 @@ class BackendServer : public Application
     uint16_t GetPort() const;
 
     /**
-     * @brief TracedCallback signature for frame received events.
-     * @param task The task representing the received frame.
+     * @brief TracedCallback signature for task received events.
+     * @param task The task that was received.
      */
-    typedef void (*FrameReceivedTracedCallback)(Ptr<const Task> task);
+    typedef void (*TaskReceivedTracedCallback)(Ptr<const Task> task);
 
     /**
-     * @brief TracedCallback signature for frame processed events.
+     * @brief TracedCallback signature for task processed events.
      * @param task The completed task.
      * @param duration The processing duration on the accelerator.
      */
-    typedef void (*FrameProcessedTracedCallback)(Ptr<const Task> task, Time duration);
+    typedef void (*TaskProcessedTracedCallback)(Ptr<const Task> task, Time duration);
 
   protected:
     void DoDispose() override;
@@ -126,13 +127,13 @@ class BackendServer : public Application
     std::unordered_map<uint64_t, PendingTask> m_pendingTasks;
 
     // Statistics
-    uint64_t m_framesReceived;  //!< Number of frames received
-    uint64_t m_framesProcessed; //!< Number of frames processed
-    uint64_t m_totalRx;         //!< Total bytes received
+    uint64_t m_tasksReceived;  //!< Number of tasks received
+    uint64_t m_tasksProcessed; //!< Number of tasks processed
+    uint64_t m_totalRx;        //!< Total bytes received
 
     // Trace sources
-    TracedCallback<Ptr<const Task>> m_frameReceivedTrace;        //!< Frame received
-    TracedCallback<Ptr<const Task>, Time> m_frameProcessedTrace; //!< Frame processed
+    TracedCallback<Ptr<const Task>> m_taskReceivedTrace;        //!< Task received
+    TracedCallback<Ptr<const Task>, Time> m_taskProcessedTrace; //!< Task processed
 };
 
 } // namespace ns3

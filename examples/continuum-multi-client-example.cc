@@ -28,7 +28,7 @@
 //
 //  Multi-Client Computing Continuum Simulation Example
 //
-//  Demonstrates multiple clients offloading periodic frames through a
+//  Demonstrates multiple clients offloading periodic tasks through a
 //  single Orchestrator to a backend.
 //
 //  Network topology:
@@ -47,18 +47,18 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("ContinuumMultiClientExample");
 
 static void
-FrameSent(Ptr<const Task> task)
+TaskSent(Ptr<const Task> task)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [Client] Frame " << task->GetTaskId() << " sent"
+                  << " [Client] Task " << task->GetTaskId() << " sent"
                   << " (input=" << task->GetInputSize() / 1024.0 << " KB)");
 }
 
 static void
-FrameProcessed(Ptr<const Task> task, Time latency)
+TaskProcessed(Ptr<const Task> task, Time latency)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [Client] Frame " << task->GetTaskId()
+                  << " [Client] Task " << task->GetTaskId()
                   << " response (latency=" << latency.As(Time::MS) << ")");
 }
 
@@ -66,7 +66,7 @@ static void
 GpuTaskCompleted(Ptr<const Task> task, Time duration)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [GPU] Frame " << task->GetTaskId()
+                  << " [GPU] Task " << task->GetTaskId()
                   << " completed (processing=" << duration.As(Time::MS) << ")");
 }
 
@@ -77,8 +77,8 @@ main(int argc, char* argv[])
     std::string dataRate = "100Mbps";
     std::string delay = "2ms";
     double simTime = 2.0;
-    double frameRate = 5.0;
-    double meanFrameSize = 5e4;
+    double taskRate = 5.0;
+    double meanInputSize = 5e4;
     double computeDemand = 1e9;
     double outputSize = 1e4;
     double computeRate = 1e12;
@@ -90,9 +90,9 @@ main(int argc, char* argv[])
     cmd.AddValue("dataRate", "Link data rate", dataRate);
     cmd.AddValue("delay", "Link delay", delay);
     cmd.AddValue("simTime", "Simulation time in seconds", simTime);
-    cmd.AddValue("frameRate", "Frames per second per client", frameRate);
-    cmd.AddValue("meanFrameSize", "Mean frame size in bytes", meanFrameSize);
-    cmd.AddValue("computeDemand", "Compute demand per frame in FLOPS", computeDemand);
+    cmd.AddValue("taskRate", "Tasks per second per client", taskRate);
+    cmd.AddValue("meanInputSize", "Mean input size in bytes", meanInputSize);
+    cmd.AddValue("computeDemand", "Compute demand per task in FLOPS", computeDemand);
     cmd.AddValue("outputSize", "Output size in bytes", outputSize);
     cmd.AddValue("computeRate", "GPU compute rate in FLOPS", computeRate);
     cmd.AddValue("memoryBandwidth", "GPU DRAM memory bandwidth in bytes/sec", memoryBandwidth);
@@ -103,7 +103,7 @@ main(int argc, char* argv[])
 
     NS_LOG_UNCOND("Multi-Client Computing Continuum Example");
     NS_LOG_UNCOND("Topology: Clients -> Orchestrator -> Backend");
-    NS_LOG_UNCOND("Clients: " << numClients << ", Frame rate: " << frameRate << " FPS");
+    NS_LOG_UNCOND("Clients: " << numClients << ", Task rate: " << taskRate << " Hz");
     NS_LOG_UNCOND("");
 
     NodeContainer clientNodes;
@@ -192,16 +192,16 @@ main(int argc, char* argv[])
     for (uint32_t i = 0; i < numClients; i++)
     {
         OffloadClientHelper clientHelper(InetSocketAddress(orchAddresses[i], orchPort));
-        clientHelper.SetFrameRate(frameRate);
-        clientHelper.SetMeanFrameSize(meanFrameSize);
+        clientHelper.SetTaskRate(taskRate);
+        clientHelper.SetMeanInputSize(meanInputSize);
         clientHelper.SetComputeDemand(computeDemand);
         clientHelper.SetOutputSize(outputSize);
 
         ApplicationContainer clientApps = clientHelper.Install(clientNodes.Get(i));
 
         Ptr<OffloadClient> client = DynamicCast<OffloadClient>(clientApps.Get(0));
-        client->TraceConnectWithoutContext("FrameSent", MakeCallback(&FrameSent));
-        client->TraceConnectWithoutContext("FrameProcessed", MakeCallback(&FrameProcessed));
+        client->TraceConnectWithoutContext("TaskSent", MakeCallback(&TaskSent));
+        client->TraceConnectWithoutContext("TaskProcessed", MakeCallback(&TaskProcessed));
 
         clients.push_back(client);
 
@@ -217,30 +217,30 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("=== Summary ===");
 
-    uint64_t totalFramesSent = 0;
+    uint64_t totalTasksSent = 0;
     uint64_t totalResponsesReceived = 0;
     uint64_t totalClientTx = 0;
     uint64_t totalClientRx = 0;
 
     for (uint32_t i = 0; i < numClients; i++)
     {
-        NS_LOG_UNCOND("Client " << i << ": sent=" << clients[i]->GetFramesSent()
+        NS_LOG_UNCOND("Client " << i << ": sent=" << clients[i]->GetTasksSent()
                                 << ", responses=" << clients[i]->GetResponsesReceived()
-                                << ", dropped=" << clients[i]->GetFramesDropped()
+                                << ", dropped=" << clients[i]->GetTasksDropped()
                                 << ", TX=" << clients[i]->GetTotalTx() << " bytes"
                                 << ", RX=" << clients[i]->GetTotalRx() << " bytes");
-        totalFramesSent += clients[i]->GetFramesSent();
+        totalTasksSent += clients[i]->GetTasksSent();
         totalResponsesReceived += clients[i]->GetResponsesReceived();
         totalClientTx += clients[i]->GetTotalTx();
         totalClientRx += clients[i]->GetTotalRx();
     }
 
     NS_LOG_UNCOND("");
-    NS_LOG_UNCOND("Total frames sent:     " << totalFramesSent);
+    NS_LOG_UNCOND("Total tasks sent:      " << totalTasksSent);
     NS_LOG_UNCOND("Total responses:       " << totalResponsesReceived);
     NS_LOG_UNCOND("Workloads admitted:    " << orchestrator->GetWorkloadsAdmitted());
     NS_LOG_UNCOND("Workloads completed:   " << orchestrator->GetWorkloadsCompleted());
-    NS_LOG_UNCOND("Frames processed:      " << server->GetFramesProcessed());
+    NS_LOG_UNCOND("Tasks processed:       " << server->GetTasksProcessed());
     NS_LOG_UNCOND("Server RX bytes:       " << server->GetTotalRx());
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("=== Energy ===");

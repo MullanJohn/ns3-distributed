@@ -24,7 +24,7 @@ namespace ns3
  * @brief Helper to create and configure OffloadClient applications.
  *
  * This helper simplifies the creation and configuration of OffloadClient
- * applications that offload frames to an Orchestrator via the
+ * applications that offload tasks to an Orchestrator via the
  * two-phase admission protocol.
  */
 class OffloadClientHelper : public ApplicationHelper
@@ -48,17 +48,17 @@ class OffloadClientHelper : public ApplicationHelper
     void SetOrchestratorAddress(const Address& addr);
 
     /**
-     * @brief Set a constant frame rate.
+     * @brief Set a constant task rate.
      *
      * Convenience wrapper for SetInterArrival with a ConstantRandomVariable
-     * configured to 1/fps seconds.
+     * configured to 1/rate seconds.
      *
-     * @param fps Frames per second.
+     * @param rate Tasks per second.
      */
-    void SetFrameRate(double fps);
+    void SetTaskRate(double rate);
 
     /**
-     * @brief Set the inter-arrival distribution between frames.
+     * @brief Set the inter-arrival distribution between tasks.
      *
      * Pass any RandomVariableStream returning seconds (e.g.
      * ExponentialRandomVariable for Poisson arrivals,
@@ -69,30 +69,40 @@ class OffloadClientHelper : public ApplicationHelper
     void SetInterArrival(Ptr<RandomVariableStream> rv);
 
     /**
-     * @brief Set the mean frame size with optional standard deviation.
+     * @brief Set the mean input size per task with optional standard deviation.
      *
      * If stddev > 0, uses a NormalRandomVariable with the given mean and
      * variance (bounded at 3*stddev). Otherwise uses a ConstantRandomVariable.
      *
-     * @param mean Mean frame size in bytes.
+     * @param mean Mean input size in bytes.
      * @param stddev Standard deviation in bytes (0 = constant).
      */
-    void SetMeanFrameSize(double mean, double stddev = 0);
+    void SetMeanInputSize(double mean, double stddev = 0);
 
     /**
-     * @brief Set a constant compute demand per frame.
-     * @param demand Compute demand in FLOPS.
+     * @brief Set the compute demand per task with optional standard deviation.
+     *
+     * If stddev > 0, uses a NormalRandomVariable with the given mean and
+     * variance (bounded at 3*stddev). Otherwise uses a ConstantRandomVariable.
+     *
+     * @param demand Mean compute demand in FLOPS.
+     * @param stddev Standard deviation in FLOPS (0 = constant).
      */
-    void SetComputeDemand(double demand);
+    void SetComputeDemand(double demand, double stddev = 0);
 
     /**
-     * @brief Set a constant output size per frame.
-     * @param size Output size in bytes.
+     * @brief Set the output size per task with optional standard deviation.
+     *
+     * If stddev > 0, uses a NormalRandomVariable with the given mean and
+     * variance (bounded at 3*stddev). Otherwise uses a ConstantRandomVariable.
+     *
+     * @param size Mean output size in bytes.
+     * @param stddev Standard deviation in bytes (0 = constant).
      */
-    void SetOutputSize(double size);
+    void SetOutputSize(double size, double stddev = 0);
 
     /**
-     * @brief Set the end-to-end delay budget per frame.
+     * @brief Set the end-to-end delay budget per task.
      *
      * When zero (the default), the budget is derived from the inter-arrival
      * period sampled at startup.

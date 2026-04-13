@@ -18,9 +18,9 @@ namespace ns3
  * @ingroup continuum
  * @brief Utilization-based DVFS scaling policy inspired by Linux ondemand governor.
  *
- * Simple binary policy using the accelerator's OPP table:
- * - Busy or queued tasks -> highest OPP (aggressive scale-up for latency)
- * - Idle -> lowest OPP (energy savings)
+ * Simple binary policy using the accelerator's performance state table:
+ * - Busy or queued tasks -> highest performance state (aggressive scale-up for latency)
+ * - Idle -> lowest performance state (energy savings)
  */
 class UtilizationScalingPolicy : public ScalingPolicy
 {

@@ -32,10 +32,6 @@ namespace ns3
  * pluggable ScalingPolicy using per-backend state from ClusterState, and sends
  * ScalingCommandHeader packets to backends via the orchestrator's worker
  * ConnectionManager.
- *
- * Metrics arrive via HandleMetrics() (called by Orchestrator when a type-4
- * packet arrives). Scaling is evaluated via EvaluateScaling() (called by
- * Orchestrator on task events).
  */
 class DeviceManager : public Object
 {

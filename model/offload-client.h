@@ -30,19 +30,19 @@ class Packet;
 
 /**
  * @ingroup continuum
- * @brief Configurable client that generates frames for remote processing.
+ * @brief Configurable client that generates tasks for remote processing.
  *
- * OffloadClient models a device that captures frames according to a
- * pluggable inter-arrival distribution and offloads them to an edge server.
- * The default inter-arrival is constant at 1/30 s (30 fps periodic); pass any
- * other RandomVariableStream (e.g. ExponentialRandomVariable) for stochastic
+ * OffloadClient models a device that generates tasks according to a
+ * pluggable inter-arrival distribution and offloads them to a backend.
+ * The default inter-arrival is constant at 1/30 s; pass any other
+ * RandomVariableStream (e.g. ExponentialRandomVariable) for stochastic
  * arrivals.
  *
  * Example usage (helper convenience):
  * @code
  * OffloadClientHelper helper(orchAddress);
- * helper.SetFrameRate(30.0);
- * helper.SetMeanFrameSize(60000);
+ * helper.SetTaskRate(30.0);
+ * helper.SetMeanInputSize(60000);
  * helper.SetComputeDemand(5e9);
  * helper.Install(node);
  * @endcode
@@ -72,20 +72,20 @@ class OffloadClient : public Application
     Address GetRemote() const;
 
     /**
-     * @brief Get the number of frames sent.
-     * @return Number of frames submitted for admission.
+     * @brief Get the number of tasks sent.
+     * @return Number of tasks submitted for admission.
      */
-    uint64_t GetFramesSent() const;
+    uint64_t GetTasksSent() const;
 
     /**
-     * @brief Get the number of frames dropped.
-     * @return Number of frames dropped because the previous frame was still pending.
+     * @brief Get the number of tasks dropped.
+     * @return Number of tasks dropped because a prior task was still pending.
      */
-    uint64_t GetFramesDropped() const;
+    uint64_t GetTasksDropped() const;
 
     /**
      * @brief Get the number of responses received.
-     * @return Number of processed frame results received.
+     * @return Number of processed task results received.
      */
     uint64_t GetResponsesReceived() const;
 
@@ -110,36 +110,36 @@ class OffloadClient : public Application
     int64_t AssignStreams(int64_t stream) override;
 
     /**
-     * @brief TracedCallback signature for frame sent events.
-     * @param task The task representing the frame.
+     * @brief TracedCallback signature for task sent events.
+     * @param task The task that was submitted for admission.
      */
-    typedef void (*FrameSentTracedCallback)(Ptr<const Task> task);
+    typedef void (*TaskSentTracedCallback)(Ptr<const Task> task);
 
     /**
-     * @brief TracedCallback signature for frame processed events.
+     * @brief TracedCallback signature for task processed events.
      * @param task The completed task.
      * @param latency End-to-end latency from submission to response.
      */
-    typedef void (*FrameProcessedTracedCallback)(Ptr<const Task> task, Time latency);
+    typedef void (*TaskProcessedTracedCallback)(Ptr<const Task> task, Time latency);
 
     /**
-     * @brief TracedCallback signature for frame rejected events.
+     * @brief TracedCallback signature for task rejected events.
      * @param task The rejected task.
      */
-    typedef void (*FrameRejectedTracedCallback)(Ptr<const Task> task);
+    typedef void (*TaskRejectedTracedCallback)(Ptr<const Task> task);
 
     /**
-     * @brief TracedCallback signature for frame deadline violation events.
+     * @brief TracedCallback signature for task deadline violation events.
      * @param task The completed task whose latency exceeded the deadline budget.
      * @param latency End-to-end latency from submission to response.
      */
-    typedef void (*FrameViolatedTracedCallback)(Ptr<const Task> task, Time latency);
+    typedef void (*TaskViolatedTracedCallback)(Ptr<const Task> task, Time latency);
 
     /**
-     * @brief TracedCallback signature for frame dropped events.
-     * @param frameNumber The sequence number of the dropped frame.
+     * @brief TracedCallback signature for task dropped events.
+     * @param taskIndex The sequence number of the dropped task.
      */
-    typedef void (*FrameDroppedTracedCallback)(uint64_t frameNumber);
+    typedef void (*TaskDroppedTracedCallback)(uint64_t taskIndex);
 
   protected:
     void DoDispose() override;
@@ -153,14 +153,14 @@ class OffloadClient : public Application
     void HandleReceive(Ptr<Packet> packet, const Address& from);
 
     /**
-     * @brief Generate and submit the next frame.
+     * @brief Generate and submit the next task.
      */
-    void GenerateFrame();
+    void GenerateTask();
 
     /**
-     * @brief Schedule the next frame generation at fixed interval.
+     * @brief Schedule the next task generation.
      */
-    void ScheduleNextFrame();
+    void ScheduleNextTask();
 
     void ProcessBuffer();
     void HandleAdmissionResponse(const OrchestratorHeader& orchHeader);
@@ -173,34 +173,34 @@ class OffloadClient : public Application
     Ptr<ClientSubmissionPolicy> m_submissionPolicy; //!< Policy deciding whether to submit each tick
 
     // Configuration
-    Ptr<RandomVariableStream> m_interArrival;  //!< Inter-arrival time between frames in seconds
+    Ptr<RandomVariableStream> m_interArrival;  //!< Inter-arrival time between tasks in seconds
     Time m_deadlineBudget;                     //!< End-to-end delay budget (0 = use sampled inter-arrival period)
     Time m_commBudget;                         //!< Communication budget (T_ul + T_dl estimate)
-    Ptr<RandomVariableStream> m_frameSize;     //!< Input image size in bytes
-    Ptr<RandomVariableStream> m_computeDemand; //!< FLOPS per frame
+    Ptr<RandomVariableStream> m_inputSize;     //!< Input size per task in bytes
+    Ptr<RandomVariableStream> m_computeDemand; //!< FLOPS per task
     Ptr<RandomVariableStream> m_outputSize;    //!< Result size in bytes
     Time m_nominalPeriod;                      //!< Inter-arrival period sampled once at startup
 
     // State
     static uint32_t s_nextClientId; //!< Counter for assigning unique client IDs
     uint32_t m_clientId;            //!< Unique ID for this client instance
-    EventId m_sendEvent;            //!< Next frame event
-    uint64_t m_framesSent;          //!< Frames successfully submitted for admission
-    uint64_t m_frameCount;          //!< Total frame generation events (sent + dropped)
-    uint64_t m_framesDropped;       //!< Frames dropped due to pending workload
+    EventId m_sendEvent;            //!< Next task event
+    uint64_t m_tasksSent;           //!< Tasks successfully submitted for admission
+    uint64_t m_taskCount;           //!< Total task generation events (sent + dropped)
+    uint64_t m_tasksDropped;        //!< Tasks dropped due to pending workload
     uint64_t m_nextDagId;           //!< Next DAG ID
     uint64_t m_totalTx;             //!< Total bytes transmitted
     uint64_t m_totalRx;             //!< Total bytes received
-    uint64_t m_framesRejected;      //!< Frames rejected by the orchestrator
-    uint64_t m_framesViolated;      //!< Completed frames whose latency exceeded the deadline budget
-    uint64_t m_lastViolationFrame;  //!< Frame index of the most recent violation (0 = never)
+    uint64_t m_tasksRejected;       //!< Tasks rejected by the orchestrator
+    uint64_t m_tasksViolated;       //!< Completed tasks whose latency exceeded the deadline budget
+    uint64_t m_lastViolationIndex;  //!< Task index of the most recent violation (0 = never)
     Time m_lastViolationTime;       //!< Simulation time of the most recent violation
     Time m_lastRejectionTime;       //!< Simulation time of the most recent rejection
 
     // Pending workload state
     struct PendingWorkload
     {
-        Ptr<DagTask> dag; //!< The DAG wrapping the frame task
+        Ptr<DagTask> dag; //!< The DAG wrapping the submitted task
         Time submitTime;  //!< When the admission request was sent
     };
 
@@ -211,11 +211,11 @@ class OffloadClient : public Application
     uint64_t m_responsesReceived; //!< Number of responses received
 
     // Trace sources
-    TracedCallback<Ptr<const Task>> m_frameSentTrace;            //!< Frame sent
-    TracedCallback<Ptr<const Task>, Time> m_frameProcessedTrace; //!< Frame processed
-    TracedCallback<Ptr<const Task>> m_frameRejectedTrace;        //!< Frame rejected
-    TracedCallback<Ptr<const Task>, Time> m_frameViolatedTrace;  //!< Deadline violated
-    TracedCallback<uint64_t> m_frameDroppedTrace;                //!< Frame dropped
+    TracedCallback<Ptr<const Task>> m_taskSentTrace;            //!< Task sent
+    TracedCallback<Ptr<const Task>, Time> m_taskProcessedTrace; //!< Task processed
+    TracedCallback<Ptr<const Task>> m_taskRejectedTrace;        //!< Task rejected
+    TracedCallback<Ptr<const Task>, Time> m_taskViolatedTrace;  //!< Deadline violated
+    TracedCallback<uint64_t> m_taskDroppedTrace;                //!< Task dropped
 };
 
 } // namespace ns3

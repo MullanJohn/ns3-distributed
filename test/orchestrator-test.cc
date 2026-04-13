@@ -121,16 +121,16 @@ class SingleTaskEndToEndTestCase : public TestCase
 
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-        // 1 FPS, stop at 1.5s: the client emits exactly one frame.
+        // 1 Hz, stop at 1.5s: the client emits exactly one task.
         Ptr<OffloadClient> client = CreateObject<OffloadClient>();
         client->SetAttribute("Remote",
                              AddressValue(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort)));
         client->SetAttribute("InterArrival",
                              StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
 
-        Ptr<ConstantRandomVariable> frameSize = CreateObject<ConstantRandomVariable>();
-        frameSize->SetAttribute("Constant", DoubleValue(1000));
-        client->SetAttribute("FrameSize", PointerValue(frameSize));
+        Ptr<ConstantRandomVariable> inputSize = CreateObject<ConstantRandomVariable>();
+        inputSize->SetAttribute("Constant", DoubleValue(1000));
+        client->SetAttribute("InputSize", PointerValue(inputSize));
 
         Ptr<ConstantRandomVariable> compute = CreateObject<ConstantRandomVariable>();
         compute->SetAttribute("Constant", DoubleValue(1e9));
@@ -301,9 +301,9 @@ class MultiBackendTestCase : public TestCase
         client0->SetAttribute("InterArrival",
                               StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
 
-        Ptr<ConstantRandomVariable> frameSize0 = CreateObject<ConstantRandomVariable>();
-        frameSize0->SetAttribute("Constant", DoubleValue(1000));
-        client0->SetAttribute("FrameSize", PointerValue(frameSize0));
+        Ptr<ConstantRandomVariable> inputSize0 = CreateObject<ConstantRandomVariable>();
+        inputSize0->SetAttribute("Constant", DoubleValue(1000));
+        client0->SetAttribute("InputSize", PointerValue(inputSize0));
 
         Ptr<ConstantRandomVariable> compute0 = CreateObject<ConstantRandomVariable>();
         compute0->SetAttribute("Constant", DoubleValue(4e11));
@@ -319,9 +319,9 @@ class MultiBackendTestCase : public TestCase
         client1->SetAttribute("InterArrival",
                               StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
 
-        Ptr<ConstantRandomVariable> frameSize1 = CreateObject<ConstantRandomVariable>();
-        frameSize1->SetAttribute("Constant", DoubleValue(1000));
-        client1->SetAttribute("FrameSize", PointerValue(frameSize1));
+        Ptr<ConstantRandomVariable> inputSize1 = CreateObject<ConstantRandomVariable>();
+        inputSize1->SetAttribute("Constant", DoubleValue(1000));
+        client1->SetAttribute("InputSize", PointerValue(inputSize1));
 
         Ptr<ConstantRandomVariable> compute1 = CreateObject<ConstantRandomVariable>();
         compute1->SetAttribute("Constant", DoubleValue(4e11));
@@ -362,10 +362,10 @@ class MultiBackendTestCase : public TestCase
                               0,
                               "Backend 1 should have received at least one task");
 
-        uint64_t totalProcessed = server0->GetFramesProcessed() + server1->GetFramesProcessed();
+        uint64_t totalProcessed = server0->GetTasksProcessed() + server1->GetTasksProcessed();
         NS_TEST_ASSERT_MSG_EQ(totalProcessed,
                               2,
-                              "Both servers should have processed 2 frames total");
+                              "Both servers should have processed 2 tasks total");
     }
 
     void OnTaskDispatched(uint64_t workloadId, uint64_t taskId, uint32_t backendIdx)

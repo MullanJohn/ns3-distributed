@@ -19,7 +19,7 @@ namespace ns3
  * @brief Helper to create and configure BackendServer applications.
  *
  * This helper simplifies the creation and configuration of BackendServer
- * applications for processing offloaded frames on backend accelerators.
+ * applications for processing offloaded tasks on backend accelerators.
  */
 class BackendServerHelper : public ApplicationHelper
 {

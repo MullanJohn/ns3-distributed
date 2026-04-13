@@ -48,19 +48,19 @@ OffloadClient::GetTypeId()
                           MakePointerAccessor(&OffloadClient::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
             .AddAttribute("SubmissionPolicy",
-                          "Policy deciding whether to submit each scheduled frame "
+                          "Policy deciding whether to submit each scheduled task "
                           "(defaults to DropWhilePendingSubmissionPolicy)",
                           PointerValue(),
                           MakePointerAccessor(&OffloadClient::m_submissionPolicy),
                           MakePointerChecker<ClientSubmissionPolicy>())
             .AddAttribute("InterArrival",
-                          "Random variable for inter-arrival time between frames in seconds. "
-                          "Default ConstantRandomVariable yields 30 fps periodic arrivals.",
+                          "Random variable for inter-arrival time between tasks in seconds. "
+                          "Default ConstantRandomVariable yields 30 Hz periodic arrivals.",
                           StringValue("ns3::ConstantRandomVariable[Constant=0.0333333333333333]"),
                           MakePointerAccessor(&OffloadClient::m_interArrival),
                           MakePointerChecker<RandomVariableStream>())
             .AddAttribute("DeadlineBudget",
-                          "End-to-end delay budget per frame. "
+                          "End-to-end delay budget per task. "
                           "When zero, defaults to the inter-arrival period sampled at startup.",
                           TimeValue(Seconds(0)),
                           MakeTimeAccessor(&OffloadClient::m_deadlineBudget),
@@ -71,13 +71,13 @@ OffloadClient::GetTypeId()
                           TimeValue(Seconds(0)),
                           MakeTimeAccessor(&OffloadClient::m_commBudget),
                           MakeTimeChecker())
-            .AddAttribute("FrameSize",
-                          "Random variable for input frame size in bytes",
+            .AddAttribute("InputSize",
+                          "Random variable for input size per task in bytes",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&OffloadClient::m_frameSize),
+                          MakePointerAccessor(&OffloadClient::m_inputSize),
                           MakePointerChecker<RandomVariableStream>())
             .AddAttribute("ComputeDemand",
-                          "Random variable for compute demand per frame in FLOPS",
+                          "Random variable for compute demand per task in FLOPS",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
                           MakePointerAccessor(&OffloadClient::m_computeDemand),
                           MakePointerChecker<RandomVariableStream>())
@@ -86,27 +86,27 @@ OffloadClient::GetTypeId()
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
                           MakePointerAccessor(&OffloadClient::m_outputSize),
                           MakePointerChecker<RandomVariableStream>())
-            .AddTraceSource("FrameSent",
-                            "Trace fired when a frame admission request is sent",
-                            MakeTraceSourceAccessor(&OffloadClient::m_frameSentTrace),
-                            "ns3::OffloadClient::FrameSentTracedCallback")
-            .AddTraceSource("FrameProcessed",
-                            "Trace fired when a processed frame result is received",
-                            MakeTraceSourceAccessor(&OffloadClient::m_frameProcessedTrace),
-                            "ns3::OffloadClient::FrameProcessedTracedCallback")
-            .AddTraceSource("FrameRejected",
-                            "Trace fired when a frame admission is rejected",
-                            MakeTraceSourceAccessor(&OffloadClient::m_frameRejectedTrace),
-                            "ns3::OffloadClient::FrameRejectedTracedCallback")
-            .AddTraceSource("FrameViolated",
-                            "Trace fired when a processed frame exceeds its deadline budget",
-                            MakeTraceSourceAccessor(&OffloadClient::m_frameViolatedTrace),
-                            "ns3::OffloadClient::FrameViolatedTracedCallback")
+            .AddTraceSource("TaskSent",
+                            "Trace fired when a task admission request is sent",
+                            MakeTraceSourceAccessor(&OffloadClient::m_taskSentTrace),
+                            "ns3::OffloadClient::TaskSentTracedCallback")
+            .AddTraceSource("TaskProcessed",
+                            "Trace fired when a processed task result is received",
+                            MakeTraceSourceAccessor(&OffloadClient::m_taskProcessedTrace),
+                            "ns3::OffloadClient::TaskProcessedTracedCallback")
+            .AddTraceSource("TaskRejected",
+                            "Trace fired when a task admission is rejected",
+                            MakeTraceSourceAccessor(&OffloadClient::m_taskRejectedTrace),
+                            "ns3::OffloadClient::TaskRejectedTracedCallback")
+            .AddTraceSource("TaskViolated",
+                            "Trace fired when a processed task exceeds its deadline budget",
+                            MakeTraceSourceAccessor(&OffloadClient::m_taskViolatedTrace),
+                            "ns3::OffloadClient::TaskViolatedTracedCallback")
             .AddTraceSource(
-                "FrameDropped",
-                "Trace fired when a frame is dropped because the previous frame is still pending",
-                MakeTraceSourceAccessor(&OffloadClient::m_frameDroppedTrace),
-                "ns3::OffloadClient::FrameDroppedTracedCallback");
+                "TaskDropped",
+                "Trace fired when a task is dropped because a prior task is still pending",
+                MakeTraceSourceAccessor(&OffloadClient::m_taskDroppedTrace),
+                "ns3::OffloadClient::TaskDroppedTracedCallback");
     return tid;
 }
 
@@ -117,15 +117,15 @@ OffloadClient::OffloadClient()
       m_commBudget(Seconds(0)),
       m_nominalPeriod(Seconds(0)),
       m_clientId(s_nextClientId++),
-      m_framesSent(0),
-      m_frameCount(0),
-      m_framesDropped(0),
+      m_tasksSent(0),
+      m_taskCount(0),
+      m_tasksDropped(0),
       m_nextDagId(1),
       m_totalTx(0),
       m_totalRx(0),
-      m_framesRejected(0),
-      m_framesViolated(0),
-      m_lastViolationFrame(0),
+      m_tasksRejected(0),
+      m_tasksViolated(0),
+      m_lastViolationIndex(0),
       m_lastViolationTime(Seconds(0)),
       m_lastRejectionTime(Seconds(0)),
       m_rxBuffer(Create<Packet>()),
@@ -154,7 +154,7 @@ OffloadClient::DoDispose()
 
     m_submissionPolicy = nullptr;
     m_rxBuffer = nullptr;
-    m_frameSize = nullptr;
+    m_inputSize = nullptr;
     m_computeDemand = nullptr;
     m_outputSize = nullptr;
     m_interArrival = nullptr;
@@ -177,15 +177,15 @@ OffloadClient::GetRemote() const
 }
 
 uint64_t
-OffloadClient::GetFramesSent() const
+OffloadClient::GetTasksSent() const
 {
-    return m_framesSent;
+    return m_tasksSent;
 }
 
 uint64_t
-OffloadClient::GetFramesDropped() const
+OffloadClient::GetTasksDropped() const
 {
-    return m_framesDropped;
+    return m_tasksDropped;
 }
 
 uint64_t
@@ -240,7 +240,7 @@ OffloadClient::StartApplication()
 
     if (!tcpConnMgr)
     {
-        ScheduleNextFrame();
+        ScheduleNextTask();
     }
 }
 
@@ -263,7 +263,7 @@ OffloadClient::HandleConnected(const Address& serverAddr)
     NS_LOG_FUNCTION(this << serverAddr);
     NS_LOG_INFO("OffloadClient " << m_clientId << " connected to orchestrator " << serverAddr);
 
-    ScheduleNextFrame();
+    ScheduleNextTask();
 }
 
 void
@@ -290,26 +290,26 @@ OffloadClient::HandleReceive(Ptr<Packet> packet, const Address& from)
 }
 
 void
-OffloadClient::GenerateFrame()
+OffloadClient::GenerateTask()
 {
     NS_LOG_FUNCTION(this);
 
     if (!m_connMgr || !m_connMgr->IsConnected())
     {
-        NS_LOG_DEBUG("Not connected, cannot submit frame");
+        NS_LOG_DEBUG("Not connected, cannot submit task");
         return;
     }
 
-    m_frameCount++;
+    m_taskCount++;
 
     ClientSubmissionPolicy::ClientState st;
     st.pendingCount = static_cast<uint32_t>(m_pendingWorkloads.size());
-    st.submissionCount = m_frameCount;
-    st.submissionsSent = m_framesSent;
-    st.submissionsDropped = m_framesDropped;
-    st.submissionsViolated = m_framesViolated;
-    st.submissionsRejected = m_framesRejected;
-    st.lastViolationIndex = m_lastViolationFrame;
+    st.submissionCount = m_taskCount;
+    st.submissionsSent = m_tasksSent;
+    st.submissionsDropped = m_tasksDropped;
+    st.submissionsViolated = m_tasksViolated;
+    st.submissionsRejected = m_tasksRejected;
+    st.lastViolationIndex = m_lastViolationIndex;
     st.lastViolationTime = m_lastViolationTime;
     st.lastRejectionTime = m_lastRejectionTime;
     st.now = Simulator::Now();
@@ -317,28 +317,28 @@ OffloadClient::GenerateFrame()
 
     if (!m_submissionPolicy->ShouldSubmit(st))
     {
-        m_framesDropped++;
-        NS_LOG_INFO("OffloadClient " << m_clientId << " dropped frame " << m_frameCount
+        m_tasksDropped++;
+        NS_LOG_INFO("OffloadClient " << m_clientId << " dropped task " << m_taskCount
                                       << " (policy=" << m_submissionPolicy->GetName() << ")");
-        m_frameDroppedTrace(m_frameCount);
-        ScheduleNextFrame();
+        m_taskDroppedTrace(m_taskCount);
+        ScheduleNextTask();
         return;
     }
 
-    uint64_t frameSize = static_cast<uint64_t>(m_frameSize->GetValue());
+    uint64_t inputSize = static_cast<uint64_t>(m_inputSize->GetValue());
     double computeDemand = m_computeDemand->GetValue();
     uint64_t outputSize = static_cast<uint64_t>(m_outputSize->GetValue());
 
     Ptr<SimpleTask> task = CreateObject<SimpleTask>();
     task->SetComputeDemand(computeDemand);
-    task->SetInputSize(frameSize);
+    task->SetInputSize(inputSize);
     task->SetOutputSize(outputSize);
 
     Time budget = m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : m_nominalPeriod;
     Time computeBudget = budget - m_commBudget;
     task->SetDeadline(Simulator::Now() + computeBudget);
 
-    uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_framesSent;
+    uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_tasksSent;
     task->SetTaskId(taskId);
 
     Ptr<DagTask> dag = CreateObject<DagTask>();
@@ -361,9 +361,9 @@ OffloadClient::GenerateFrame()
     {
         NS_LOG_WARN("OffloadClient " << m_clientId
                                       << " failed to send admission request for dagId " << dagId);
-        m_framesDropped++;
-        m_frameDroppedTrace(m_frameCount);
-        ScheduleNextFrame();
+        m_tasksDropped++;
+        m_taskDroppedTrace(m_taskCount);
+        ScheduleNextTask();
         return;
     }
 
@@ -372,21 +372,21 @@ OffloadClient::GenerateFrame()
     pw.submitTime = Simulator::Now();
     m_pendingWorkloads[dagId] = pw;
 
-    m_framesSent++;
+    m_tasksSent++;
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("OffloadClient " << m_clientId << " sent frame " << m_framesSent << " (dagId "
-                                  << dagId << ", " << frameSize << " bytes, " << computeDemand
+    NS_LOG_INFO("OffloadClient " << m_clientId << " sent task " << m_tasksSent << " (dagId "
+                                  << dagId << ", " << inputSize << " bytes, " << computeDemand
                                   << " FLOPS)");
 
     task->SetState(TASK_SUBMITTED);
-    m_frameSentTrace(task);
+    m_taskSentTrace(task);
 
-    ScheduleNextFrame();
+    ScheduleNextTask();
 }
 
 void
-OffloadClient::ScheduleNextFrame()
+OffloadClient::ScheduleNextTask()
 {
     NS_LOG_FUNCTION(this);
 
@@ -396,9 +396,9 @@ OffloadClient::ScheduleNextFrame()
     }
 
     Time interval = Seconds(m_interArrival->GetValue());
-    m_sendEvent = Simulator::Schedule(interval, &OffloadClient::GenerateFrame, this);
+    m_sendEvent = Simulator::Schedule(interval, &OffloadClient::GenerateTask, this);
 
-    NS_LOG_DEBUG("Next frame scheduled in " << interval.GetMilliSeconds() << " ms");
+    NS_LOG_DEBUG("Next task scheduled in " << interval.GetMilliSeconds() << " ms");
 }
 
 void
@@ -474,9 +474,9 @@ OffloadClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
             if (task)
             {
                 task->SetState(TASK_REJECTED);
-                m_framesRejected++;
+                m_tasksRejected++;
                 m_lastRejectionTime = Simulator::Now();
-                m_frameRejectedTrace(task);
+                m_taskRejectedTrace(task);
             }
         }
 
@@ -525,19 +525,19 @@ OffloadClient::HandleTaskResponse()
                                               << taskId << " (latency="
                                               << latency.GetMilliSeconds() << "ms, budget="
                                               << budget.GetMilliSeconds() << "ms)");
-                m_framesViolated++;
-                m_lastViolationFrame = m_frameCount;
+                m_tasksViolated++;
+                m_lastViolationIndex = m_taskCount;
                 m_lastViolationTime = Simulator::Now();
-                m_frameViolatedTrace(task, latency);
+                m_taskViolatedTrace(task, latency);
             }
             else
             {
-                NS_LOG_INFO("OffloadClient " << m_clientId << " received result for frame (task "
-                                              << taskId << ", latency="
+                NS_LOG_INFO("OffloadClient " << m_clientId << " received result for task "
+                                              << taskId << " (latency="
                                               << latency.GetMilliSeconds() << "ms)");
             }
 
-            m_frameProcessedTrace(task, latency);
+            m_taskProcessedTrace(task, latency);
 
             dag->MarkCompleted(static_cast<uint32_t>(dagIdx));
             if (dag->IsComplete())
@@ -584,9 +584,9 @@ OffloadClient::SendFullData(uint64_t dagId)
             Ptr<Task> task = dag->GetTask(i);
             if (task)
             {
-                m_framesRejected++;
+                m_tasksRejected++;
                 m_lastRejectionTime = Simulator::Now();
-                m_frameRejectedTrace(task);
+                m_taskRejectedTrace(task);
             }
         }
         m_pendingWorkloads.erase(it);
@@ -595,7 +595,7 @@ OffloadClient::SendFullData(uint64_t dagId)
 
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("OffloadClient " << m_clientId << " sent full frame data for dagId " << dagId
+    NS_LOG_INFO("OffloadClient " << m_clientId << " sent full task data for dagId " << dagId
                                   << " (" << packet->GetSize() << " bytes)");
 }
 
@@ -604,7 +604,7 @@ OffloadClient::AssignStreams(int64_t stream)
 {
     NS_LOG_FUNCTION(this << stream);
     auto currentStream = stream;
-    m_frameSize->SetStream(currentStream++);
+    m_inputSize->SetStream(currentStream++);
     m_computeDemand->SetStream(currentStream++);
     m_outputSize->SetStream(currentStream++);
     m_interArrival->SetStream(currentStream++);

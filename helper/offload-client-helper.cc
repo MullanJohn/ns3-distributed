@@ -38,10 +38,10 @@ OffloadClientHelper::SetOrchestratorAddress(const Address& addr)
 }
 
 void
-OffloadClientHelper::SetFrameRate(double fps)
+OffloadClientHelper::SetTaskRate(double rate)
 {
     auto rv = CreateObject<ConstantRandomVariable>();
-    rv->SetAttribute("Constant", DoubleValue(1.0 / fps));
+    rv->SetAttribute("Constant", DoubleValue(1.0 / rate));
     m_factory.Set("InterArrival", PointerValue(rv));
 }
 
@@ -52,7 +52,7 @@ OffloadClientHelper::SetInterArrival(Ptr<RandomVariableStream> rv)
 }
 
 void
-OffloadClientHelper::SetMeanFrameSize(double mean, double stddev)
+OffloadClientHelper::SetMeanInputSize(double mean, double stddev)
 {
     std::ostringstream oss;
     if (stddev > 0)
@@ -64,22 +64,38 @@ OffloadClientHelper::SetMeanFrameSize(double mean, double stddev)
     {
         oss << "ns3::ConstantRandomVariable[Constant=" << mean << "]";
     }
-    m_factory.Set("FrameSize", StringValue(oss.str()));
+    m_factory.Set("InputSize", StringValue(oss.str()));
 }
 
 void
-OffloadClientHelper::SetComputeDemand(double demand)
+OffloadClientHelper::SetComputeDemand(double demand, double stddev)
 {
     std::ostringstream oss;
-    oss << "ns3::ConstantRandomVariable[Constant=" << demand << "]";
+    if (stddev > 0)
+    {
+        oss << "ns3::NormalRandomVariable[Mean=" << demand << "|Variance=" << (stddev * stddev)
+            << "|Bound=" << (3.0 * stddev) << "]";
+    }
+    else
+    {
+        oss << "ns3::ConstantRandomVariable[Constant=" << demand << "]";
+    }
     m_factory.Set("ComputeDemand", StringValue(oss.str()));
 }
 
 void
-OffloadClientHelper::SetOutputSize(double size)
+OffloadClientHelper::SetOutputSize(double size, double stddev)
 {
     std::ostringstream oss;
-    oss << "ns3::ConstantRandomVariable[Constant=" << size << "]";
+    if (stddev > 0)
+    {
+        oss << "ns3::NormalRandomVariable[Mean=" << size << "|Variance=" << (stddev * stddev)
+            << "|Bound=" << (3.0 * stddev) << "]";
+    }
+    else
+    {
+        oss << "ns3::ConstantRandomVariable[Constant=" << size << "]";
+    }
     m_factory.Set("OutputSize", StringValue(oss.str()));
 }
 

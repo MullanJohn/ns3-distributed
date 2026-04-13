@@ -43,14 +43,14 @@ BackendServer::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&BackendServer::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
-            .AddTraceSource("FrameReceived",
-                            "A frame has been received for processing",
-                            MakeTraceSourceAccessor(&BackendServer::m_frameReceivedTrace),
-                            "ns3::BackendServer::FrameReceivedTracedCallback")
-            .AddTraceSource("FrameProcessed",
-                            "A frame has been processed and response sent",
-                            MakeTraceSourceAccessor(&BackendServer::m_frameProcessedTrace),
-                            "ns3::BackendServer::FrameProcessedTracedCallback");
+            .AddTraceSource("TaskReceived",
+                            "A task has been received for processing",
+                            MakeTraceSourceAccessor(&BackendServer::m_taskReceivedTrace),
+                            "ns3::BackendServer::TaskReceivedTracedCallback")
+            .AddTraceSource("TaskProcessed",
+                            "A task has been processed and response sent",
+                            MakeTraceSourceAccessor(&BackendServer::m_taskProcessedTrace),
+                            "ns3::BackendServer::TaskProcessedTracedCallback");
     return tid;
 }
 
@@ -58,8 +58,8 @@ BackendServer::BackendServer()
     : m_port(9000),
       m_connMgr(nullptr),
       m_accelerator(nullptr),
-      m_framesReceived(0),
-      m_framesProcessed(0),
+      m_tasksReceived(0),
+      m_tasksProcessed(0),
       m_totalRx(0)
 {
     NS_LOG_FUNCTION(this);
@@ -96,15 +96,15 @@ BackendServer::DoDispose()
 }
 
 uint64_t
-BackendServer::GetFramesReceived() const
+BackendServer::GetTasksReceived() const
 {
-    return m_framesReceived;
+    return m_tasksReceived;
 }
 
 uint64_t
-BackendServer::GetFramesProcessed() const
+BackendServer::GetTasksProcessed() const
 {
-    return m_framesProcessed;
+    return m_tasksProcessed;
 }
 
 uint64_t
@@ -127,7 +127,7 @@ BackendServer::StartApplication()
     m_accelerator = GetNode()->GetObject<Accelerator>();
     if (!m_accelerator)
     {
-        NS_LOG_WARN("No Accelerator aggregated to this node. Frames will be dropped.");
+        NS_LOG_WARN("No Accelerator aggregated to this node. Tasks will be dropped.");
     }
     else
     {
@@ -269,16 +269,16 @@ BackendServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << task->GetTaskId() << clientAddr);
 
-    m_framesReceived++;
-    m_frameReceivedTrace(task);
+    m_tasksReceived++;
+    m_taskReceivedTrace(task);
 
-    NS_LOG_INFO("Received frame (task " << task->GetTaskId()
-                                        << ", compute=" << task->GetComputeDemand()
-                                        << ", input=" << task->GetInputSize() << ")");
+    NS_LOG_INFO("Received task " << task->GetTaskId()
+                                 << " (compute=" << task->GetComputeDemand()
+                                 << ", input=" << task->GetInputSize() << ")");
 
     if (!m_accelerator)
     {
-        NS_LOG_ERROR("No accelerator available, dropping frame " << task->GetTaskId());
+        NS_LOG_ERROR("No accelerator available, dropping task " << task->GetTaskId());
         return;
     }
 
@@ -328,11 +328,11 @@ BackendServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Tim
         return;
     }
 
-    m_framesProcessed++;
-    m_frameProcessedTrace(task, duration);
+    m_tasksProcessed++;
+    m_taskProcessedTrace(task, duration);
 
-    NS_LOG_INFO("Sent result for frame (task "
-                << task->GetTaskId() << ", output=" << task->GetOutputSize()
+    NS_LOG_INFO("Sent result for task "
+                << task->GetTaskId() << " (output=" << task->GetOutputSize()
                 << " bytes, duration=" << duration.GetMilliSeconds() << "ms)");
 }
 
