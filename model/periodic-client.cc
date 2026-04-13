@@ -53,14 +53,15 @@ PeriodicClient::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&PeriodicClient::m_submissionPolicy),
                           MakePointerChecker<ClientSubmissionPolicy>())
-            .AddAttribute("FrameRate",
-                          "Frames per second",
-                          DoubleValue(30.0),
-                          MakeDoubleAccessor(&PeriodicClient::m_frameRate),
-                          MakeDoubleChecker<double>(0.0))
+            .AddAttribute("InterArrival",
+                          "Random variable for inter-arrival time between frames in seconds. "
+                          "Default ConstantRandomVariable yields 30 fps periodic arrivals.",
+                          StringValue("ns3::ConstantRandomVariable[Constant=0.0333333333333333]"),
+                          MakePointerAccessor(&PeriodicClient::m_interArrival),
+                          MakePointerChecker<RandomVariableStream>())
             .AddAttribute("DeadlineBudget",
                           "End-to-end delay budget per frame. "
-                          "When zero, defaults to 1/FrameRate.",
+                          "When zero, defaults to the inter-arrival period sampled at startup.",
                           TimeValue(Seconds(0)),
                           MakeTimeAccessor(&PeriodicClient::m_deadlineBudget),
                           MakeTimeChecker())
@@ -112,9 +113,9 @@ PeriodicClient::GetTypeId()
 PeriodicClient::PeriodicClient()
     : m_connMgr(nullptr),
       m_submissionPolicy(nullptr),
-      m_frameRate(30.0),
       m_deadlineBudget(Seconds(0)),
       m_commBudget(Seconds(0)),
+      m_nominalPeriod(Seconds(0)),
       m_clientId(s_nextClientId++),
       m_framesSent(0),
       m_frameCount(0),
@@ -156,6 +157,7 @@ PeriodicClient::DoDispose()
     m_frameSize = nullptr;
     m_computeDemand = nullptr;
     m_outputSize = nullptr;
+    m_interArrival = nullptr;
     m_pendingWorkloads.clear();
 
     Application::DoDispose();
@@ -220,6 +222,8 @@ PeriodicClient::StartApplication()
     {
         m_submissionPolicy = CreateObject<DropWhilePendingSubmissionPolicy>();
     }
+
+    m_nominalPeriod = Seconds(m_interArrival->GetValue());
 
     m_connMgr->SetNode(GetNode());
     m_connMgr->SetReceiveCallback(MakeCallback(&PeriodicClient::HandleReceive, this));
@@ -309,7 +313,7 @@ PeriodicClient::GenerateFrame()
     st.lastViolationTime = m_lastViolationTime;
     st.lastRejectionTime = m_lastRejectionTime;
     st.now = Simulator::Now();
-    st.submissionRate = m_frameRate;
+    st.submissionRate = 1.0 / m_nominalPeriod.GetSeconds();
 
     if (!m_submissionPolicy->ShouldSubmit(st))
     {
@@ -330,8 +334,7 @@ PeriodicClient::GenerateFrame()
     task->SetInputSize(frameSize);
     task->SetOutputSize(outputSize);
 
-    Time budget =
-        m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : Seconds(1.0 / m_frameRate);
+    Time budget = m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : m_nominalPeriod;
     Time computeBudget = budget - m_commBudget;
     task->SetDeadline(Simulator::Now() + computeBudget);
 
@@ -392,7 +395,7 @@ PeriodicClient::ScheduleNextFrame()
         return;
     }
 
-    Time interval = Seconds(1.0 / m_frameRate);
+    Time interval = Seconds(m_interArrival->GetValue());
     m_sendEvent = Simulator::Schedule(interval, &PeriodicClient::GenerateFrame, this);
 
     NS_LOG_DEBUG("Next frame scheduled in " << interval.GetMilliSeconds() << " ms");
@@ -513,9 +516,8 @@ PeriodicClient::HandleTaskResponse()
             Time latency = Simulator::Now() - it->second.submitTime;
             m_responsesReceived++;
 
-            Time budget = m_deadlineBudget.IsStrictlyPositive()
-                              ? m_deadlineBudget
-                              : Seconds(1.0 / m_frameRate);
+            Time budget =
+                m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : m_nominalPeriod;
 
             if (latency > budget)
             {
@@ -605,6 +607,7 @@ PeriodicClient::AssignStreams(int64_t stream)
     m_frameSize->SetStream(currentStream++);
     m_computeDemand->SetStream(currentStream++);
     m_outputSize->SetStream(currentStream++);
+    m_interArrival->SetStream(currentStream++);
     currentStream += Application::AssignStreams(currentStream);
     return (currentStream - stream);
 }

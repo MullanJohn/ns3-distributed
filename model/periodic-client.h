@@ -30,26 +30,21 @@ class Packet;
 
 /**
  * @ingroup continuum
- * @brief Periodic client that generates frames at a fixed rate for remote processing.
+ * @brief Configurable client that generates frames for remote processing.
  *
- * PeriodicClient models a device that captures frames
- * at a fixed frame rate and offloads them to an edge server for processing.
+ * PeriodicClient models a device that captures frames according to a
+ * pluggable inter-arrival distribution and offloads them to an edge server.
+ * The default inter-arrival is constant at 1/30 s (30 fps periodic); pass any
+ * other RandomVariableStream (e.g. ExponentialRandomVariable) for stochastic
+ * arrivals.
  *
- * Example usage:
+ * Example usage (helper convenience):
  * @code
- * Ptr<PeriodicClient> client = CreateObject<PeriodicClient>();
- * client->SetAttribute("Remote", AddressValue(orchAddress));
- * client->SetAttribute("FrameRate", DoubleValue(30.0));
- *
- * Ptr<NormalRandomVariable> frameSize = CreateObject<NormalRandomVariable>();
- * frameSize->SetAttribute("Mean", DoubleValue(60000));
- * client->SetAttribute("FrameSize", PointerValue(frameSize));
- *
- * Ptr<ConstantRandomVariable> compute = CreateObject<ConstantRandomVariable>();
- * compute->SetAttribute("Constant", DoubleValue(5e9));
- * client->SetAttribute("ComputeDemand", PointerValue(compute));
- *
- * node->AddApplication(client);
+ * PeriodicClientHelper helper(orchAddress);
+ * helper.SetFrameRate(30.0);
+ * helper.SetMeanFrameSize(60000);
+ * helper.SetComputeDemand(5e9);
+ * helper.Install(node);
  * @endcode
  */
 class PeriodicClient : public Application
@@ -178,12 +173,13 @@ class PeriodicClient : public Application
     Ptr<ClientSubmissionPolicy> m_submissionPolicy; //!< Policy deciding whether to submit each tick
 
     // Configuration
-    double m_frameRate;                        //!< Frames per second
-    Time m_deadlineBudget;                     //!< End-to-end delay budget (0 = use 1/FrameRate)
+    Ptr<RandomVariableStream> m_interArrival;  //!< Inter-arrival time between frames in seconds
+    Time m_deadlineBudget;                     //!< End-to-end delay budget (0 = use sampled inter-arrival period)
     Time m_commBudget;                         //!< Communication budget (T_ul + T_dl estimate)
     Ptr<RandomVariableStream> m_frameSize;     //!< Input image size in bytes
     Ptr<RandomVariableStream> m_computeDemand; //!< FLOPS per frame
     Ptr<RandomVariableStream> m_outputSize;    //!< Result size in bytes
+    Time m_nominalPeriod;                      //!< Inter-arrival period sampled once at startup
 
     // State
     static uint32_t s_nextClientId; //!< Counter for assigning unique client IDs

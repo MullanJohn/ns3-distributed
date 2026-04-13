@@ -125,7 +125,8 @@ class SingleTaskEndToEndTestCase : public TestCase
         Ptr<PeriodicClient> client = CreateObject<PeriodicClient>();
         client->SetAttribute("Remote",
                              AddressValue(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort)));
-        client->SetAttribute("FrameRate", DoubleValue(1.0));
+        client->SetAttribute("InterArrival",
+                             StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
 
         Ptr<ConstantRandomVariable> frameSize = CreateObject<ConstantRandomVariable>();
         frameSize->SetAttribute("Constant", DoubleValue(1000));
@@ -297,7 +298,8 @@ class MultiBackendTestCase : public TestCase
         Ptr<PeriodicClient> client0 = CreateObject<PeriodicClient>();
         client0->SetAttribute("Remote",
                               AddressValue(InetSocketAddress(ifClient0Orch.GetAddress(1), orchPort)));
-        client0->SetAttribute("FrameRate", DoubleValue(1.0));
+        client0->SetAttribute("InterArrival",
+                              StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
 
         Ptr<ConstantRandomVariable> frameSize0 = CreateObject<ConstantRandomVariable>();
         frameSize0->SetAttribute("Constant", DoubleValue(1000));
@@ -314,7 +316,8 @@ class MultiBackendTestCase : public TestCase
         Ptr<PeriodicClient> client1 = CreateObject<PeriodicClient>();
         client1->SetAttribute("Remote",
                               AddressValue(InetSocketAddress(ifClient1Orch.GetAddress(1), orchPort)));
-        client1->SetAttribute("FrameRate", DoubleValue(1.0));
+        client1->SetAttribute("InterArrival",
+                              StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
 
         Ptr<ConstantRandomVariable> frameSize1 = CreateObject<ConstantRandomVariable>();
         frameSize1->SetAttribute("Constant", DoubleValue(1000));

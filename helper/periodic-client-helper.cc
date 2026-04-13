@@ -12,6 +12,7 @@
 #include "ns3/double.h"
 #include "ns3/nstime.h"
 #include "ns3/pointer.h"
+#include "ns3/random-variable-stream.h"
 #include "ns3/string.h"
 
 #include <sstream>
@@ -39,7 +40,15 @@ PeriodicClientHelper::SetOrchestratorAddress(const Address& addr)
 void
 PeriodicClientHelper::SetFrameRate(double fps)
 {
-    m_factory.Set("FrameRate", DoubleValue(fps));
+    auto rv = CreateObject<ConstantRandomVariable>();
+    rv->SetAttribute("Constant", DoubleValue(1.0 / fps));
+    m_factory.Set("InterArrival", PointerValue(rv));
+}
+
+void
+PeriodicClientHelper::SetInterArrival(Ptr<RandomVariableStream> rv)
+{
+    m_factory.Set("InterArrival", PointerValue(rv));
 }
 
 void

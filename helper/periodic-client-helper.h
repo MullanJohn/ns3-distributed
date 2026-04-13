@@ -14,6 +14,7 @@
 #include "ns3/client-submission-policy.h"
 #include "ns3/nstime.h"
 #include "ns3/ptr.h"
+#include "ns3/random-variable-stream.h"
 
 namespace ns3
 {
@@ -47,10 +48,25 @@ class PeriodicClientHelper : public ApplicationHelper
     void SetOrchestratorAddress(const Address& addr);
 
     /**
-     * @brief Set the frame rate.
+     * @brief Set a constant frame rate.
+     *
+     * Convenience wrapper for SetInterArrival with a ConstantRandomVariable
+     * configured to 1/fps seconds.
+     *
      * @param fps Frames per second.
      */
     void SetFrameRate(double fps);
+
+    /**
+     * @brief Set the inter-arrival distribution between frames.
+     *
+     * Pass any RandomVariableStream returning seconds (e.g.
+     * ExponentialRandomVariable for Poisson arrivals,
+     * EmpiricalRandomVariable for trace-driven arrivals).
+     *
+     * @param rv Inter-arrival random variable.
+     */
+    void SetInterArrival(Ptr<RandomVariableStream> rv);
 
     /**
      * @brief Set the mean frame size with optional standard deviation.
@@ -78,7 +94,8 @@ class PeriodicClientHelper : public ApplicationHelper
     /**
      * @brief Set the end-to-end delay budget per frame.
      *
-     * When zero (the default), the budget is derived from 1/FrameRate.
+     * When zero (the default), the budget is derived from the inter-arrival
+     * period sampled at startup.
      *
      * @param budget Delay budget.
      */
