@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef PERIODIC_CLIENT_H
-#define PERIODIC_CLIENT_H
+#ifndef OFFLOAD_CLIENT_H
+#define OFFLOAD_CLIENT_H
 
 #include "client-submission-policy.h"
 #include "connection-manager.h"
@@ -32,7 +32,7 @@ class Packet;
  * @ingroup continuum
  * @brief Configurable client that generates frames for remote processing.
  *
- * PeriodicClient models a device that captures frames according to a
+ * OffloadClient models a device that captures frames according to a
  * pluggable inter-arrival distribution and offloads them to an edge server.
  * The default inter-arrival is constant at 1/30 s (30 fps periodic); pass any
  * other RandomVariableStream (e.g. ExponentialRandomVariable) for stochastic
@@ -40,14 +40,14 @@ class Packet;
  *
  * Example usage (helper convenience):
  * @code
- * PeriodicClientHelper helper(orchAddress);
+ * OffloadClientHelper helper(orchAddress);
  * helper.SetFrameRate(30.0);
  * helper.SetMeanFrameSize(60000);
  * helper.SetComputeDemand(5e9);
  * helper.Install(node);
  * @endcode
  */
-class PeriodicClient : public Application
+class OffloadClient : public Application
 {
   public:
     /**
@@ -56,8 +56,8 @@ class PeriodicClient : public Application
      */
     static TypeId GetTypeId();
 
-    PeriodicClient();
-    ~PeriodicClient() override;
+    OffloadClient();
+    ~OffloadClient() override;
 
     /**
      * @brief Set the remote orchestrator address.
@@ -220,4 +220,4 @@ class PeriodicClient : public Application
 
 } // namespace ns3
 
-#endif // PERIODIC_CLIENT_H
+#endif // OFFLOAD_CLIENT_H

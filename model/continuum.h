@@ -23,7 +23,7 @@
  * - QueueScheduler: Abstract interface for task queue management
  * - ConnectionManager: Abstract interface for transport layer (TCP, UDP)
  * - ClusterScheduler: Abstract interface for backend selection policies
- * - PeriodicClient/PeriodicServer: Periodic frame-based client-server for task offloading
+ * - OffloadClient/BackendServer: Configurable client-server pair for task offloading
  */
 
 // Task
@@ -76,8 +76,8 @@
 #include "ns3/drop-while-pending-submission-policy.h"
 
 // Applications
-#include "ns3/periodic-client.h"
-#include "ns3/periodic-server.h"
+#include "ns3/offload-client.h"
+#include "ns3/backend-server.h"
 
 // Helpers
 #include "ns3/continuum-helper.h"

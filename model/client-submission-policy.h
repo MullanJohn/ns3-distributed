@@ -26,7 +26,7 @@ namespace ns3
  * submission tick or skip it. The client owns the history; the policy
  * reads a snapshot and returns a verdict. Naming is deliberately
  * client-agnostic ("submission") so the abstraction is reusable by
- * non-PeriodicClient clients.
+ * non-OffloadClient clients.
  */
 class ClientSubmissionPolicy : public Object
 {

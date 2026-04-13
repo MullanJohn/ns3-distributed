@@ -18,8 +18,8 @@
 #include "ns3/ipv4-address-helper.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/least-loaded-scheduler.h"
-#include "ns3/periodic-client.h"
-#include "ns3/periodic-server.h"
+#include "ns3/offload-client.h"
+#include "ns3/backend-server.h"
 #include "ns3/point-to-point-helper.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
@@ -86,7 +86,7 @@ class SingleTaskEndToEndTestCase : public TestCase
         serverNode->AggregateObject(gpu);
 
         uint16_t serverPort = 9000;
-        Ptr<PeriodicServer> server = CreateObject<PeriodicServer>();
+        Ptr<BackendServer> server = CreateObject<BackendServer>();
         server->SetAttribute("Port", UintegerValue(serverPort));
         serverNode->AddApplication(server);
         server->SetStartTime(Seconds(0.0));
@@ -122,7 +122,7 @@ class SingleTaskEndToEndTestCase : public TestCase
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
         // 1 FPS, stop at 1.5s: the client emits exactly one frame.
-        Ptr<PeriodicClient> client = CreateObject<PeriodicClient>();
+        Ptr<OffloadClient> client = CreateObject<OffloadClient>();
         client->SetAttribute("Remote",
                              AddressValue(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort)));
         client->SetAttribute("InterArrival",
@@ -264,13 +264,13 @@ class MultiBackendTestCase : public TestCase
         }
 
         uint16_t serverPort = 9000;
-        Ptr<PeriodicServer> server0 = CreateObject<PeriodicServer>();
+        Ptr<BackendServer> server0 = CreateObject<BackendServer>();
         server0->SetAttribute("Port", UintegerValue(serverPort));
         serverNode0->AddApplication(server0);
         server0->SetStartTime(Seconds(0.0));
         server0->SetStopTime(Seconds(10.0));
 
-        Ptr<PeriodicServer> server1 = CreateObject<PeriodicServer>();
+        Ptr<BackendServer> server1 = CreateObject<BackendServer>();
         server1->SetAttribute("Port", UintegerValue(serverPort));
         serverNode1->AddApplication(server1);
         server1->SetStartTime(Seconds(0.0));
@@ -295,7 +295,7 @@ class MultiBackendTestCase : public TestCase
             "TaskDispatched",
             MakeCallback(&MultiBackendTestCase::OnTaskDispatched, this));
 
-        Ptr<PeriodicClient> client0 = CreateObject<PeriodicClient>();
+        Ptr<OffloadClient> client0 = CreateObject<OffloadClient>();
         client0->SetAttribute("Remote",
                               AddressValue(InetSocketAddress(ifClient0Orch.GetAddress(1), orchPort)));
         client0->SetAttribute("InterArrival",
@@ -313,7 +313,7 @@ class MultiBackendTestCase : public TestCase
         output0->SetAttribute("Constant", DoubleValue(100));
         client0->SetAttribute("OutputSize", PointerValue(output0));
 
-        Ptr<PeriodicClient> client1 = CreateObject<PeriodicClient>();
+        Ptr<OffloadClient> client1 = CreateObject<OffloadClient>();
         client1->SetAttribute("Remote",
                               AddressValue(InetSocketAddress(ifClient1Orch.GetAddress(1), orchPort)));
         client1->SetAttribute("InterArrival",

@@ -18,7 +18,7 @@ namespace ns3
  * @ingroup continuum
  * @brief Submission policy that skips ticks while any prior submission is in flight.
  *
- * Reproduces the historical PeriodicClient drop-if-pending behaviour and is
+ * Reproduces the historical OffloadClient drop-if-pending behaviour and is
  * installed as the default so existing setups keep the same output without
  * explicit configuration.
  */

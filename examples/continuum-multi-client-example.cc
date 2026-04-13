@@ -17,10 +17,10 @@
 #include "ns3/internet-module.h"
 #include "ns3/max-active-tasks-policy.h"
 #include "ns3/network-module.h"
-#include "ns3/periodic-client-helper.h"
-#include "ns3/periodic-client.h"
-#include "ns3/periodic-server-helper.h"
-#include "ns3/periodic-server.h"
+#include "ns3/offload-client-helper.h"
+#include "ns3/offload-client.h"
+#include "ns3/backend-server-helper.h"
+#include "ns3/backend-server.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/task.h"
 
@@ -164,7 +164,7 @@ main(int argc, char* argv[])
     gpu->TraceConnectWithoutContext("TaskCompleted", MakeCallback(&GpuTaskCompleted));
 
     uint16_t serverPort = 9000;
-    PeriodicServerHelper serverHelper(serverPort);
+    BackendServerHelper serverHelper(serverPort);
     ApplicationContainer serverApps = serverHelper.Install(serverNode.Get(0));
     serverApps.Start(Seconds(0.0));
     serverApps.Stop(Seconds(simTime + 1.0));
@@ -187,11 +187,11 @@ main(int argc, char* argv[])
     orchestrator->SetStartTime(Seconds(0.0));
     orchestrator->SetStopTime(Seconds(simTime + 1.0));
 
-    std::vector<Ptr<PeriodicClient>> clients;
+    std::vector<Ptr<OffloadClient>> clients;
 
     for (uint32_t i = 0; i < numClients; i++)
     {
-        PeriodicClientHelper clientHelper(InetSocketAddress(orchAddresses[i], orchPort));
+        OffloadClientHelper clientHelper(InetSocketAddress(orchAddresses[i], orchPort));
         clientHelper.SetFrameRate(frameRate);
         clientHelper.SetMeanFrameSize(meanFrameSize);
         clientHelper.SetComputeDemand(computeDemand);
@@ -199,7 +199,7 @@ main(int argc, char* argv[])
 
         ApplicationContainer clientApps = clientHelper.Install(clientNodes.Get(i));
 
-        Ptr<PeriodicClient> client = DynamicCast<PeriodicClient>(clientApps.Get(0));
+        Ptr<OffloadClient> client = DynamicCast<OffloadClient>(clientApps.Get(0));
         client->TraceConnectWithoutContext("FrameSent", MakeCallback(&FrameSent));
         client->TraceConnectWithoutContext("FrameProcessed", MakeCallback(&FrameProcessed));
 
@@ -212,7 +212,7 @@ main(int argc, char* argv[])
     Simulator::Stop(Seconds(simTime + 2.0));
     Simulator::Run();
 
-    Ptr<PeriodicServer> server = DynamicCast<PeriodicServer>(serverApps.Get(0));
+    Ptr<BackendServer> server = DynamicCast<BackendServer>(serverApps.Get(0));
 
     NS_LOG_UNCOND("");
     NS_LOG_UNCOND("=== Summary ===");

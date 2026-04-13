@@ -46,14 +46,14 @@ build_lib(
                  model/client-submission-policy.cc
                  model/always-submit-policy.cc
                  model/drop-while-pending-submission-policy.cc
-                 model/periodic-client.cc
-                 model/periodic-server.cc
+                 model/offload-client.cc
+                 model/backend-server.cc
                  model/cluster.cc
                  model/cluster-state.cc
                  helper/continuum-helper.cc
                  helper/orchestrator-helper.cc
-                 helper/periodic-client-helper.cc
-                 helper/periodic-server-helper.cc
+                 helper/offload-client-helper.cc
+                 helper/backend-server-helper.cc
     HEADER_FILES model/continuum.h
                  model/task-header.h
                  model/task.h
@@ -88,14 +88,14 @@ build_lib(
                  model/client-submission-policy.h
                  model/always-submit-policy.h
                  model/drop-while-pending-submission-policy.h
-                 model/periodic-client.h
-                 model/periodic-server.h
+                 model/offload-client.h
+                 model/backend-server.h
                  model/cluster.h
                  model/cluster-state.h
                  helper/continuum-helper.h
                  helper/orchestrator-helper.h
-                 helper/periodic-client-helper.h
-                 helper/periodic-server-helper.h
+                 helper/offload-client-helper.h
+                 helper/backend-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
                       ${libnetwork}
                       ${libinternet}

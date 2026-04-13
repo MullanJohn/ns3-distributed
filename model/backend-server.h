@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef PERIODIC_SERVER_H
-#define PERIODIC_SERVER_H
+#ifndef BACKEND_SERVER_H
+#define BACKEND_SERVER_H
 
 #include "accelerator.h"
 #include "connection-manager.h"
@@ -26,20 +26,20 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Periodic backend server that processes frames on an accelerator.
+ * @brief Backend server that processes frames on an accelerator.
  *
- * PeriodicServer receives frames from an Orchestrator, submits them
+ * BackendServer receives frames from an Orchestrator, submits them
  * to the Accelerator aggregated on the node and sends processing results back when frames complete.
  *
  * Example usage:
  * @code
- * Ptr<PeriodicServer> server = CreateObject<PeriodicServer>();
+ * Ptr<BackendServer> server = CreateObject<BackendServer>();
  * server->SetAttribute("Port", UintegerValue(9000));
  * serverNode->AddApplication(server);
  * // Requires a GpuAccelerator aggregated on serverNode
  * @endcode
  */
-class PeriodicServer : public Application
+class BackendServer : public Application
 {
   public:
     /**
@@ -48,8 +48,8 @@ class PeriodicServer : public Application
      */
     static TypeId GetTypeId();
 
-    PeriodicServer();
-    ~PeriodicServer() override;
+    BackendServer();
+    ~BackendServer() override;
 
     /**
      * @brief Get the number of frames received.
@@ -137,4 +137,4 @@ class PeriodicServer : public Application
 
 } // namespace ns3
 
-#endif // PERIODIC_SERVER_H
+#endif // BACKEND_SERVER_H

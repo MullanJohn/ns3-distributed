@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "periodic-client.h"
+#include "offload-client.h"
 
 #include "drop-while-pending-submission-policy.h"
 #include "simple-task.h"
@@ -23,94 +23,94 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("PeriodicClient");
+NS_LOG_COMPONENT_DEFINE("OffloadClient");
 
-NS_OBJECT_ENSURE_REGISTERED(PeriodicClient);
+NS_OBJECT_ENSURE_REGISTERED(OffloadClient);
 
-uint32_t PeriodicClient::s_nextClientId = 0;
+uint32_t OffloadClient::s_nextClientId = 0;
 
 TypeId
-PeriodicClient::GetTypeId()
+OffloadClient::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::PeriodicClient")
+        TypeId("ns3::OffloadClient")
             .SetParent<Application>()
             .SetGroupName("Continuum")
-            .AddConstructor<PeriodicClient>()
+            .AddConstructor<OffloadClient>()
             .AddAttribute("Remote",
                           "The address of the remote orchestrator",
                           AddressValue(),
-                          MakeAddressAccessor(&PeriodicClient::m_peer),
+                          MakeAddressAccessor(&OffloadClient::m_peer),
                           MakeAddressChecker())
             .AddAttribute("ConnectionManager",
                           "Connection manager for transport (defaults to TCP)",
                           PointerValue(),
-                          MakePointerAccessor(&PeriodicClient::m_connMgr),
+                          MakePointerAccessor(&OffloadClient::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
             .AddAttribute("SubmissionPolicy",
                           "Policy deciding whether to submit each scheduled frame "
                           "(defaults to DropWhilePendingSubmissionPolicy)",
                           PointerValue(),
-                          MakePointerAccessor(&PeriodicClient::m_submissionPolicy),
+                          MakePointerAccessor(&OffloadClient::m_submissionPolicy),
                           MakePointerChecker<ClientSubmissionPolicy>())
             .AddAttribute("InterArrival",
                           "Random variable for inter-arrival time between frames in seconds. "
                           "Default ConstantRandomVariable yields 30 fps periodic arrivals.",
                           StringValue("ns3::ConstantRandomVariable[Constant=0.0333333333333333]"),
-                          MakePointerAccessor(&PeriodicClient::m_interArrival),
+                          MakePointerAccessor(&OffloadClient::m_interArrival),
                           MakePointerChecker<RandomVariableStream>())
             .AddAttribute("DeadlineBudget",
                           "End-to-end delay budget per frame. "
                           "When zero, defaults to the inter-arrival period sampled at startup.",
                           TimeValue(Seconds(0)),
-                          MakeTimeAccessor(&PeriodicClient::m_deadlineBudget),
+                          MakeTimeAccessor(&OffloadClient::m_deadlineBudget),
                           MakeTimeChecker())
             .AddAttribute("CommunicationBudget",
                           "Estimated round-trip communication delay (T_ul + T_dl). "
                           "Subtracted from the deadline budget to yield the compute budget.",
                           TimeValue(Seconds(0)),
-                          MakeTimeAccessor(&PeriodicClient::m_commBudget),
+                          MakeTimeAccessor(&OffloadClient::m_commBudget),
                           MakeTimeChecker())
             .AddAttribute("FrameSize",
                           "Random variable for input frame size in bytes",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&PeriodicClient::m_frameSize),
+                          MakePointerAccessor(&OffloadClient::m_frameSize),
                           MakePointerChecker<RandomVariableStream>())
             .AddAttribute("ComputeDemand",
                           "Random variable for compute demand per frame in FLOPS",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&PeriodicClient::m_computeDemand),
+                          MakePointerAccessor(&OffloadClient::m_computeDemand),
                           MakePointerChecker<RandomVariableStream>())
             .AddAttribute("OutputSize",
                           "Random variable for result size in bytes",
                           StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&PeriodicClient::m_outputSize),
+                          MakePointerAccessor(&OffloadClient::m_outputSize),
                           MakePointerChecker<RandomVariableStream>())
             .AddTraceSource("FrameSent",
                             "Trace fired when a frame admission request is sent",
-                            MakeTraceSourceAccessor(&PeriodicClient::m_frameSentTrace),
-                            "ns3::PeriodicClient::FrameSentTracedCallback")
+                            MakeTraceSourceAccessor(&OffloadClient::m_frameSentTrace),
+                            "ns3::OffloadClient::FrameSentTracedCallback")
             .AddTraceSource("FrameProcessed",
                             "Trace fired when a processed frame result is received",
-                            MakeTraceSourceAccessor(&PeriodicClient::m_frameProcessedTrace),
-                            "ns3::PeriodicClient::FrameProcessedTracedCallback")
+                            MakeTraceSourceAccessor(&OffloadClient::m_frameProcessedTrace),
+                            "ns3::OffloadClient::FrameProcessedTracedCallback")
             .AddTraceSource("FrameRejected",
                             "Trace fired when a frame admission is rejected",
-                            MakeTraceSourceAccessor(&PeriodicClient::m_frameRejectedTrace),
-                            "ns3::PeriodicClient::FrameRejectedTracedCallback")
+                            MakeTraceSourceAccessor(&OffloadClient::m_frameRejectedTrace),
+                            "ns3::OffloadClient::FrameRejectedTracedCallback")
             .AddTraceSource("FrameViolated",
                             "Trace fired when a processed frame exceeds its deadline budget",
-                            MakeTraceSourceAccessor(&PeriodicClient::m_frameViolatedTrace),
-                            "ns3::PeriodicClient::FrameViolatedTracedCallback")
+                            MakeTraceSourceAccessor(&OffloadClient::m_frameViolatedTrace),
+                            "ns3::OffloadClient::FrameViolatedTracedCallback")
             .AddTraceSource(
                 "FrameDropped",
                 "Trace fired when a frame is dropped because the previous frame is still pending",
-                MakeTraceSourceAccessor(&PeriodicClient::m_frameDroppedTrace),
-                "ns3::PeriodicClient::FrameDroppedTracedCallback");
+                MakeTraceSourceAccessor(&OffloadClient::m_frameDroppedTrace),
+                "ns3::OffloadClient::FrameDroppedTracedCallback");
     return tid;
 }
 
-PeriodicClient::PeriodicClient()
+OffloadClient::OffloadClient()
     : m_connMgr(nullptr),
       m_submissionPolicy(nullptr),
       m_deadlineBudget(Seconds(0)),
@@ -134,13 +134,13 @@ PeriodicClient::PeriodicClient()
     NS_LOG_FUNCTION(this);
 }
 
-PeriodicClient::~PeriodicClient()
+OffloadClient::~OffloadClient()
 {
     NS_LOG_FUNCTION(this);
 }
 
 void
-PeriodicClient::DoDispose()
+OffloadClient::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
@@ -164,50 +164,50 @@ PeriodicClient::DoDispose()
 }
 
 void
-PeriodicClient::SetRemote(const Address& addr)
+OffloadClient::SetRemote(const Address& addr)
 {
     NS_LOG_FUNCTION(this << addr);
     m_peer = addr;
 }
 
 Address
-PeriodicClient::GetRemote() const
+OffloadClient::GetRemote() const
 {
     return m_peer;
 }
 
 uint64_t
-PeriodicClient::GetFramesSent() const
+OffloadClient::GetFramesSent() const
 {
     return m_framesSent;
 }
 
 uint64_t
-PeriodicClient::GetFramesDropped() const
+OffloadClient::GetFramesDropped() const
 {
     return m_framesDropped;
 }
 
 uint64_t
-PeriodicClient::GetResponsesReceived() const
+OffloadClient::GetResponsesReceived() const
 {
     return m_responsesReceived;
 }
 
 uint64_t
-PeriodicClient::GetTotalTx() const
+OffloadClient::GetTotalTx() const
 {
     return m_totalTx;
 }
 
 uint64_t
-PeriodicClient::GetTotalRx() const
+OffloadClient::GetTotalRx() const
 {
     return m_totalRx;
 }
 
 void
-PeriodicClient::StartApplication()
+OffloadClient::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -226,14 +226,14 @@ PeriodicClient::StartApplication()
     m_nominalPeriod = Seconds(m_interArrival->GetValue());
 
     m_connMgr->SetNode(GetNode());
-    m_connMgr->SetReceiveCallback(MakeCallback(&PeriodicClient::HandleReceive, this));
+    m_connMgr->SetReceiveCallback(MakeCallback(&OffloadClient::HandleReceive, this));
 
     Ptr<TcpConnectionManager> tcpConnMgr = DynamicCast<TcpConnectionManager>(m_connMgr);
     if (tcpConnMgr)
     {
-        tcpConnMgr->SetConnectionCallback(MakeCallback(&PeriodicClient::HandleConnected, this));
+        tcpConnMgr->SetConnectionCallback(MakeCallback(&OffloadClient::HandleConnected, this));
         tcpConnMgr->SetConnectionFailedCallback(
-            MakeCallback(&PeriodicClient::HandleConnectionFailed, this));
+            MakeCallback(&OffloadClient::HandleConnectionFailed, this));
     }
 
     m_connMgr->Connect(m_peer);
@@ -245,7 +245,7 @@ PeriodicClient::StartApplication()
 }
 
 void
-PeriodicClient::StopApplication()
+OffloadClient::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -258,23 +258,23 @@ PeriodicClient::StopApplication()
 }
 
 void
-PeriodicClient::HandleConnected(const Address& serverAddr)
+OffloadClient::HandleConnected(const Address& serverAddr)
 {
     NS_LOG_FUNCTION(this << serverAddr);
-    NS_LOG_INFO("PeriodicClient " << m_clientId << " connected to orchestrator " << serverAddr);
+    NS_LOG_INFO("OffloadClient " << m_clientId << " connected to orchestrator " << serverAddr);
 
     ScheduleNextFrame();
 }
 
 void
-PeriodicClient::HandleConnectionFailed(const Address& serverAddr)
+OffloadClient::HandleConnectionFailed(const Address& serverAddr)
 {
     NS_LOG_FUNCTION(this << serverAddr);
-    NS_LOG_ERROR("PeriodicClient " << m_clientId << " failed to connect to " << serverAddr);
+    NS_LOG_ERROR("OffloadClient " << m_clientId << " failed to connect to " << serverAddr);
 }
 
 void
-PeriodicClient::HandleReceive(Ptr<Packet> packet, const Address& from)
+OffloadClient::HandleReceive(Ptr<Packet> packet, const Address& from)
 {
     NS_LOG_FUNCTION(this << packet << from);
 
@@ -290,7 +290,7 @@ PeriodicClient::HandleReceive(Ptr<Packet> packet, const Address& from)
 }
 
 void
-PeriodicClient::GenerateFrame()
+OffloadClient::GenerateFrame()
 {
     NS_LOG_FUNCTION(this);
 
@@ -318,7 +318,7 @@ PeriodicClient::GenerateFrame()
     if (!m_submissionPolicy->ShouldSubmit(st))
     {
         m_framesDropped++;
-        NS_LOG_INFO("PeriodicClient " << m_clientId << " dropped frame " << m_frameCount
+        NS_LOG_INFO("OffloadClient " << m_clientId << " dropped frame " << m_frameCount
                                       << " (policy=" << m_submissionPolicy->GetName() << ")");
         m_frameDroppedTrace(m_frameCount);
         ScheduleNextFrame();
@@ -359,7 +359,7 @@ PeriodicClient::GenerateFrame()
 
     if (!m_connMgr->Send(packet))
     {
-        NS_LOG_WARN("PeriodicClient " << m_clientId
+        NS_LOG_WARN("OffloadClient " << m_clientId
                                       << " failed to send admission request for dagId " << dagId);
         m_framesDropped++;
         m_frameDroppedTrace(m_frameCount);
@@ -375,7 +375,7 @@ PeriodicClient::GenerateFrame()
     m_framesSent++;
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("PeriodicClient " << m_clientId << " sent frame " << m_framesSent << " (dagId "
+    NS_LOG_INFO("OffloadClient " << m_clientId << " sent frame " << m_framesSent << " (dagId "
                                   << dagId << ", " << frameSize << " bytes, " << computeDemand
                                   << " FLOPS)");
 
@@ -386,7 +386,7 @@ PeriodicClient::GenerateFrame()
 }
 
 void
-PeriodicClient::ScheduleNextFrame()
+OffloadClient::ScheduleNextFrame()
 {
     NS_LOG_FUNCTION(this);
 
@@ -396,13 +396,13 @@ PeriodicClient::ScheduleNextFrame()
     }
 
     Time interval = Seconds(m_interArrival->GetValue());
-    m_sendEvent = Simulator::Schedule(interval, &PeriodicClient::GenerateFrame, this);
+    m_sendEvent = Simulator::Schedule(interval, &OffloadClient::GenerateFrame, this);
 
     NS_LOG_DEBUG("Next frame scheduled in " << interval.GetMilliSeconds() << " ms");
 }
 
 void
-PeriodicClient::ProcessBuffer()
+OffloadClient::ProcessBuffer()
 {
     NS_LOG_FUNCTION(this);
 
@@ -445,7 +445,7 @@ PeriodicClient::ProcessBuffer()
 }
 
 void
-PeriodicClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
+OffloadClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
 {
     NS_LOG_FUNCTION(this << orchHeader.GetDagId() << orchHeader.IsAdmitted());
 
@@ -460,12 +460,12 @@ PeriodicClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
 
     if (orchHeader.IsAdmitted())
     {
-        NS_LOG_INFO("PeriodicClient " << m_clientId << " admission ACCEPTED for dagId " << dagId);
+        NS_LOG_INFO("OffloadClient " << m_clientId << " admission ACCEPTED for dagId " << dagId);
         SendFullData(dagId);
     }
     else
     {
-        NS_LOG_INFO("PeriodicClient " << m_clientId << " admission REJECTED for dagId " << dagId);
+        NS_LOG_INFO("OffloadClient " << m_clientId << " admission REJECTED for dagId " << dagId);
 
         Ptr<DagTask> dag = it->second.dag;
         for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
@@ -485,7 +485,7 @@ PeriodicClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
 }
 
 void
-PeriodicClient::HandleTaskResponse()
+OffloadClient::HandleTaskResponse()
 {
     NS_LOG_FUNCTION(this);
 
@@ -521,7 +521,7 @@ PeriodicClient::HandleTaskResponse()
 
             if (latency > budget)
             {
-                NS_LOG_INFO("PeriodicClient " << m_clientId << " deadline violated for task "
+                NS_LOG_INFO("OffloadClient " << m_clientId << " deadline violated for task "
                                               << taskId << " (latency="
                                               << latency.GetMilliSeconds() << "ms, budget="
                                               << budget.GetMilliSeconds() << "ms)");
@@ -532,7 +532,7 @@ PeriodicClient::HandleTaskResponse()
             }
             else
             {
-                NS_LOG_INFO("PeriodicClient " << m_clientId << " received result for frame (task "
+                NS_LOG_INFO("OffloadClient " << m_clientId << " received result for frame (task "
                                               << taskId << ", latency="
                                               << latency.GetMilliSeconds() << "ms)");
             }
@@ -552,7 +552,7 @@ PeriodicClient::HandleTaskResponse()
 }
 
 void
-PeriodicClient::SendFullData(uint64_t dagId)
+OffloadClient::SendFullData(uint64_t dagId)
 {
     NS_LOG_FUNCTION(this << dagId);
 
@@ -577,7 +577,7 @@ PeriodicClient::SendFullData(uint64_t dagId)
 
     if (!m_connMgr->Send(packet))
     {
-        NS_LOG_WARN("PeriodicClient " << m_clientId << " failed to send full data for dagId "
+        NS_LOG_WARN("OffloadClient " << m_clientId << " failed to send full data for dagId "
                                       << dagId);
         for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
         {
@@ -595,12 +595,12 @@ PeriodicClient::SendFullData(uint64_t dagId)
 
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("PeriodicClient " << m_clientId << " sent full frame data for dagId " << dagId
+    NS_LOG_INFO("OffloadClient " << m_clientId << " sent full frame data for dagId " << dagId
                                   << " (" << packet->GetSize() << " bytes)");
 }
 
 int64_t
-PeriodicClient::AssignStreams(int64_t stream)
+OffloadClient::AssignStreams(int64_t stream)
 {
     NS_LOG_FUNCTION(this << stream);
     auto currentStream = stream;

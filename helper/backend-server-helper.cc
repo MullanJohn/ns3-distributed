@@ -6,26 +6,26 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "periodic-server-helper.h"
+#include "backend-server-helper.h"
 
 #include "ns3/uinteger.h"
 
 namespace ns3
 {
 
-PeriodicServerHelper::PeriodicServerHelper()
-    : ApplicationHelper("ns3::PeriodicServer")
+BackendServerHelper::BackendServerHelper()
+    : ApplicationHelper("ns3::BackendServer")
 {
 }
 
-PeriodicServerHelper::PeriodicServerHelper(uint16_t port)
-    : ApplicationHelper("ns3::PeriodicServer")
+BackendServerHelper::BackendServerHelper(uint16_t port)
+    : ApplicationHelper("ns3::BackendServer")
 {
     m_factory.Set("Port", UintegerValue(port));
 }
 
 void
-PeriodicServerHelper::SetPort(uint16_t port)
+BackendServerHelper::SetPort(uint16_t port)
 {
     m_factory.Set("Port", UintegerValue(port));
 }

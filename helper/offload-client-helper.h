@@ -6,8 +6,8 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#ifndef PERIODIC_CLIENT_HELPER_H
-#define PERIODIC_CLIENT_HELPER_H
+#ifndef OFFLOAD_CLIENT_HELPER_H
+#define OFFLOAD_CLIENT_HELPER_H
 
 #include "ns3/address.h"
 #include "ns3/application-helper.h"
@@ -21,25 +21,25 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Helper to create and configure PeriodicClient applications.
+ * @brief Helper to create and configure OffloadClient applications.
  *
- * This helper simplifies the creation and configuration of PeriodicClient
+ * This helper simplifies the creation and configuration of OffloadClient
  * applications that offload frames to an Orchestrator via the
  * two-phase admission protocol.
  */
-class PeriodicClientHelper : public ApplicationHelper
+class OffloadClientHelper : public ApplicationHelper
 {
   public:
     /**
-     * @brief Construct helper with default PeriodicClient type.
+     * @brief Construct helper with default OffloadClient type.
      */
-    PeriodicClientHelper();
+    OffloadClientHelper();
 
     /**
      * @brief Construct helper with target orchestrator address.
      * @param orchestratorAddress Address of the Orchestrator.
      */
-    explicit PeriodicClientHelper(const Address& orchestratorAddress);
+    explicit OffloadClientHelper(const Address& orchestratorAddress);
 
     /**
      * @brief Set the remote orchestrator address.
@@ -124,4 +124,4 @@ class PeriodicClientHelper : public ApplicationHelper
 
 } // namespace ns3
 
-#endif // PERIODIC_CLIENT_HELPER_H
+#endif // OFFLOAD_CLIENT_HELPER_H

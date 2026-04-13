@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "periodic-client-helper.h"
+#include "offload-client-helper.h"
 
 #include "ns3/address.h"
 #include "ns3/double.h"
@@ -20,25 +20,25 @@
 namespace ns3
 {
 
-PeriodicClientHelper::PeriodicClientHelper()
-    : ApplicationHelper("ns3::PeriodicClient")
+OffloadClientHelper::OffloadClientHelper()
+    : ApplicationHelper("ns3::OffloadClient")
 {
 }
 
-PeriodicClientHelper::PeriodicClientHelper(const Address& orchestratorAddress)
-    : ApplicationHelper("ns3::PeriodicClient")
+OffloadClientHelper::OffloadClientHelper(const Address& orchestratorAddress)
+    : ApplicationHelper("ns3::OffloadClient")
 {
     m_factory.Set("Remote", AddressValue(orchestratorAddress));
 }
 
 void
-PeriodicClientHelper::SetOrchestratorAddress(const Address& addr)
+OffloadClientHelper::SetOrchestratorAddress(const Address& addr)
 {
     m_factory.Set("Remote", AddressValue(addr));
 }
 
 void
-PeriodicClientHelper::SetFrameRate(double fps)
+OffloadClientHelper::SetFrameRate(double fps)
 {
     auto rv = CreateObject<ConstantRandomVariable>();
     rv->SetAttribute("Constant", DoubleValue(1.0 / fps));
@@ -46,13 +46,13 @@ PeriodicClientHelper::SetFrameRate(double fps)
 }
 
 void
-PeriodicClientHelper::SetInterArrival(Ptr<RandomVariableStream> rv)
+OffloadClientHelper::SetInterArrival(Ptr<RandomVariableStream> rv)
 {
     m_factory.Set("InterArrival", PointerValue(rv));
 }
 
 void
-PeriodicClientHelper::SetMeanFrameSize(double mean, double stddev)
+OffloadClientHelper::SetMeanFrameSize(double mean, double stddev)
 {
     std::ostringstream oss;
     if (stddev > 0)
@@ -68,7 +68,7 @@ PeriodicClientHelper::SetMeanFrameSize(double mean, double stddev)
 }
 
 void
-PeriodicClientHelper::SetComputeDemand(double demand)
+OffloadClientHelper::SetComputeDemand(double demand)
 {
     std::ostringstream oss;
     oss << "ns3::ConstantRandomVariable[Constant=" << demand << "]";
@@ -76,7 +76,7 @@ PeriodicClientHelper::SetComputeDemand(double demand)
 }
 
 void
-PeriodicClientHelper::SetOutputSize(double size)
+OffloadClientHelper::SetOutputSize(double size)
 {
     std::ostringstream oss;
     oss << "ns3::ConstantRandomVariable[Constant=" << size << "]";
@@ -84,19 +84,19 @@ PeriodicClientHelper::SetOutputSize(double size)
 }
 
 void
-PeriodicClientHelper::SetDeadlineBudget(Time budget)
+OffloadClientHelper::SetDeadlineBudget(Time budget)
 {
     m_factory.Set("DeadlineBudget", TimeValue(budget));
 }
 
 void
-PeriodicClientHelper::SetCommunicationBudget(Time budget)
+OffloadClientHelper::SetCommunicationBudget(Time budget)
 {
     m_factory.Set("CommunicationBudget", TimeValue(budget));
 }
 
 void
-PeriodicClientHelper::SetSubmissionPolicy(Ptr<ClientSubmissionPolicy> policy)
+OffloadClientHelper::SetSubmissionPolicy(Ptr<ClientSubmissionPolicy> policy)
 {
     m_factory.Set("SubmissionPolicy", PointerValue(policy));
 }

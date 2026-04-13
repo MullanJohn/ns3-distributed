@@ -6,7 +6,7 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
-#include "periodic-server.h"
+#include "backend-server.h"
 
 #include "scaling-command-header.h"
 #include "simple-task.h"
@@ -21,40 +21,40 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("PeriodicServer");
+NS_LOG_COMPONENT_DEFINE("BackendServer");
 
-NS_OBJECT_ENSURE_REGISTERED(PeriodicServer);
+NS_OBJECT_ENSURE_REGISTERED(BackendServer);
 
 TypeId
-PeriodicServer::GetTypeId()
+BackendServer::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::PeriodicServer")
+        TypeId("ns3::BackendServer")
             .SetParent<Application>()
             .SetGroupName("Continuum")
-            .AddConstructor<PeriodicServer>()
+            .AddConstructor<BackendServer>()
             .AddAttribute("Port",
                           "Port on which to listen for incoming connections",
                           UintegerValue(9000),
-                          MakeUintegerAccessor(&PeriodicServer::m_port),
+                          MakeUintegerAccessor(&BackendServer::m_port),
                           MakeUintegerChecker<uint16_t>())
             .AddAttribute("ConnectionManager",
                           "Connection manager for transport (defaults to TCP)",
                           PointerValue(),
-                          MakePointerAccessor(&PeriodicServer::m_connMgr),
+                          MakePointerAccessor(&BackendServer::m_connMgr),
                           MakePointerChecker<ConnectionManager>())
             .AddTraceSource("FrameReceived",
                             "A frame has been received for processing",
-                            MakeTraceSourceAccessor(&PeriodicServer::m_frameReceivedTrace),
-                            "ns3::PeriodicServer::FrameReceivedTracedCallback")
+                            MakeTraceSourceAccessor(&BackendServer::m_frameReceivedTrace),
+                            "ns3::BackendServer::FrameReceivedTracedCallback")
             .AddTraceSource("FrameProcessed",
                             "A frame has been processed and response sent",
-                            MakeTraceSourceAccessor(&PeriodicServer::m_frameProcessedTrace),
-                            "ns3::PeriodicServer::FrameProcessedTracedCallback");
+                            MakeTraceSourceAccessor(&BackendServer::m_frameProcessedTrace),
+                            "ns3::BackendServer::FrameProcessedTracedCallback");
     return tid;
 }
 
-PeriodicServer::PeriodicServer()
+BackendServer::BackendServer()
     : m_port(9000),
       m_connMgr(nullptr),
       m_accelerator(nullptr),
@@ -65,13 +65,13 @@ PeriodicServer::PeriodicServer()
     NS_LOG_FUNCTION(this);
 }
 
-PeriodicServer::~PeriodicServer()
+BackendServer::~BackendServer()
 {
     NS_LOG_FUNCTION(this);
 }
 
 void
-PeriodicServer::DoDispose()
+BackendServer::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
@@ -79,7 +79,7 @@ PeriodicServer::DoDispose()
     {
         m_accelerator->TraceDisconnectWithoutContext(
             "TaskCompleted",
-            MakeCallback(&PeriodicServer::OnTaskCompleted, this));
+            MakeCallback(&BackendServer::OnTaskCompleted, this));
     }
 
     if (m_connMgr)
@@ -96,31 +96,31 @@ PeriodicServer::DoDispose()
 }
 
 uint64_t
-PeriodicServer::GetFramesReceived() const
+BackendServer::GetFramesReceived() const
 {
     return m_framesReceived;
 }
 
 uint64_t
-PeriodicServer::GetFramesProcessed() const
+BackendServer::GetFramesProcessed() const
 {
     return m_framesProcessed;
 }
 
 uint64_t
-PeriodicServer::GetTotalRx() const
+BackendServer::GetTotalRx() const
 {
     return m_totalRx;
 }
 
 uint16_t
-PeriodicServer::GetPort() const
+BackendServer::GetPort() const
 {
     return m_port;
 }
 
 void
-PeriodicServer::StartApplication()
+BackendServer::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -133,7 +133,7 @@ PeriodicServer::StartApplication()
     {
         m_accelerator->TraceConnectWithoutContext(
             "TaskCompleted",
-            MakeCallback(&PeriodicServer::OnTaskCompleted, this));
+            MakeCallback(&BackendServer::OnTaskCompleted, this));
     }
 
     if (!m_connMgr)
@@ -142,21 +142,21 @@ PeriodicServer::StartApplication()
     }
 
     m_connMgr->SetNode(GetNode());
-    m_connMgr->SetReceiveCallback(MakeCallback(&PeriodicServer::HandleReceive, this));
+    m_connMgr->SetReceiveCallback(MakeCallback(&BackendServer::HandleReceive, this));
 
     Ptr<TcpConnectionManager> tcpConnMgr = DynamicCast<TcpConnectionManager>(m_connMgr);
     if (tcpConnMgr)
     {
-        tcpConnMgr->SetCloseCallback(MakeCallback(&PeriodicServer::HandleClientClose, this));
+        tcpConnMgr->SetCloseCallback(MakeCallback(&BackendServer::HandleClientClose, this));
     }
 
     m_connMgr->Bind(m_port);
 
-    NS_LOG_INFO("PeriodicServer listening on port " << m_port);
+    NS_LOG_INFO("BackendServer listening on port " << m_port);
 }
 
 void
-PeriodicServer::StopApplication()
+BackendServer::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
@@ -164,7 +164,7 @@ PeriodicServer::StopApplication()
     {
         m_accelerator->TraceDisconnectWithoutContext(
             "TaskCompleted",
-            MakeCallback(&PeriodicServer::OnTaskCompleted, this));
+            MakeCallback(&BackendServer::OnTaskCompleted, this));
     }
 
     if (m_connMgr)
@@ -176,7 +176,7 @@ PeriodicServer::StopApplication()
 }
 
 void
-PeriodicServer::HandleReceive(Ptr<Packet> packet, const Address& from)
+BackendServer::HandleReceive(Ptr<Packet> packet, const Address& from)
 {
     NS_LOG_FUNCTION(this << packet << from);
 
@@ -202,7 +202,7 @@ PeriodicServer::HandleReceive(Ptr<Packet> packet, const Address& from)
 }
 
 void
-PeriodicServer::HandleClientClose(const Address& clientAddr)
+BackendServer::HandleClientClose(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
     NS_LOG_INFO("Client disconnected: " << clientAddr);
@@ -210,7 +210,7 @@ PeriodicServer::HandleClientClose(const Address& clientAddr)
 }
 
 void
-PeriodicServer::ProcessBuffer(const Address& clientAddr)
+BackendServer::ProcessBuffer(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 
@@ -265,7 +265,7 @@ PeriodicServer::ProcessBuffer(const Address& clientAddr)
 }
 
 void
-PeriodicServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
+BackendServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << task->GetTaskId() << clientAddr);
 
@@ -294,7 +294,7 @@ PeriodicServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
 }
 
 void
-PeriodicServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
+BackendServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
 {
     NS_LOG_FUNCTION(this << task->GetTaskId() << duration);
 
@@ -315,7 +315,7 @@ PeriodicServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
 }
 
 void
-PeriodicServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration)
+BackendServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Time duration)
 {
     NS_LOG_FUNCTION(this << clientAddr << task->GetTaskId() << duration);
 
@@ -337,7 +337,7 @@ PeriodicServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Ti
 }
 
 void
-PeriodicServer::HandleScalingCommand(Ptr<Packet> buffer)
+BackendServer::HandleScalingCommand(Ptr<Packet> buffer)
 {
     NS_LOG_FUNCTION(this);
 
@@ -355,7 +355,7 @@ PeriodicServer::HandleScalingCommand(Ptr<Packet> buffer)
 }
 
 void
-PeriodicServer::CleanupClient(const Address& clientAddr)
+BackendServer::CleanupClient(const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << clientAddr);
 
