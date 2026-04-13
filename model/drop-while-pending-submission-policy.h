@@ -16,11 +16,9 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Submission policy that skips ticks while any prior submission is in flight.
+ * @brief Submission policy that skips submissions while any prior submission is in flight.
  *
- * Reproduces the historical OffloadClient drop-if-pending behaviour and is
- * installed as the default so existing setups keep the same output without
- * explicit configuration.
+ *  This policy skips submissions aslong as any submission is in flight.
  */
 class DropWhilePendingSubmissionPolicy : public ClientSubmissionPolicy
 {

@@ -16,7 +16,7 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Baseline submission policy that never skips a tick.
+ * @brief Baseline submission policy that never skips a submission.
  *
  * Models the no-adaptation case: the client offers every scheduled
  * submission regardless of in-flight work, letting the orchestrator and

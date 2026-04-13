@@ -22,11 +22,7 @@ namespace ns3
  * @ingroup continuum
  * @brief Abstract base class for client submission policies.
  *
- * ClientSubmissionPolicy decides whether a client should emit the next
- * submission tick or skip it. The client owns the history; the policy
- * reads a snapshot and returns a verdict. Naming is deliberately
- * client-agnostic ("submission") so the abstraction is reusable by
- * non-OffloadClient clients.
+ * ClientSubmissionPolicy decides whether a client should submit the next submission or not.
  */
 class ClientSubmissionPolicy : public Object
 {
