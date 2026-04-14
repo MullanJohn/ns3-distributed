@@ -1,0 +1,16 @@
+# Python venv / caches
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Main evaluation notebook results (hundreds of MB of regenerable CSVs)
+evaluation/results_*/
+
+# Per-validation sweep results (regenerable from sweep.py)
+dag-coverage/results/
+single-metric/results/
+system-invariants/results/
+
+# Sweep output logs
+*.log

@@ -11,3 +11,5 @@ build_lib_example(
     LIBRARIES_TO_LINK ${libcontinuum}
                       ${libpoint-to-point}
 )
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../eval ${CMAKE_CURRENT_BINARY_DIR}/eval)
