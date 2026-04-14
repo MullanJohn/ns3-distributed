@@ -1,0 +1,31 @@
+FROM ubuntu:24.04
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gdb \
+    cmake ninja-build git pkg-config \
+    python3 \
+    ccache clang-format clang-tidy \
+    ca-certificates curl \
+    iproute2 iputils-ping tcpdump \
+    doxygen neovim \
+    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh \
+    && apt-get purge -y --auto-remove curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /workspace
+WORKDIR /workspace
+
+ENV HOME=/workspace \
+    PYTHONUNBUFFERED=1 \
+    CCACHE_DIR=/workspace/.ccache \
+    CCACHE_MAXSIZE=5G
+
+RUN git clone --branch ns-3.44 --depth 1 https://gitlab.com/nsnam/ns-3-dev.git /workspace/ns-3-dev
+
+WORKDIR /workspace/ns-3-dev
+
+CMD ["/bin/bash"]
