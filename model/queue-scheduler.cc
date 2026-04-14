@@ -20,8 +20,7 @@ NS_OBJECT_ENSURE_REGISTERED(QueueScheduler);
 TypeId
 QueueScheduler::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::QueueScheduler").SetParent<Object>().SetGroupName("Continuum");
+    static TypeId tid = TypeId("ns3::QueueScheduler").SetParent<Object>().SetGroupName("Continuum");
     return tid;
 }
 

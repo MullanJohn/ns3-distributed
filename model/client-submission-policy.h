@@ -36,9 +36,10 @@ class ClientSubmissionPolicy : public Object
         uint64_t submissionCount{0};    //!< Total submission ticks (sent + dropped)
         uint64_t submissionsSent{0};    //!< Submissions successfully offered for admission
         uint64_t submissionsDropped{0}; //!< Submissions skipped at the client
-        uint64_t submissionsViolated{0};//!< Completed submissions that exceeded the deadline budget
-        uint64_t submissionsRejected{0};//!< Submissions rejected by the orchestrator
-        uint64_t lastViolationIndex{0}; //!< Index of the most recent violation (0 = never)
+        uint64_t submissionsViolated{
+            0}; //!< Completed submissions that exceeded the deadline budget
+        uint64_t submissionsRejected{0};    //!< Submissions rejected by the orchestrator
+        uint64_t lastViolationIndex{0};     //!< Index of the most recent violation (0 = never)
         Time lastViolationTime{Seconds(0)}; //!< Wall-clock of the most recent violation
         Time lastRejectionTime{Seconds(0)}; //!< Wall-clock of the most recent rejection
         Time now{Seconds(0)};               //!< Current simulation time

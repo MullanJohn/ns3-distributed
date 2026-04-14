@@ -61,9 +61,9 @@ ClusterState::UndoTaskDispatched(uint32_t backendIdx, double computeDemand)
     NS_ASSERT_MSG(m_backends[backendIdx].orchestration.activeTasks > 0,
                   "activeTasks underflow for backend " << backendIdx);
     m_backends[backendIdx].orchestration.activeTasks--;
-    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork =
-        std::max(0.0,
-                 m_backends[backendIdx].orchestration.estimatedRemainingComputeWork - computeDemand);
+    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork = std::max(
+        0.0,
+        m_backends[backendIdx].orchestration.estimatedRemainingComputeWork - computeDemand);
 }
 
 void
@@ -76,9 +76,9 @@ ClusterState::NotifyTaskCompleted(uint32_t backendIdx, double computeDemand)
     NS_ASSERT_MSG(m_backends[backendIdx].orchestration.activeTasks > 0,
                   "activeTasks underflow for backend " << backendIdx);
     m_backends[backendIdx].orchestration.activeTasks--;
-    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork =
-        std::max(0.0,
-                 m_backends[backendIdx].orchestration.estimatedRemainingComputeWork - computeDemand);
+    m_backends[backendIdx].orchestration.estimatedRemainingComputeWork = std::max(
+        0.0,
+        m_backends[backendIdx].orchestration.estimatedRemainingComputeWork - computeDemand);
 }
 
 void
@@ -103,9 +103,7 @@ ClusterState::SetDeviceMetrics(uint32_t backendIdx, Ptr<DeviceMetrics> metrics)
 }
 
 void
-ClusterState::SetCurrentState(uint32_t backendIdx,
-                              uint32_t stateIdx,
-                              double effectiveComputeRate)
+ClusterState::SetCurrentState(uint32_t backendIdx, uint32_t stateIdx, double effectiveComputeRate)
 {
     NS_LOG_FUNCTION(this << backendIdx << stateIdx << effectiveComputeRate);
     NS_ASSERT_MSG(backendIdx < m_backends.size(),
@@ -116,9 +114,7 @@ ClusterState::SetCurrentState(uint32_t backendIdx,
 }
 
 void
-ClusterState::SetPerformanceStates(uint32_t backendIdx,
-                                   uint32_t numStates,
-                                   double maxComputeRate)
+ClusterState::SetPerformanceStates(uint32_t backendIdx, uint32_t numStates, double maxComputeRate)
 {
     NS_LOG_FUNCTION(this << backendIdx << numStates << maxComputeRate);
     NS_ASSERT_MSG(backendIdx < m_backends.size(),

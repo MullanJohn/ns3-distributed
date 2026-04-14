@@ -74,10 +74,18 @@ class RoundRobinSchedulerTestCase : public TestCase
         internet.Install(mixedNodes);
 
         Cluster mixed;
-        mixed.AddBackend(mixedNodes.Get(0), InetSocketAddress(Ipv4Address("10.0.1.1"), 9000), "GPU");
-        mixed.AddBackend(mixedNodes.Get(1), InetSocketAddress(Ipv4Address("10.0.1.2"), 9000), "TPU");
-        mixed.AddBackend(mixedNodes.Get(2), InetSocketAddress(Ipv4Address("10.0.1.3"), 9000), "GPU");
-        mixed.AddBackend(mixedNodes.Get(3), InetSocketAddress(Ipv4Address("10.0.1.4"), 9000), "TPU");
+        mixed.AddBackend(mixedNodes.Get(0),
+                         InetSocketAddress(Ipv4Address("10.0.1.1"), 9000),
+                         "GPU");
+        mixed.AddBackend(mixedNodes.Get(1),
+                         InetSocketAddress(Ipv4Address("10.0.1.2"), 9000),
+                         "TPU");
+        mixed.AddBackend(mixedNodes.Get(2),
+                         InetSocketAddress(Ipv4Address("10.0.1.3"), 9000),
+                         "GPU");
+        mixed.AddBackend(mixedNodes.Get(3),
+                         InetSocketAddress(Ipv4Address("10.0.1.4"), 9000),
+                         "TPU");
         ClusterState mixedState;
         mixedState.Resize(4);
 

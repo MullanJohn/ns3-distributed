@@ -319,7 +319,7 @@ OffloadClient::GenerateTask()
     {
         m_tasksDropped++;
         NS_LOG_INFO("OffloadClient " << m_clientId << " dropped task " << m_taskCount
-                                      << " (policy=" << m_submissionPolicy->GetName() << ")");
+                                     << " (policy=" << m_submissionPolicy->GetName() << ")");
         m_taskDroppedTrace(m_taskCount);
         ScheduleNextTask();
         return;
@@ -359,8 +359,8 @@ OffloadClient::GenerateTask()
 
     if (!m_connMgr->Send(packet))
     {
-        NS_LOG_WARN("OffloadClient " << m_clientId
-                                      << " failed to send admission request for dagId " << dagId);
+        NS_LOG_WARN("OffloadClient " << m_clientId << " failed to send admission request for dagId "
+                                     << dagId);
         m_tasksDropped++;
         m_taskDroppedTrace(m_taskCount);
         ScheduleNextTask();
@@ -376,8 +376,8 @@ OffloadClient::GenerateTask()
     m_totalTx += packet->GetSize();
 
     NS_LOG_INFO("OffloadClient " << m_clientId << " sent task " << m_tasksSent << " (dagId "
-                                  << dagId << ", " << inputSize << " bytes, " << computeDemand
-                                  << " FLOPS)");
+                                 << dagId << ", " << inputSize << " bytes, " << computeDemand
+                                 << " FLOPS)");
 
     task->SetState(TASK_SUBMITTED);
     m_taskSentTrace(task);
@@ -522,9 +522,8 @@ OffloadClient::HandleTaskResponse()
             if (latency > budget)
             {
                 NS_LOG_INFO("OffloadClient " << m_clientId << " deadline violated for task "
-                                              << taskId << " (latency="
-                                              << latency.GetMilliSeconds() << "ms, budget="
-                                              << budget.GetMilliSeconds() << "ms)");
+                                             << taskId << " (latency=" << latency.GetMilliSeconds()
+                                             << "ms, budget=" << budget.GetMilliSeconds() << "ms)");
                 m_tasksViolated++;
                 m_lastViolationIndex = m_taskCount;
                 m_lastViolationTime = Simulator::Now();
@@ -532,9 +531,8 @@ OffloadClient::HandleTaskResponse()
             }
             else
             {
-                NS_LOG_INFO("OffloadClient " << m_clientId << " received result for task "
-                                              << taskId << " (latency="
-                                              << latency.GetMilliSeconds() << "ms)");
+                NS_LOG_INFO("OffloadClient " << m_clientId << " received result for task " << taskId
+                                             << " (latency=" << latency.GetMilliSeconds() << "ms)");
             }
 
             m_taskProcessedTrace(task, latency);
@@ -578,7 +576,7 @@ OffloadClient::SendFullData(uint64_t dagId)
     if (!m_connMgr->Send(packet))
     {
         NS_LOG_WARN("OffloadClient " << m_clientId << " failed to send full data for dagId "
-                                      << dagId);
+                                     << dagId);
         for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
         {
             Ptr<Task> task = dag->GetTask(i);
@@ -595,8 +593,8 @@ OffloadClient::SendFullData(uint64_t dagId)
 
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("OffloadClient " << m_clientId << " sent full task data for dagId " << dagId
-                                  << " (" << packet->GetSize() << " bytes)");
+    NS_LOG_INFO("OffloadClient " << m_clientId << " sent full task data for dagId " << dagId << " ("
+                                 << packet->GetSize() << " bytes)");
 }
 
 int64_t

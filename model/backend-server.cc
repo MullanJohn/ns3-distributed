@@ -272,8 +272,7 @@ BackendServer::ProcessTask(Ptr<Task> task, const Address& clientAddr)
     m_tasksReceived++;
     m_taskReceivedTrace(task);
 
-    NS_LOG_INFO("Received task " << task->GetTaskId()
-                                 << " (compute=" << task->GetComputeDemand()
+    NS_LOG_INFO("Received task " << task->GetTaskId() << " (compute=" << task->GetComputeDemand()
                                  << ", input=" << task->GetInputSize() << ")");
 
     if (!m_accelerator)
@@ -331,9 +330,9 @@ BackendServer::SendResponse(const Address& clientAddr, Ptr<const Task> task, Tim
     m_tasksProcessed++;
     m_taskProcessedTrace(task, duration);
 
-    NS_LOG_INFO("Sent result for task "
-                << task->GetTaskId() << " (output=" << task->GetOutputSize()
-                << " bytes, duration=" << duration.GetMilliSeconds() << "ms)");
+    NS_LOG_INFO("Sent result for task " << task->GetTaskId() << " (output=" << task->GetOutputSize()
+                                        << " bytes, duration=" << duration.GetMilliSeconds()
+                                        << "ms)");
 }
 
 void

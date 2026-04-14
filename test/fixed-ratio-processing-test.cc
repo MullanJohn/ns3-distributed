@@ -76,6 +76,10 @@ class FixedRatioProcessingModelTestCase : public TestCase
 
 } // namespace
 
-TestCase* CreateFixedRatioProcessingModelTestCase() { return new FixedRatioProcessingModelTestCase; }
+TestCase*
+CreateFixedRatioProcessingModelTestCase()
+{
+    return new FixedRatioProcessingModelTestCase;
+}
 
 } // namespace ns3

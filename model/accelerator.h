@@ -260,11 +260,11 @@ class Accelerator : public Object
     TracedCallback<Ptr<const Task>, double> m_taskEnergyTrace;      //!< Per-task energy
 
   private:
-    Ptr<EnergyModel> m_energyModel;                //!< Energy model for power calculation
-    Time m_lastEnergyUpdateTime;                   //!< Time of last energy state update
-    double m_totalEnergy;                          //!< Total energy consumed in Joules
-    double m_currentPower;                         //!< Current power consumption in Watts
-    double m_taskStartEnergy; //!< Energy at task start for per-task tracking
+    Ptr<EnergyModel> m_energyModel; //!< Energy model for power calculation
+    Time m_lastEnergyUpdateTime;    //!< Time of last energy state update
+    double m_totalEnergy;           //!< Total energy consumed in Joules
+    double m_currentPower;          //!< Current power consumption in Watts
+    double m_taskStartEnergy;       //!< Energy at task start for per-task tracking
 };
 
 } // namespace ns3

@@ -6,12 +6,12 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
+#include "ns3/backend-server-helper.h"
+#include "ns3/backend-server.h"
 #include "ns3/cluster.h"
 #include "ns3/core-module.h"
 #include "ns3/dvfs-energy-model.h"
-#include "ns3/orchestrator.h"
 #include "ns3/fifo-queue-scheduler.h"
-#include "ns3/round-robin-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/internet-module.h"
@@ -19,9 +19,9 @@
 #include "ns3/network-module.h"
 #include "ns3/offload-client-helper.h"
 #include "ns3/offload-client.h"
-#include "ns3/backend-server-helper.h"
-#include "ns3/backend-server.h"
+#include "ns3/orchestrator.h"
 #include "ns3/point-to-point-module.h"
+#include "ns3/round-robin-scheduler.h"
 #include "ns3/task.h"
 
 // ===========================================================================

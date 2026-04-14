@@ -41,9 +41,7 @@ class UtilizationScalingOppTestCase : public TestCase
 
             Ptr<ScalingDecision> decision = policy->Decide(0, backend);
             NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should scale up when busy");
-            NS_TEST_ASSERT_MSG_EQ(decision->targetStateIdx,
-                                  2,
-                                  "Should select max state index");
+            NS_TEST_ASSERT_MSG_EQ(decision->targetStateIdx, 2, "Should select max state index");
         }
 
         {
@@ -54,9 +52,7 @@ class UtilizationScalingOppTestCase : public TestCase
 
             Ptr<ScalingDecision> decision = policy->Decide(0, backend);
             NS_TEST_ASSERT_MSG_NE(decision, nullptr, "Should scale down when idle");
-            NS_TEST_ASSERT_MSG_EQ(decision->targetStateIdx,
-                                  0,
-                                  "Should select min state index");
+            NS_TEST_ASSERT_MSG_EQ(decision->targetStateIdx, 0, "Should select min state index");
         }
 
         {

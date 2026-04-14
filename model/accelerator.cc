@@ -203,8 +203,9 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
         }
     }
 
-    EnergyModel::PowerState powerState = active ? m_energyModel->CalculateActivePower(this, utilization)
-                                                : m_energyModel->CalculateIdlePower(this);
+    EnergyModel::PowerState powerState =
+        active ? m_energyModel->CalculateActivePower(this, utilization)
+               : m_energyModel->CalculateIdlePower(this);
     m_currentPower = powerState.GetTotalPower();
     m_powerTrace(m_currentPower);
     m_energyTrace(m_totalEnergy);

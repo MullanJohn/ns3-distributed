@@ -52,14 +52,14 @@
 // Orchestration
 #include "ns3/admission-policy.h"
 #include "ns3/cluster-scheduler.h"
-#include "ns3/conservative-scaling-policy.h"
 #include "ns3/cluster-state.h"
 #include "ns3/cluster.h"
-#include "ns3/orchestrator.h"
-#include "ns3/round-robin-scheduler.h"
+#include "ns3/conservative-scaling-policy.h"
 #include "ns3/least-loaded-scheduler.h"
 #include "ns3/max-active-tasks-policy.h"
 #include "ns3/orchestrator-header.h"
+#include "ns3/orchestrator.h"
+#include "ns3/round-robin-scheduler.h"
 
 // Device management
 #include "ns3/device-manager.h"
@@ -76,8 +76,8 @@
 #include "ns3/drop-while-pending-submission-policy.h"
 
 // Applications
-#include "ns3/offload-client.h"
 #include "ns3/backend-server.h"
+#include "ns3/offload-client.h"
 
 // Helpers
 #include "ns3/continuum-helper.h"

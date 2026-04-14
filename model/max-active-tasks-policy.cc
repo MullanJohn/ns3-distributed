@@ -92,8 +92,7 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
             {
                 if (state.Get(i).orchestration.activeTasks < m_maxActiveTasks)
                 {
-                    totalAvailable +=
-                        m_maxActiveTasks - state.Get(i).orchestration.activeTasks;
+                    totalAvailable += m_maxActiveTasks - state.Get(i).orchestration.activeTasks;
                 }
             }
         }
@@ -103,8 +102,7 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
             {
                 if (state.Get(idx).orchestration.activeTasks < m_maxActiveTasks)
                 {
-                    totalAvailable +=
-                        m_maxActiveTasks - state.Get(idx).orchestration.activeTasks;
+                    totalAvailable += m_maxActiveTasks - state.Get(idx).orchestration.activeTasks;
                 }
             }
         }

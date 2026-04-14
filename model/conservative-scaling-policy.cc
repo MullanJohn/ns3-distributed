@@ -64,8 +64,8 @@ ConservativeScalingPolicy::Decide(uint32_t /* backendIdx */,
     uint32_t targetIdx = 0;
     if (backend.device.nominalComputeRate > 0.0 && m_targetDrainTime > 0.0)
     {
-        double drainTime = backend.orchestration.estimatedRemainingComputeWork /
-                           backend.device.nominalComputeRate;
+        double drainTime =
+            backend.orchestration.estimatedRemainingComputeWork / backend.device.nominalComputeRate;
         double loadRatio = std::min(drainTime / m_targetDrainTime, 1.0);
         targetIdx = static_cast<uint32_t>(
             std::round(loadRatio * (backend.device.numPerformanceStates - 1)));

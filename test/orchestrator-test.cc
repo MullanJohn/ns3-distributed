@@ -6,11 +6,10 @@
  * Author: John Mullan <122331816@umail.ucc.ie>
  */
 
+#include "ns3/backend-server.h"
 #include "ns3/cluster.h"
 #include "ns3/double.h"
-#include "ns3/orchestrator.h"
 #include "ns3/fifo-queue-scheduler.h"
-#include "ns3/round-robin-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
 #include "ns3/inet-socket-address.h"
@@ -19,9 +18,10 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/least-loaded-scheduler.h"
 #include "ns3/offload-client.h"
-#include "ns3/backend-server.h"
+#include "ns3/orchestrator.h"
 #include "ns3/point-to-point-helper.h"
 #include "ns3/pointer.h"
+#include "ns3/round-robin-scheduler.h"
 #include "ns3/simulator.h"
 #include "ns3/string.h"
 #include "ns3/test.h"
@@ -296,8 +296,9 @@ class MultiBackendTestCase : public TestCase
             MakeCallback(&MultiBackendTestCase::OnTaskDispatched, this));
 
         Ptr<OffloadClient> client0 = CreateObject<OffloadClient>();
-        client0->SetAttribute("Remote",
-                              AddressValue(InetSocketAddress(ifClient0Orch.GetAddress(1), orchPort)));
+        client0->SetAttribute(
+            "Remote",
+            AddressValue(InetSocketAddress(ifClient0Orch.GetAddress(1), orchPort)));
         client0->SetAttribute("InterArrival",
                               StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
 
@@ -314,8 +315,9 @@ class MultiBackendTestCase : public TestCase
         client0->SetAttribute("OutputSize", PointerValue(output0));
 
         Ptr<OffloadClient> client1 = CreateObject<OffloadClient>();
-        client1->SetAttribute("Remote",
-                              AddressValue(InetSocketAddress(ifClient1Orch.GetAddress(1), orchPort)));
+        client1->SetAttribute(
+            "Remote",
+            AddressValue(InetSocketAddress(ifClient1Orch.GetAddress(1), orchPort)));
         client1->SetAttribute("InterArrival",
                               StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
 

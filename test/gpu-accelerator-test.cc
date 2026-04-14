@@ -11,12 +11,12 @@
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
 #include "ns3/gpu-accelerator.h"
+#include "ns3/nstime.h"
 #include "ns3/pointer.h"
 #include "ns3/simple-task.h"
 #include "ns3/simulator.h"
 #include "ns3/task.h"
 #include "ns3/test.h"
-#include "ns3/nstime.h"
 
 namespace ns3
 {
@@ -84,7 +84,11 @@ class GpuAcceleratorTestCase : public TestCase
                                   "Task duration should be ~0.3 seconds");
     }
 
-    void TaskStarted(Ptr<const Task>) { m_startedCount++; }
+    void TaskStarted(Ptr<const Task>)
+    {
+        m_startedCount++;
+    }
+
     void TaskCompleted(Ptr<const Task>, Time duration)
     {
         m_completedCount++;
@@ -152,7 +156,10 @@ class GpuAcceleratorNoSchedulerTestCase : public TestCase
         m_lastFailReason = reason;
     }
 
-    void TaskStarted(Ptr<const Task>) { m_startedCount++; }
+    void TaskStarted(Ptr<const Task>)
+    {
+        m_startedCount++;
+    }
 
     uint32_t m_failedCount;
     uint32_t m_startedCount;
@@ -240,11 +247,26 @@ class GpuAcceleratorUtilizationTestCase : public TestCase
         task->SetOutputSize(25);
         m_gpu->SubmitTask(task);
 
-        Simulator::Schedule(Seconds(0.10), &GpuAcceleratorUtilizationTestCase::CheckUtilization, this, 0.0);
-        Simulator::Schedule(Seconds(0.50), &GpuAcceleratorUtilizationTestCase::CheckUtilization, this, 0.25);
-        Simulator::Schedule(Seconds(0.90), &GpuAcceleratorUtilizationTestCase::CheckUtilization, this, 0.50);
-        Simulator::Schedule(Seconds(1.50), &GpuAcceleratorUtilizationTestCase::CheckUtilization, this, 0.25);
-        Simulator::Schedule(Seconds(1.80), &GpuAcceleratorUtilizationTestCase::CheckUtilization, this, 0.0);
+        Simulator::Schedule(Seconds(0.10),
+                            &GpuAcceleratorUtilizationTestCase::CheckUtilization,
+                            this,
+                            0.0);
+        Simulator::Schedule(Seconds(0.50),
+                            &GpuAcceleratorUtilizationTestCase::CheckUtilization,
+                            this,
+                            0.25);
+        Simulator::Schedule(Seconds(0.90),
+                            &GpuAcceleratorUtilizationTestCase::CheckUtilization,
+                            this,
+                            0.50);
+        Simulator::Schedule(Seconds(1.50),
+                            &GpuAcceleratorUtilizationTestCase::CheckUtilization,
+                            this,
+                            0.25);
+        Simulator::Schedule(Seconds(1.80),
+                            &GpuAcceleratorUtilizationTestCase::CheckUtilization,
+                            this,
+                            0.0);
         Simulator::Stop(Seconds(1.80));
         Simulator::Run();
         Simulator::Destroy();
@@ -374,11 +396,40 @@ class GpuAcceleratorApplyStateTestCase : public TestCase
 
 } // namespace
 
-TestCase* CreateGpuAcceleratorFrequencyScalingTestCase() { return new GpuAcceleratorFrequencyScalingTestCase; }
-TestCase* CreateGpuAcceleratorTestCase() { return new GpuAcceleratorTestCase; }
-TestCase* CreateGpuAcceleratorNoSchedulerTestCase() { return new GpuAcceleratorNoSchedulerTestCase; }
-TestCase* CreateGpuAcceleratorUtilizationTestCase() { return new GpuAcceleratorUtilizationTestCase; }
-TestCase* CreateGpuAcceleratorInFlightFrequencyScalingTestCase() { return new GpuAcceleratorInFlightFrequencyScalingTestCase; }
-TestCase* CreateGpuAcceleratorApplyStateTestCase() { return new GpuAcceleratorApplyStateTestCase; }
+TestCase*
+CreateGpuAcceleratorFrequencyScalingTestCase()
+{
+    return new GpuAcceleratorFrequencyScalingTestCase;
+}
+
+TestCase*
+CreateGpuAcceleratorTestCase()
+{
+    return new GpuAcceleratorTestCase;
+}
+
+TestCase*
+CreateGpuAcceleratorNoSchedulerTestCase()
+{
+    return new GpuAcceleratorNoSchedulerTestCase;
+}
+
+TestCase*
+CreateGpuAcceleratorUtilizationTestCase()
+{
+    return new GpuAcceleratorUtilizationTestCase;
+}
+
+TestCase*
+CreateGpuAcceleratorInFlightFrequencyScalingTestCase()
+{
+    return new GpuAcceleratorInFlightFrequencyScalingTestCase;
+}
+
+TestCase*
+CreateGpuAcceleratorApplyStateTestCase()
+{
+    return new GpuAcceleratorApplyStateTestCase;
+}
 
 } // namespace ns3

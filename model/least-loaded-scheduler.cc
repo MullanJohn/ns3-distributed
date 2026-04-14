@@ -138,15 +138,14 @@ LeastLoadedScheduler::ScheduleTask(Ptr<Task> task,
             bestIdx = static_cast<int32_t>(idx);
         }
 
-        NS_LOG_DEBUG("LeastLoaded: backend "
-                     << idx << " work=" << totalWork << " rate=" << effectiveRate
-                     << " score=" << score << " active="
-                     << backend.orchestration.activeTasks);
+        NS_LOG_DEBUG("LeastLoaded: backend " << idx << " work=" << totalWork
+                                             << " rate=" << effectiveRate << " score=" << score
+                                             << " active=" << backend.orchestration.activeTasks);
     }
 
     NS_LOG_DEBUG("LeastLoaded: scheduled task " << task->GetTaskId() << " to backend " << bestIdx
-                                                << " (score=" << bestScore << ", active="
-                                                << bestActiveTasks << ")");
+                                                << " (score=" << bestScore
+                                                << ", active=" << bestActiveTasks << ")");
     return bestIdx;
 }
 

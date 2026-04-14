@@ -168,14 +168,14 @@ class OffloadClient : public Application
     void SendFullData(uint64_t dagId);
 
     // Transport
-    Ptr<ConnectionManager> m_connMgr; //!< Connection manager for transport
-    Address m_peer;                   //!< Remote orchestrator address
+    Ptr<ConnectionManager> m_connMgr;               //!< Connection manager for transport
+    Address m_peer;                                 //!< Remote orchestrator address
     Ptr<ClientSubmissionPolicy> m_submissionPolicy; //!< Policy deciding whether to submit each tick
 
     // Configuration
-    Ptr<RandomVariableStream> m_interArrival;  //!< Inter-arrival time between tasks in seconds
-    Time m_deadlineBudget;                     //!< End-to-end delay budget (0 = use sampled inter-arrival period)
-    Time m_commBudget;                         //!< Communication budget (T_ul + T_dl estimate)
+    Ptr<RandomVariableStream> m_interArrival; //!< Inter-arrival time between tasks in seconds
+    Time m_deadlineBudget; //!< End-to-end delay budget (0 = use sampled inter-arrival period)
+    Time m_commBudget;     //!< Communication budget (T_ul + T_dl estimate)
     Ptr<RandomVariableStream> m_inputSize;     //!< Input size per task in bytes
     Ptr<RandomVariableStream> m_computeDemand; //!< FLOPS per task
     Ptr<RandomVariableStream> m_outputSize;    //!< Result size in bytes

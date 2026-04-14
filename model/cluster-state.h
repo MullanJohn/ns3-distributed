@@ -43,12 +43,12 @@ class ClusterState
     {
         struct Device
         {
-            double nominalComputeRate{0.0};     //!< Compute rate at base state (index 0) in FLOP/s
-            uint32_t numPerformanceStates{0};   //!< Available performance states (0 = no scaling)
-            double maxComputeRate{0.0};         //!< Compute rate at highest state in FLOP/s
-            uint32_t currentStateIdx{0};        //!< Current performance state index
-            double effectiveComputeRate{0.0};   //!< Current compute rate in FLOP/s
-            Ptr<DeviceMetrics> deviceMetrics;   //!< Latest device-reported metrics (nullable)
+            double nominalComputeRate{0.0};   //!< Compute rate at base state (index 0) in FLOP/s
+            uint32_t numPerformanceStates{0}; //!< Available performance states (0 = no scaling)
+            double maxComputeRate{0.0};       //!< Compute rate at highest state in FLOP/s
+            uint32_t currentStateIdx{0};      //!< Current performance state index
+            double effectiveComputeRate{0.0}; //!< Current compute rate in FLOP/s
+            Ptr<DeviceMetrics> deviceMetrics; //!< Latest device-reported metrics (nullable)
         };
 
         struct Orchestration

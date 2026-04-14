@@ -10,9 +10,9 @@
 
 #include "ns3/double.h"
 #include "ns3/log.h"
+#include "ns3/nstime.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
-#include "ns3/nstime.h"
 #include "ns3/trace-source-accessor.h"
 
 #include <algorithm>
@@ -26,60 +26,61 @@ NS_OBJECT_ENSURE_REGISTERED(GpuAccelerator);
 TypeId
 GpuAccelerator::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::GpuAccelerator")
-                            .SetParent<Accelerator>()
-                            .SetGroupName("Continuum")
-                            .AddConstructor<GpuAccelerator>()
-                            .AddAttribute("ComputeRate",
-                                          "Compute rate in FLOPS (must be > 0)",
-                                          DoubleValue(1e12),
-                                          MakeDoubleAccessor(&GpuAccelerator::m_computeRate),
-                                          MakeDoubleChecker<double>(1.0))
-                            .AddAttribute("ComputeEfficiency",
-                                          "Fraction of theoretical compute rate achieved "
-                                          "by the workload.",
-                                          DoubleValue(1.0),
-                                          MakeDoubleAccessor(&GpuAccelerator::m_computeEfficiency),
-                                          MakeDoubleChecker<double>(0.0, 1.0))
-                            .AddAttribute("MemoryBandwidth",
-                                          "GPU DRAM memory bandwidth in bytes/sec",
-                                          DoubleValue(900e9),
-                                          MakeDoubleAccessor(&GpuAccelerator::m_memoryBandwidth),
-                                          MakeDoubleChecker<double>(1.0))
-                            .AddAttribute("TransferBandwidth",
-                                          "Host-device transfer bandwidth in bytes/sec (e.g. PCIe)",
-                                          DoubleValue(32e9),
-                                          MakeDoubleAccessor(&GpuAccelerator::m_transferBandwidth),
-                                          MakeDoubleChecker<double>(1.0))
-                            .AddAttribute("ProcessingModel",
-                                          "Processing model for timing calculation",
-                                          PointerValue(),
-                                          MakePointerAccessor(&GpuAccelerator::m_processingModel),
-                                          MakePointerChecker<ProcessingModel>())
-                            .AddAttribute("QueueScheduler",
-                                          "Queue scheduler for task management",
-                                          PointerValue(),
-                                          MakePointerAccessor(&GpuAccelerator::m_queueScheduler),
-                                          MakePointerChecker<QueueScheduler>())
-                            .AddAttribute("Frequency",
-                                          "Operating frequency in Hz",
-                                          DoubleValue(1.5e9),
-                                          MakeDoubleAccessor(&GpuAccelerator::m_frequency),
-                                          MakeDoubleChecker<double>(1.0))
-                            .AddAttribute("Voltage",
-                                          "Operating voltage in Volts",
-                                          DoubleValue(1.0),
-                                          MakeDoubleAccessor(&GpuAccelerator::m_voltage),
-                                          MakeDoubleChecker<double>(0.01))
-                            .AddAttribute("UtilizationWindow",
-                                          "Observation window used for rolling compute utilization.",
-                                          TimeValue(MilliSeconds(100)),
-                                          MakeTimeAccessor(&GpuAccelerator::m_utilizationWindow),
-                                          MakeTimeChecker())
-                            .AddTraceSource("QueueLength",
-                                            "Current number of tasks in queue",
-                                            MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
-                                            "ns3::TracedValueCallback::Uint32");
+    static TypeId tid =
+        TypeId("ns3::GpuAccelerator")
+            .SetParent<Accelerator>()
+            .SetGroupName("Continuum")
+            .AddConstructor<GpuAccelerator>()
+            .AddAttribute("ComputeRate",
+                          "Compute rate in FLOPS (must be > 0)",
+                          DoubleValue(1e12),
+                          MakeDoubleAccessor(&GpuAccelerator::m_computeRate),
+                          MakeDoubleChecker<double>(1.0))
+            .AddAttribute("ComputeEfficiency",
+                          "Fraction of theoretical compute rate achieved "
+                          "by the workload.",
+                          DoubleValue(1.0),
+                          MakeDoubleAccessor(&GpuAccelerator::m_computeEfficiency),
+                          MakeDoubleChecker<double>(0.0, 1.0))
+            .AddAttribute("MemoryBandwidth",
+                          "GPU DRAM memory bandwidth in bytes/sec",
+                          DoubleValue(900e9),
+                          MakeDoubleAccessor(&GpuAccelerator::m_memoryBandwidth),
+                          MakeDoubleChecker<double>(1.0))
+            .AddAttribute("TransferBandwidth",
+                          "Host-device transfer bandwidth in bytes/sec (e.g. PCIe)",
+                          DoubleValue(32e9),
+                          MakeDoubleAccessor(&GpuAccelerator::m_transferBandwidth),
+                          MakeDoubleChecker<double>(1.0))
+            .AddAttribute("ProcessingModel",
+                          "Processing model for timing calculation",
+                          PointerValue(),
+                          MakePointerAccessor(&GpuAccelerator::m_processingModel),
+                          MakePointerChecker<ProcessingModel>())
+            .AddAttribute("QueueScheduler",
+                          "Queue scheduler for task management",
+                          PointerValue(),
+                          MakePointerAccessor(&GpuAccelerator::m_queueScheduler),
+                          MakePointerChecker<QueueScheduler>())
+            .AddAttribute("Frequency",
+                          "Operating frequency in Hz",
+                          DoubleValue(1.5e9),
+                          MakeDoubleAccessor(&GpuAccelerator::m_frequency),
+                          MakeDoubleChecker<double>(1.0))
+            .AddAttribute("Voltage",
+                          "Operating voltage in Volts",
+                          DoubleValue(1.0),
+                          MakeDoubleAccessor(&GpuAccelerator::m_voltage),
+                          MakeDoubleChecker<double>(0.01))
+            .AddAttribute("UtilizationWindow",
+                          "Observation window used for rolling compute utilization.",
+                          TimeValue(MilliSeconds(100)),
+                          MakeTimeAccessor(&GpuAccelerator::m_utilizationWindow),
+                          MakeTimeChecker())
+            .AddTraceSource("QueueLength",
+                            "Current number of tasks in queue",
+                            MakeTraceSourceAccessor(&GpuAccelerator::m_queueLength),
+                            "ns3::TracedValueCallback::Uint32");
     return tid;
 }
 
@@ -424,7 +425,8 @@ GpuAccelerator::GetRemainingTaskProfile(Time elapsed, double ratio) const
         remaining.outputTransferTime = output - outputElapsed;
     }
 
-    remaining.processingTime = remaining.inputTransferTime + remaining.computeTime + remaining.outputTransferTime;
+    remaining.processingTime =
+        remaining.inputTransferTime + remaining.computeTime + remaining.outputTransferTime;
     return remaining;
 }
 
@@ -436,7 +438,8 @@ GpuAccelerator::AccumulateCurrentComputeUntil(Time now)
         return;
     }
 
-    Time segmentEnd = std::min(now, m_currentSegmentStartTime + m_currentTaskProfile.processingTime);
+    Time segmentEnd =
+        std::min(now, m_currentSegmentStartTime + m_currentTaskProfile.processingTime);
     Time computeStart = m_currentSegmentStartTime + m_currentTaskProfile.inputTransferTime;
     Time computeEnd = computeStart + m_currentTaskProfile.computeTime;
 

@@ -202,8 +202,8 @@ Orchestrator::CancelAllPendingAdmissions()
 
 std::map<Address, Ptr<Packet>>::iterator
 Orchestrator::AppendToBuffer(std::map<Address, Ptr<Packet>>& bufferMap,
-                                 const Address& addr,
-                                 Ptr<Packet> packet)
+                             const Address& addr,
+                             Ptr<Packet> packet)
 {
     auto it = bufferMap.find(addr);
     if (it == bufferMap.end())
@@ -255,8 +255,8 @@ Orchestrator::GetCluster() const
 
 void
 Orchestrator::RegisterTaskType(uint8_t taskType,
-                                   DeserializerCallback fullDeserializer,
-                                   DeserializerCallback metadataDeserializer)
+                               DeserializerCallback fullDeserializer,
+                               DeserializerCallback metadataDeserializer)
 {
     NS_LOG_FUNCTION(this << (int)taskType);
     m_taskTypeRegistry[taskType] = {fullDeserializer, metadataDeserializer};
@@ -264,8 +264,8 @@ Orchestrator::RegisterTaskType(uint8_t taskType,
 
 Ptr<Task>
 Orchestrator::DispatchDeserializeImpl(Ptr<Packet> packet,
-                                          uint64_t& consumedBytes,
-                                          bool metadataOnly)
+                                      uint64_t& consumedBytes,
+                                      bool metadataOnly)
 {
     consumedBytes = 0;
 
@@ -384,8 +384,7 @@ Orchestrator::StartApplication()
     NS_LOG_INFO("Orchestrator listening on port " << m_port);
 
     m_backendConnMgr->SetNode(GetNode());
-    m_backendConnMgr->SetReceiveCallback(
-        MakeCallback(&Orchestrator::HandleBackendResponse, this));
+    m_backendConnMgr->SetReceiveCallback(MakeCallback(&Orchestrator::HandleBackendResponse, this));
 
     Ptr<TcpConnectionManager> tcpBackendMgr = DynamicCast<TcpConnectionManager>(m_backendConnMgr);
     if (tcpBackendMgr)
@@ -1073,16 +1072,16 @@ Orchestrator::CleanupClient(const Address& clientAddr)
 
 void
 Orchestrator::HandleAdmissionRequest(uint64_t dagId,
-                                         Ptr<Packet> dagPacket,
-                                         const Address& clientAddr)
+                                     Ptr<Packet> dagPacket,
+                                     const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << dagId << clientAddr);
 
     uint64_t consumedBytes = 0;
-    Ptr<DagTask> dag = DagTask::DeserializeMetadata(
-        dagPacket,
-        MakeCallback(&Orchestrator::DispatchDeserializeMetadata, this),
-        consumedBytes);
+    Ptr<DagTask> dag =
+        DagTask::DeserializeMetadata(dagPacket,
+                                     MakeCallback(&Orchestrator::DispatchDeserializeMetadata, this),
+                                     consumedBytes);
     if (!dag)
     {
         NS_LOG_WARN("Failed to deserialize DAG metadata for dagId " << dagId);

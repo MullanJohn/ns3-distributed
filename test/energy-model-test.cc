@@ -52,7 +52,10 @@ class DvfsEnergyModelTestCase : public TestCase
 
         EnergyModel::PowerState idle = energy->CalculateIdlePower(gpu);
         NS_TEST_ASSERT_MSG_EQ_TOL(idle.dynamicPower, 0.0, 1e-9, "Idle dynamic power should be 0W");
-        NS_TEST_ASSERT_MSG_EQ_TOL(idle.GetTotalPower(), 10.0, 1e-9, "Idle total power should be 10W");
+        NS_TEST_ASSERT_MSG_EQ_TOL(idle.GetTotalPower(),
+                                  10.0,
+                                  1e-9,
+                                  "Idle total power should be 10W");
 
         NS_TEST_ASSERT_MSG_EQ(energy->GetName(), "DVFS", "Energy model name should be DVFS");
         Simulator::Destroy();
@@ -188,16 +191,18 @@ class AcceleratorTaskUtilizationEnergyTestCase : public TestCase
         Simulator::Run();
         Simulator::Destroy();
 
-        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetTotalEnergy(),
-                                  1.0,
-                                  1e-6,
-                                  "Dynamic energy should be proportional to compute time, not total service time");
+        NS_TEST_ASSERT_MSG_EQ_TOL(
+            gpu->GetTotalEnergy(),
+            1.0,
+            1e-6,
+            "Dynamic energy should be proportional to compute time, not total service time");
     }
 };
 
 /**
  * @ingroup continuum-tests
- * @brief Test Accelerator fires CurrentPower, TotalEnergy and TaskEnergy traces with the expected values.
+ * @brief Test Accelerator fires CurrentPower, TotalEnergy and TaskEnergy traces with the expected
+ * values.
  */
 class AcceleratorEnergyTracesTestCase : public TestCase
 {
@@ -258,8 +263,16 @@ class AcceleratorEnergyTracesTestCase : public TestCase
                                   "Per-task energy = 11W * 1s = 11J (default model defaults)");
     }
 
-    void PowerCallback(double) { m_powerTraceCount++; }
-    void EnergyCallback(double) { m_energyTraceCount++; }
+    void PowerCallback(double)
+    {
+        m_powerTraceCount++;
+    }
+
+    void EnergyCallback(double)
+    {
+        m_energyTraceCount++;
+    }
+
     void TaskEnergyCallback(Ptr<const Task>, double energy)
     {
         m_taskEnergyTraceCount++;
@@ -317,21 +330,50 @@ class EnergyModelNotConfiguredTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetCurrentPower(), 0.0, 1e-9, "Power should be 0");
     }
 
-    void TaskCompleted(Ptr<const Task>, Time) { m_taskCompletedCount++; }
+    void TaskCompleted(Ptr<const Task>, Time)
+    {
+        m_taskCompletedCount++;
+    }
 
     uint32_t m_taskCompletedCount;
 };
 
 } // namespace
 
-TestCase* CreateDvfsEnergyModelTestCase() { return new DvfsEnergyModelTestCase; }
-TestCase* CreateAcceleratorEnergyTrackingTestCase() { return new AcceleratorEnergyTrackingTestCase; }
-TestCase* CreateAcceleratorIdleStaticEnergyTestCase()
+TestCase*
+CreateDvfsEnergyModelTestCase()
+{
+    return new DvfsEnergyModelTestCase;
+}
+
+TestCase*
+CreateAcceleratorEnergyTrackingTestCase()
+{
+    return new AcceleratorEnergyTrackingTestCase;
+}
+
+TestCase*
+CreateAcceleratorIdleStaticEnergyTestCase()
 {
     return new AcceleratorIdleStaticEnergyTestCase;
 }
-TestCase* CreateAcceleratorTaskUtilizationEnergyTestCase() { return new AcceleratorTaskUtilizationEnergyTestCase; }
-TestCase* CreateAcceleratorEnergyTracesTestCase() { return new AcceleratorEnergyTracesTestCase; }
-TestCase* CreateEnergyModelNotConfiguredTestCase() { return new EnergyModelNotConfiguredTestCase; }
+
+TestCase*
+CreateAcceleratorTaskUtilizationEnergyTestCase()
+{
+    return new AcceleratorTaskUtilizationEnergyTestCase;
+}
+
+TestCase*
+CreateAcceleratorEnergyTracesTestCase()
+{
+    return new AcceleratorEnergyTracesTestCase;
+}
+
+TestCase*
+CreateEnergyModelNotConfiguredTestCase()
+{
+    return new EnergyModelNotConfiguredTestCase;
+}
 
 } // namespace ns3

@@ -41,7 +41,8 @@ class ConservativeScalingPolicy : public ScalingPolicy
     std::string GetName() const override;
 
   private:
-    double m_targetDrainTime{1.0}; //!< Drain time at nominal rate that maps to highest OPP (seconds)
+    double m_targetDrainTime{
+        1.0}; //!< Drain time at nominal rate that maps to highest OPP (seconds)
 };
 
 } // namespace ns3

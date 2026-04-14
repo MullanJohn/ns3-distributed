@@ -77,9 +77,9 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
     double outputTransferSeconds = static_cast<double>(outputSize) / transferBandwidth;
 
     NS_LOG_DEBUG("Task " << task->GetTaskId() << " processing:"
-                         << " input=" << Seconds(inputTransferSeconds) << " compute="
-                         << Seconds(computeSeconds) << " output=" << Seconds(outputTransferSeconds)
-                         << " total="
+                         << " input=" << Seconds(inputTransferSeconds)
+                         << " compute=" << Seconds(computeSeconds)
+                         << " output=" << Seconds(outputTransferSeconds) << " total="
                          << Seconds(inputTransferSeconds + computeSeconds + outputTransferSeconds));
 
     return Result(Seconds(inputTransferSeconds),

@@ -32,8 +32,8 @@ class DeviceMetrics : public SimpleRefCount<DeviceMetrics>
   public:
     virtual ~DeviceMetrics() = default;
 
-    double utilization{0};   //!< Rolling compute utilization [0.0, 1.0]
-    double currentPower{0};  //!< Current total power draw in Watts
+    double utilization{0};  //!< Rolling compute utilization [0.0, 1.0]
+    double currentPower{0}; //!< Current total power draw in Watts
 };
 
 /**

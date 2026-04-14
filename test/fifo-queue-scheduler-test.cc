@@ -39,9 +39,7 @@ class FifoQueueSchedulerTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(scheduler->Dequeue(),
                               nullptr,
                               "Dequeue on empty should return nullptr");
-        NS_TEST_ASSERT_MSG_EQ(scheduler->Peek(),
-                              nullptr,
-                              "Peek on empty should return nullptr");
+        NS_TEST_ASSERT_MSG_EQ(scheduler->Peek(), nullptr, "Peek on empty should return nullptr");
 
         for (uint32_t i = 1; i <= 5; i++)
         {

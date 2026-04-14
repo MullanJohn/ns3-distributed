@@ -249,13 +249,13 @@ class TaskHeader : public Header
 
   protected:
     MessageType m_messageType{TASK_REQUEST}; //!< Message type (request/response)
-    uint64_t m_taskId{0};                   //!< Unique task identifier
-    double m_computeDemand{0.0};            //!< Compute demand in FLOPS
-    uint64_t m_inputSize{0};                //!< Input data size in bytes
-    uint64_t m_outputSize{0};               //!< Output data size in bytes
-    int64_t m_deadlineNs{-1};               //!< Task deadline in nanoseconds (-1 = no deadline)
-    uint32_t m_priority{0};                 //!< Task priority (higher = higher priority)
-    std::string m_acceleratorType;          //!< Required accelerator type (empty = any)
+    uint64_t m_taskId{0};                    //!< Unique task identifier
+    double m_computeDemand{0.0};             //!< Compute demand in FLOPS
+    uint64_t m_inputSize{0};                 //!< Input data size in bytes
+    uint64_t m_outputSize{0};                //!< Output data size in bytes
+    int64_t m_deadlineNs{-1};                //!< Task deadline in nanoseconds (-1 = no deadline)
+    uint32_t m_priority{0};                  //!< Task priority (higher = higher priority)
+    std::string m_acceleratorType;           //!< Required accelerator type (empty = any)
 };
 
 } // namespace ns3

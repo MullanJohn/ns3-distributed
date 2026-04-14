@@ -58,7 +58,6 @@ class LeastLoadedScheduler : public ClusterScheduler
 
   protected:
     void DoDispose() override;
-
 };
 
 } // namespace ns3

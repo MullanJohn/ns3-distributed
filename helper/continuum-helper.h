@@ -18,8 +18,8 @@
  */
 
 // Helper headers
-#include "ns3/orchestrator-helper.h"
-#include "ns3/offload-client-helper.h"
 #include "ns3/backend-server-helper.h"
+#include "ns3/offload-client-helper.h"
+#include "ns3/orchestrator-helper.h"
 
 #endif // CONTINUUM_HELPER_H

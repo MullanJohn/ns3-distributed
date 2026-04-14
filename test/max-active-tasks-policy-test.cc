@@ -140,7 +140,8 @@ class MaxActiveTasksPendingReservationTestCase : public TestCase
 {
   public:
     MaxActiveTasksPendingReservationTestCase()
-        : TestCase("MaxActiveTasksPolicy rejects when pending admissions consume remaining capacity")
+        : TestCase(
+              "MaxActiveTasksPolicy rejects when pending admissions consume remaining capacity")
     {
     }
 
@@ -185,13 +186,15 @@ class MaxActiveTasksPendingReservationTestCase : public TestCase
 
 /**
  * @ingroup continuum-tests
- * @brief Test MaxActiveTasksPolicy rejects when the incoming workload size exceeds remaining capacity.
+ * @brief Test MaxActiveTasksPolicy rejects when the incoming workload size exceeds remaining
+ * capacity.
  */
 class MaxActiveTasksIncomingWorkloadSizeTestCase : public TestCase
 {
   public:
     MaxActiveTasksIncomingWorkloadSizeTestCase()
-        : TestCase("MaxActiveTasksPolicy rejects when the incoming workload exceeds remaining capacity")
+        : TestCase(
+              "MaxActiveTasksPolicy rejects when the incoming workload exceeds remaining capacity")
     {
     }
 

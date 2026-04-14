@@ -61,6 +61,10 @@ class DeviceMetricsHeaderTestCase : public TestCase
 
 } // namespace
 
-TestCase* CreateDeviceMetricsHeaderTestCase() { return new DeviceMetricsHeaderTestCase; }
+TestCase*
+CreateDeviceMetricsHeaderTestCase()
+{
+    return new DeviceMetricsHeaderTestCase;
+}
 
 } // namespace ns3
