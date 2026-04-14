@@ -15,6 +15,8 @@
 #include "ns3/ptr.h"
 
 #include <cstdint>
+#include <map>
+#include <string>
 
 namespace ns3
 {
@@ -23,20 +25,20 @@ class ClusterState;
 class DagTask;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for admission control policies.
  *
  * AdmissionPolicy determines whether a workload should be accepted for execution.
-
+ *
  * Implementations are stateless - the orchestrator tracks active workloads
- * and passes the count to ShouldAdmit(). This follows real-world patterns
- * from Kubernetes and Spark where admission controllers are stateless.
+ * and passes per-backend state to ShouldAdmit(). This follows real-world
+ * patterns from Kubernetes and Spark where admission controllers are stateless.
  *
  * Example usage:
  * @code
- * Ptr<AdmissionPolicy> policy = CreateObject<AlwaysAdmitPolicy>();
+ * Ptr<AdmissionPolicy> policy = CreateObject<MaxActiveTasksPolicy>();
  *
- * if (policy->ShouldAdmit(dag, cluster, activeCount))
+ * if (policy->ShouldAdmit(dag, cluster, state))
  * {
  *     // Accept workload...
  * }
@@ -68,6 +70,19 @@ class AdmissionPolicy : public Object
     virtual bool ShouldAdmit(Ptr<DagTask> dag,
                              const Cluster& cluster,
                              const ClusterState& state) = 0;
+
+    /**
+     * @brief Get pending-admission reservation counts for this workload.
+     *
+     * The orchestrator uses this to reserve admission capacity between Phase 1
+     * admission and Phase 2 data upload without needing policy-specific logic.
+     * The default implementation reserves the whole workload against the
+     * generic/unspecified accelerator type.
+     *
+     * @param dag The workload DAG.
+     * @return Required reservation counts grouped by accelerator type.
+     */
+    virtual std::map<std::string, uint32_t> GetReservationTaskCounts(Ptr<DagTask> dag) const;
 
     /**
      * @brief Get the policy name for logging and debugging.

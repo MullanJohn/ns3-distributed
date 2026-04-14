@@ -1,14 +1,14 @@
 Applications
 ============
 
-PeriodicClient
---------------
+OffloadClient
+-------------
 
-.. doxygenclass:: ns3::PeriodicClient
+.. doxygenclass:: ns3::OffloadClient
    :members:
 
-PeriodicServer
---------------
+BackendServer
+-------------
 
-.. doxygenclass:: ns3::PeriodicServer
+.. doxygenclass:: ns3::BackendServer
    :members:

@@ -7,7 +7,6 @@
  */
 
 #include "ns3/packet.h"
-#include "ns3/simple-task-header.h"
 #include "ns3/task-header.h"
 #include "ns3/test.h"
 
@@ -17,90 +16,62 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
- * @brief Test TaskHeader interface through SimpleTaskHeader
+ * @ingroup continuum-tests
+ * @brief Test TaskHeader serialization round-trip.
  */
-class TaskHeaderInterfaceTestCase : public TestCase
+class TaskHeaderSerializationTestCase : public TestCase
 {
   public:
-    TaskHeaderInterfaceTestCase()
-        : TestCase("Test TaskHeader interface through SimpleTaskHeader")
+    TaskHeaderSerializationTestCase()
+        : TestCase("Test TaskHeader serialization roundtrip")
     {
     }
 
   private:
     void DoRun() override
     {
-        // Create SimpleTaskHeader and use via TaskHeader interface
-        SimpleTaskHeader concrete;
-        concrete.SetMessageType(TaskHeader::TASK_REQUEST);
-        concrete.SetTaskId(42);
-        concrete.SetInputSize(1000);
-        concrete.SetOutputSize(500);
-
-        // Access via base class pointer
-        TaskHeader* base = &concrete;
-
-        NS_TEST_ASSERT_MSG_EQ(base->GetMessageType(),
-                              TaskHeader::TASK_REQUEST,
-                              "Message type via interface");
-        NS_TEST_ASSERT_MSG_EQ(base->GetTaskId(), 42, "Task ID via interface");
-        NS_TEST_ASSERT_MSG_EQ(base->IsRequest(), true, "IsRequest should be true");
-        NS_TEST_ASSERT_MSG_EQ(base->IsResponse(), false, "IsResponse should be false");
-
-        // Test response type
-        base->SetMessageType(TaskHeader::TASK_RESPONSE);
-        NS_TEST_ASSERT_MSG_EQ(base->IsRequest(), false, "IsRequest should be false");
-        NS_TEST_ASSERT_MSG_EQ(base->IsResponse(), true, "IsResponse should be true");
-    }
-};
-
-/**
- * @ingroup distributed-tests
- * @brief Test TaskHeader polymorphism with serialization
- */
-class TaskHeaderPolymorphismTestCase : public TestCase
-{
-  public:
-    TaskHeaderPolymorphismTestCase()
-        : TestCase("Test TaskHeader polymorphism with serialization")
-    {
-    }
-
-  private:
-    void DoRun() override
-    {
-        // Create concrete header
-        SimpleTaskHeader original;
+        TaskHeader original;
         original.SetMessageType(TaskHeader::TASK_REQUEST);
         original.SetTaskId(12345);
-        original.SetComputeDemand(1e9);
-        original.SetInputSize(1024);
-        original.SetOutputSize(512);
+        original.SetComputeDemand(5.5e9);
+        original.SetInputSize(1024 * 1024);
+        original.SetOutputSize(512 * 1024);
+        original.SetDeadlineNs(1000000000);
+        original.SetPriority(5);
+        original.SetAcceleratorType("GPU");
 
-        // Serialize through base class reference
-        const TaskHeader& baseRef = original;
+        NS_TEST_ASSERT_MSG_EQ(original.GetSerializedSize(),
+                              TaskHeader::SERIALIZED_SIZE,
+                              "Serialized size should be 61 bytes");
+
         Ptr<Packet> packet = Create<Packet>();
-        packet->AddHeader(baseRef);
+        packet->AddHeader(original);
 
-        // Verify serialization worked (packet has correct size)
-        NS_TEST_ASSERT_MSG_EQ(packet->GetSize(),
-                              SimpleTaskHeader::SERIALIZED_SIZE,
-                              "Packet should have header size");
-
-        // Deserialize
-        SimpleTaskHeader deserialized;
+        TaskHeader deserialized;
         packet->RemoveHeader(deserialized);
 
-        // Verify through interface methods
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetMessageType(),
+                              TaskHeader::TASK_REQUEST,
+                              "Message type should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetTaskId(), 12345, "Task ID should match");
-        NS_TEST_ASSERT_MSG_EQ(deserialized.IsRequest(), true, "Should be request");
+        NS_TEST_ASSERT_MSG_EQ_TOL(deserialized.GetComputeDemand(),
+                                  5.5e9,
+                                  1e-6,
+                                  "Compute demand should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetInputSize(), 1024 * 1024, "Input size should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetOutputSize(), 512 * 1024, "Output size should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.HasDeadline(), true, "Should have deadline");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetDeadlineNs(), 1000000000, "Deadline should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetPriority(), 5, "Priority should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetAcceleratorType(),
+                              "GPU",
+                              "Accelerator type should match");
     }
 };
 
 /**
- * @ingroup distributed-tests
- * @brief Test TaskHeader payload size calculation
+ * @ingroup continuum-tests
+ * @brief Test TaskHeader payload size calculation.
  */
 class TaskHeaderPayloadSizeTestCase : public TestCase
 {
@@ -113,24 +84,17 @@ class TaskHeaderPayloadSizeTestCase : public TestCase
   private:
     void DoRun() override
     {
-        SimpleTaskHeader header;
+        TaskHeader header;
         header.SetInputSize(1000);
         header.SetOutputSize(500);
 
-        // Access via base class reference
-        const TaskHeader& base = header;
-
-        // Request payload = inputSize (the actual data to transmit)
-        NS_TEST_ASSERT_MSG_EQ(base.GetRequestPayloadSize(),
+        NS_TEST_ASSERT_MSG_EQ(header.GetRequestPayloadSize(),
                               1000,
                               "Request payload size should equal input size");
+        NS_TEST_ASSERT_MSG_EQ(header.GetResponsePayloadSize(), 500, "Response payload size");
 
-        // Response payload = outputSize
-        NS_TEST_ASSERT_MSG_EQ(base.GetResponsePayloadSize(), 500, "Response payload size");
-
-        // Test edge case: small inputSize still returns the actual size
         header.SetInputSize(10);
-        NS_TEST_ASSERT_MSG_EQ(base.GetRequestPayloadSize(),
+        NS_TEST_ASSERT_MSG_EQ(header.GetRequestPayloadSize(),
                               10,
                               "Request payload size should equal input size");
     }
@@ -139,15 +103,9 @@ class TaskHeaderPayloadSizeTestCase : public TestCase
 } // namespace
 
 TestCase*
-CreateTaskHeaderInterfaceTestCase()
+CreateTaskHeaderSerializationTestCase()
 {
-    return new TaskHeaderInterfaceTestCase;
-}
-
-TestCase*
-CreateTaskHeaderPolymorphismTestCase()
-{
-    return new TaskHeaderPolymorphismTestCase;
+    return new TaskHeaderSerializationTestCase;
 }
 
 TestCase*

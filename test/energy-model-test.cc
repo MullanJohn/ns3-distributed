@@ -23,10 +23,8 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
- * @brief Test DvfsEnergyModel power calculation (P = C * V^2 * f)
- *
- * Validates the core DVFS formula for both active and idle states.
+ * @ingroup continuum-tests
+ * @brief Test DvfsEnergyModel computes static and dynamic power components.
  */
 class DvfsEnergyModelTestCase : public TestCase
 {
@@ -39,30 +37,20 @@ class DvfsEnergyModelTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create a GPU accelerator with known voltage and frequency
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
-        gpu->SetAttribute("Voltage", DoubleValue(1.0));     // 1.0V
-        gpu->SetAttribute("Frequency", DoubleValue(1.0e9)); // 1 GHz
+        gpu->SetAttribute("Voltage", DoubleValue(1.0));
+        gpu->SetAttribute("Frequency", DoubleValue(1.0e9));
 
-        // Create DVFS energy model
         Ptr<DvfsEnergyModel> energy = CreateObject<DvfsEnergyModel>();
-        energy->SetAttribute("EffectiveCapacitance", DoubleValue(1e-9)); // 1nF
-        energy->SetAttribute("StaticPower", DoubleValue(10.0));          // 10W static
+        energy->SetAttribute("EffectiveCapacitance", DoubleValue(1e-9));
+        energy->SetAttribute("StaticPower", DoubleValue(10.0));
 
-        // Calculate active power with utilization = 1.0
-        // P_dynamic = C * V^2 * f * util = 1e-9 * 1.0 * 1.0e9 * 1.0 = 1.0W
-        // P_total = P_static + P_dynamic = 10.0 + 1.0 = 11.0W
         EnergyModel::PowerState active = energy->CalculateActivePower(gpu, 1.0);
-
-        NS_TEST_ASSERT_MSG_EQ(active.valid, true, "PowerState should be valid");
         NS_TEST_ASSERT_MSG_EQ_TOL(active.staticPower, 10.0, 1e-9, "Static power should be 10W");
         NS_TEST_ASSERT_MSG_EQ_TOL(active.dynamicPower, 1.0, 1e-9, "Dynamic power should be 1W");
         NS_TEST_ASSERT_MSG_EQ_TOL(active.GetTotalPower(), 11.0, 1e-9, "Total power should be 11W");
 
-        // Calculate idle power (P_static only)
         EnergyModel::PowerState idle = energy->CalculateIdlePower(gpu);
-
-        NS_TEST_ASSERT_MSG_EQ(idle.valid, true, "Idle PowerState should be valid");
         NS_TEST_ASSERT_MSG_EQ_TOL(idle.dynamicPower, 0.0, 1e-9, "Idle dynamic power should be 0W");
         NS_TEST_ASSERT_MSG_EQ_TOL(idle.GetTotalPower(),
                                   10.0,
@@ -70,16 +58,13 @@ class DvfsEnergyModelTestCase : public TestCase
                                   "Idle total power should be 10W");
 
         NS_TEST_ASSERT_MSG_EQ(energy->GetName(), "DVFS", "Energy model name should be DVFS");
-
         Simulator::Destroy();
     }
 };
 
 /**
- * @ingroup distributed-tests
- * @brief Test Accelerator energy accumulation during task processing
- *
- * Validates that energy is correctly accumulated over time when processing tasks.
+ * @ingroup continuum-tests
+ * @brief Test Accelerator accumulates total energy over the duration of a task.
  */
 class AcceleratorEnergyTrackingTestCase : public TestCase
 {
@@ -92,26 +77,23 @@ class AcceleratorEnergyTrackingTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create processing model and queue scheduler
         Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
         Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
-        // Create GPU accelerator with energy model
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
-        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));     // 1 TFLOPS
-        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12)); // 1 TB/s
-        gpu->SetAttribute("Voltage", DoubleValue(1.0));          // 1.0V
-        gpu->SetAttribute("Frequency", DoubleValue(1.0e9));      // 1 GHz
+        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
+        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12));
+        gpu->SetAttribute("TransferBandwidth", DoubleValue(1e12));
+        gpu->SetAttribute("Voltage", DoubleValue(1.0));
+        gpu->SetAttribute("Frequency", DoubleValue(1.0e9));
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
         gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
 
-        // Create energy model: P_active = 10 + 1*1*1e9*1e-9 = 11W
         Ptr<DvfsEnergyModel> energy = CreateObject<DvfsEnergyModel>();
         energy->SetAttribute("EffectiveCapacitance", DoubleValue(1e-9));
         energy->SetAttribute("StaticPower", DoubleValue(10.0));
         gpu->SetAttribute("EnergyModel", PointerValue(energy));
 
-        // Create a task that takes 1 second to process (1e12 FLOP / 1e12 FLOPS)
         Ptr<Task> task = CreateObject<SimpleTask>();
         task->SetComputeDemand(1e12);
         task->SetInputSize(0);
@@ -122,18 +104,105 @@ class AcceleratorEnergyTrackingTestCase : public TestCase
         Simulator::Run();
         Simulator::Destroy();
 
-        // After 1 second at 11W, energy should be ~11J
-        double totalEnergy = gpu->GetTotalEnergy();
-        NS_TEST_ASSERT_MSG_GT(totalEnergy, 10.0, "Energy should be > 10J");
-        NS_TEST_ASSERT_MSG_LT(totalEnergy, 12.0, "Energy should be < 12J");
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetTotalEnergy(),
+                                  11.0,
+                                  1e-6,
+                                  "Total energy = (10W static + 1W dynamic) * 1s = 11J");
     }
 };
 
 /**
- * @ingroup distributed-tests
- * @brief Test that energy traces fire correctly
- *
- * Validates that CurrentPower, TotalEnergy, and TaskEnergy traces fire.
+ * @ingroup continuum-tests
+ * @brief Test Accelerator accrues static energy while idle.
+ */
+class AcceleratorIdleStaticEnergyTestCase : public TestCase
+{
+  public:
+    AcceleratorIdleStaticEnergyTestCase()
+        : TestCase("Test Accelerator accrues idle static energy without task activity")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+        gpu->SetAttribute("Voltage", DoubleValue(1.0));
+        gpu->SetAttribute("Frequency", DoubleValue(1.0e9));
+
+        Ptr<DvfsEnergyModel> energy = CreateObject<DvfsEnergyModel>();
+        energy->SetAttribute("StaticPower", DoubleValue(10.0));
+        gpu->SetAttribute("EnergyModel", PointerValue(energy));
+
+        Simulator::Stop(Seconds(2.0));
+        Simulator::Run();
+
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetCurrentPower(),
+                                  10.0,
+                                  1e-9,
+                                  "Idle current power should match static power");
+        NS_TEST_ASSERT_MSG_EQ_TOL(gpu->GetTotalEnergy(),
+                                  20.0,
+                                  1e-9,
+                                  "Idle energy should accrue from simulation start");
+
+        Simulator::Destroy();
+    }
+};
+
+/**
+ * @ingroup continuum-tests
+ * @brief Test Accelerator dynamic energy is gated by task-local compute utilization.
+ */
+class AcceleratorTaskUtilizationEnergyTestCase : public TestCase
+{
+  public:
+    AcceleratorTaskUtilizationEnergyTestCase()
+        : TestCase("Test Accelerator energy uses task-local compute utilization during service")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+        Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
+
+        Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+        gpu->SetAttribute("ComputeRate", DoubleValue(100.0));
+        gpu->SetAttribute("MemoryBandwidth", DoubleValue(100.0));
+        gpu->SetAttribute("TransferBandwidth", DoubleValue(100.0));
+        gpu->SetAttribute("Voltage", DoubleValue(1.0));
+        gpu->SetAttribute("Frequency", DoubleValue(1.0e9));
+        gpu->SetAttribute("ProcessingModel", PointerValue(model));
+        gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
+
+        Ptr<DvfsEnergyModel> energy = CreateObject<DvfsEnergyModel>();
+        energy->SetAttribute("EffectiveCapacitance", DoubleValue(1e-9));
+        energy->SetAttribute("StaticPower", DoubleValue(0.0));
+        gpu->SetAttribute("EnergyModel", PointerValue(energy));
+
+        Ptr<Task> task = CreateObject<SimpleTask>();
+        task->SetInputSize(50);
+        task->SetComputeDemand(100);
+        task->SetOutputSize(50);
+        gpu->SubmitTask(task);
+
+        Simulator::Run();
+        Simulator::Destroy();
+
+        NS_TEST_ASSERT_MSG_EQ_TOL(
+            gpu->GetTotalEnergy(),
+            1.0,
+            1e-6,
+            "Dynamic energy should be proportional to compute time, not total service time");
+    }
+};
+
+/**
+ * @ingroup continuum-tests
+ * @brief Test Accelerator fires CurrentPower, TotalEnergy and TaskEnergy traces with the expected
+ * values.
  */
 class AcceleratorEnergyTracesTestCase : public TestCase
 {
@@ -156,6 +225,7 @@ class AcceleratorEnergyTracesTestCase : public TestCase
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12));
+        gpu->SetAttribute("TransferBandwidth", DoubleValue(1e12));
         gpu->SetAttribute("Voltage", DoubleValue(1.0));
         gpu->SetAttribute("Frequency", DoubleValue(1.0e9));
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
@@ -187,7 +257,10 @@ class AcceleratorEnergyTracesTestCase : public TestCase
         NS_TEST_ASSERT_MSG_GT(m_powerTraceCount, 0u, "CurrentPower trace should fire");
         NS_TEST_ASSERT_MSG_GT(m_energyTraceCount, 0u, "TotalEnergy trace should fire");
         NS_TEST_ASSERT_MSG_EQ(m_taskEnergyTraceCount, 1u, "TaskEnergy trace should fire once");
-        NS_TEST_ASSERT_MSG_GT(m_lastTaskEnergy, 0.0, "Task energy should be > 0");
+        NS_TEST_ASSERT_MSG_EQ_TOL(m_lastTaskEnergy,
+                                  11.0,
+                                  1e-6,
+                                  "Per-task energy = 11W * 1s = 11J (default model defaults)");
     }
 
     void PowerCallback(double)
@@ -213,10 +286,8 @@ class AcceleratorEnergyTracesTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
- * @brief Test graceful behavior without EnergyModel configured
- *
- * Validates that tasks complete normally when no energy model is set.
+ * @ingroup continuum-tests
+ * @brief Test Accelerator runs tasks and reports zero power when no EnergyModel is attached.
  */
 class EnergyModelNotConfiguredTestCase : public TestCase
 {
@@ -233,10 +304,10 @@ class EnergyModelNotConfiguredTestCase : public TestCase
         Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
         Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
-        // Create GPU accelerator WITHOUT energy model
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12));
+        gpu->SetAttribute("TransferBandwidth", DoubleValue(1e12));
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
         gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
 
@@ -269,7 +340,6 @@ class EnergyModelNotConfiguredTestCase : public TestCase
 
 } // namespace
 
-// Factory functions for test registration
 TestCase*
 CreateDvfsEnergyModelTestCase()
 {
@@ -280,6 +350,18 @@ TestCase*
 CreateAcceleratorEnergyTrackingTestCase()
 {
     return new AcceleratorEnergyTrackingTestCase;
+}
+
+TestCase*
+CreateAcceleratorIdleStaticEnergyTestCase()
+{
+    return new AcceleratorIdleStaticEnergyTestCase;
+}
+
+TestCase*
+CreateAcceleratorTaskUtilizationEnergyTestCase()
+{
+    return new AcceleratorTaskUtilizationEnergyTestCase;
 }
 
 TestCase*

@@ -18,7 +18,7 @@ namespace ns3
 class Accelerator;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for accelerator energy models.
  *
  * EnergyModel defines the interface for calculating power consumption
@@ -49,31 +49,8 @@ class EnergyModel : public Object
      */
     struct PowerState
     {
-        double staticPower;  //!< Static/leakage power in Watts
-        double dynamicPower; //!< Dynamic/switching power in Watts
-        bool valid;          //!< Whether this power state is valid
-
-        /**
-         * @brief Default constructor - creates invalid power state.
-         */
-        PowerState()
-            : staticPower(0.0),
-              dynamicPower(0.0),
-              valid(false)
-        {
-        }
-
-        /**
-         * @brief Constructor with power values.
-         * @param staticP Static power in Watts.
-         * @param dynamicP Dynamic power in Watts.
-         */
-        PowerState(double staticP, double dynamicP)
-            : staticPower(staticP),
-              dynamicPower(dynamicP),
-              valid(true)
-        {
-        }
+        double staticPower{0.0};  //!< Static/leakage power in Watts
+        double dynamicPower{0.0}; //!< Dynamic/switching power in Watts
 
         /**
          * @brief Get total power consumption.
@@ -113,7 +90,7 @@ class EnergyModel : public Object
      * @brief Calculate power consumption when accelerator is active.
      *
      * @param accelerator The accelerator to calculate active power for.
-     * @param utilization Current utilization level [0.0, 1.0].
+     * @param utilization Current task-local utilization level [0.0, 1.0].
      * @return PowerState with active power values.
      */
     virtual PowerState CalculateActivePower(Ptr<Accelerator> accelerator, double utilization) = 0;

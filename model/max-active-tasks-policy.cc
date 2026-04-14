@@ -15,11 +15,30 @@
 #include "ns3/log.h"
 #include "ns3/uinteger.h"
 
-#include <set>
+#include <map>
 #include <string>
 
 namespace ns3
 {
+namespace
+{
+
+std::map<std::string, uint32_t>
+CountTasksByType(Ptr<DagTask> dag)
+{
+    std::map<std::string, uint32_t> counts;
+    for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
+    {
+        Ptr<Task> task = dag->GetTask(i);
+        if (task)
+        {
+            counts[task->GetRequiredAcceleratorType()]++;
+        }
+    }
+    return counts;
+}
+
+} // namespace
 
 NS_LOG_COMPONENT_DEFINE("MaxActiveTasksPolicy");
 NS_OBJECT_ENSURE_REGISTERED(MaxActiveTasksPolicy);
@@ -30,7 +49,7 @@ MaxActiveTasksPolicy::GetTypeId()
     static TypeId tid =
         TypeId("ns3::MaxActiveTasksPolicy")
             .SetParent<AdmissionPolicy>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<MaxActiveTasksPolicy>()
             .AddAttribute("MaxActiveTasks",
                           "Maximum active tasks per backend before rejection",
@@ -58,28 +77,22 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
 {
     NS_LOG_FUNCTION(this << dag->GetTaskCount() << state.GetActiveWorkloadCount());
 
-    std::set<std::string> requiredTypes;
-    for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
-    {
-        Ptr<Task> task = dag->GetTask(i);
-        if (task)
-        {
-            requiredTypes.insert(task->GetRequiredAcceleratorType());
-        }
-    }
+    std::map<std::string, uint32_t> requiredCounts = CountTasksByType(dag);
 
-    for (const auto& type : requiredTypes)
+    uint32_t pendingAny = state.GetPendingAdmissionTasksForType("");
+    uint32_t pendingTotal = state.GetPendingAdmissionTasks();
+
+    for (const auto& [type, requiredCount] : requiredCounts)
     {
-        bool hasCapacity = false;
+        uint32_t totalAvailable = 0;
 
         if (type.empty())
         {
             for (uint32_t i = 0; i < state.GetN(); i++)
             {
-                if (state.Get(i).activeTasks < m_maxActiveTasks)
+                if (state.Get(i).orchestration.activeTasks < m_maxActiveTasks)
                 {
-                    hasCapacity = true;
-                    break;
+                    totalAvailable += m_maxActiveTasks - state.Get(i).orchestration.activeTasks;
                 }
             }
         }
@@ -87,23 +100,34 @@ MaxActiveTasksPolicy::ShouldAdmit(Ptr<DagTask> dag,
         {
             for (uint32_t idx : cluster.GetBackendsByType(type))
             {
-                if (state.Get(idx).activeTasks < m_maxActiveTasks)
+                if (state.Get(idx).orchestration.activeTasks < m_maxActiveTasks)
                 {
-                    hasCapacity = true;
-                    break;
+                    totalAvailable += m_maxActiveTasks - state.Get(idx).orchestration.activeTasks;
                 }
             }
         }
 
-        if (!hasCapacity)
+        uint32_t pendingReserved =
+            type.empty() ? pendingTotal : pendingAny + state.GetPendingAdmissionTasksForType(type);
+
+        if (requiredCount + pendingReserved > totalAvailable)
         {
-            NS_LOG_DEBUG("MaxActiveTasks: no capacity for type '" << (type.empty() ? "any" : type)
-                                                                  << "'");
+            NS_LOG_DEBUG("MaxActiveTasks: no capacity for type '"
+                         << (type.empty() ? "any" : type) << "'"
+                         << " (required=" << requiredCount << ", pending=" << pendingReserved
+                         << ", available=" << totalAvailable << ")");
             return false;
         }
     }
 
     return true;
+}
+
+std::map<std::string, uint32_t>
+MaxActiveTasksPolicy::GetReservationTaskCounts(Ptr<DagTask> dag) const
+{
+    NS_LOG_FUNCTION(this << dag);
+    return CountTasksByType(dag);
 }
 
 std::string

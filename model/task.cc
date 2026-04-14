@@ -8,6 +8,8 @@
 
 #include "task.h"
 
+#include "task-header.h"
+
 #include "ns3/double.h"
 #include "ns3/log.h"
 #include "ns3/string.h"
@@ -60,7 +62,7 @@ Task::GetTypeId()
     static TypeId tid =
         TypeId("ns3::Task")
             .SetParent<Object>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddAttribute("InputSize",
                           "Input data size in bytes",
                           UintegerValue(0),
@@ -102,6 +104,55 @@ Task::Task()
 Task::~Task()
 {
     NS_LOG_FUNCTION(this);
+}
+
+Ptr<Packet>
+Task::Serialize(bool isResponse) const
+{
+    NS_LOG_FUNCTION(this << isResponse);
+
+    TaskHeader header;
+    header.SetMessageType(isResponse ? TaskHeader::TASK_RESPONSE : TaskHeader::TASK_REQUEST);
+    header.SetTaskId(m_taskId);
+    header.SetComputeDemand(m_computeDemand);
+    header.SetInputSize(m_inputSize);
+    header.SetOutputSize(m_outputSize);
+    header.SetDeadlineNs(m_deadline.IsNegative() ? -1 : m_deadline.GetNanoSeconds());
+    header.SetPriority(m_priority);
+    header.SetAcceleratorType(GetRequiredAcceleratorType());
+
+    Ptr<Packet> packet = Create<Packet>();
+    packet->AddHeader(header);
+
+    uint64_t payloadSize = isResponse ? m_outputSize : m_inputSize;
+    if (payloadSize > 0)
+    {
+        Ptr<Packet> payload = Create<Packet>(payloadSize);
+        packet->AddAtEnd(payload);
+    }
+
+    return packet;
+}
+
+uint32_t
+Task::GetSerializedHeaderSize() const
+{
+    return TaskHeader::SERIALIZED_SIZE;
+}
+
+void
+Task::PopulateFromHeader(const TaskHeader& header)
+{
+    m_taskId = header.GetTaskId();
+    m_computeDemand = header.GetComputeDemand();
+    m_inputSize = header.GetInputSize();
+    m_outputSize = header.GetOutputSize();
+    m_priority = header.GetPriority();
+    m_requiredAcceleratorType = header.GetAcceleratorType();
+    if (header.HasDeadline())
+    {
+        m_deadline = NanoSeconds(header.GetDeadlineNs());
+    }
 }
 
 void

@@ -17,14 +17,14 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
- * @brief Test FifoQueueScheduler basic enqueue and dequeue operations
+ * @ingroup continuum-tests
+ * @brief Test FifoQueueScheduler enqueue, dequeue, peek, empty and clear behaviour.
  */
-class FifoQueueSchedulerEnqueueDequeueTestCase : public TestCase
+class FifoQueueSchedulerTestCase : public TestCase
 {
   public:
-    FifoQueueSchedulerEnqueueDequeueTestCase()
-        : TestCase("Test FifoQueueScheduler enqueue and dequeue")
+    FifoQueueSchedulerTestCase()
+        : TestCase("Test FifoQueueScheduler lifecycle")
     {
     }
 
@@ -33,150 +33,39 @@ class FifoQueueSchedulerEnqueueDequeueTestCase : public TestCase
     {
         Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
 
-        // Test initial state
         NS_TEST_ASSERT_MSG_EQ(scheduler->IsEmpty(), true, "New scheduler should be empty");
         NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 0, "New scheduler should have length 0");
         NS_TEST_ASSERT_MSG_EQ(scheduler->GetName(), "FIFO", "Name should be FIFO");
+        NS_TEST_ASSERT_MSG_EQ(scheduler->Dequeue(),
+                              nullptr,
+                              "Dequeue on empty should return nullptr");
+        NS_TEST_ASSERT_MSG_EQ(scheduler->Peek(), nullptr, "Peek on empty should return nullptr");
 
-        // Create and enqueue tasks
-        Ptr<Task> task1 = CreateObject<SimpleTask>();
-        task1->SetTaskId(1);
-        Ptr<Task> task2 = CreateObject<SimpleTask>();
-        task2->SetTaskId(2);
-
-        scheduler->Enqueue(task1);
-        NS_TEST_ASSERT_MSG_EQ(scheduler->IsEmpty(), false, "Scheduler should not be empty");
-        NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 1, "Length should be 1");
-
-        scheduler->Enqueue(task2);
-        NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 2, "Length should be 2");
-
-        // Dequeue and verify
-        Ptr<Task> dequeued = scheduler->Dequeue();
-        NS_TEST_ASSERT_MSG_EQ(dequeued->GetTaskId(), 1, "First dequeue should return task 1");
-        NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 1, "Length should be 1 after dequeue");
-
-        dequeued = scheduler->Dequeue();
-        NS_TEST_ASSERT_MSG_EQ(dequeued->GetTaskId(), 2, "Second dequeue should return task 2");
-        NS_TEST_ASSERT_MSG_EQ(scheduler->IsEmpty(), true, "Scheduler should be empty");
-
-        Simulator::Destroy();
-    }
-};
-
-/**
- * @ingroup distributed-tests
- * @brief Test FifoQueueScheduler maintains FIFO ordering
- */
-class FifoQueueSchedulerOrderTestCase : public TestCase
-{
-  public:
-    FifoQueueSchedulerOrderTestCase()
-        : TestCase("Test FifoQueueScheduler FIFO ordering")
-    {
-    }
-
-  private:
-    void DoRun() override
-    {
-        Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
-
-        // Enqueue 5 tasks
         for (uint32_t i = 1; i <= 5; i++)
         {
             Ptr<Task> task = CreateObject<SimpleTask>();
             task->SetTaskId(i);
             scheduler->Enqueue(task);
         }
+        NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 5, "Length should be 5 after enqueueing 5");
 
-        NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 5, "Should have 5 tasks");
+        // Peek is non-destructive and always returns the head.
+        NS_TEST_ASSERT_MSG_EQ(scheduler->Peek()->GetTaskId(), 1, "Peek should return head");
+        NS_TEST_ASSERT_MSG_EQ(scheduler->Peek()->GetTaskId(), 1, "Peek should be repeatable");
+        NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 5, "Peek should not change length");
 
-        // Verify FIFO order
         for (uint32_t i = 1; i <= 5; i++)
         {
             Ptr<Task> task = scheduler->Dequeue();
             NS_TEST_ASSERT_MSG_EQ(task->GetTaskId(),
                                   i,
-                                  "Task " << i << " should be dequeued in order");
+                                  "Task " << i << " should be dequeued in FIFO order");
         }
+        NS_TEST_ASSERT_MSG_EQ(scheduler->IsEmpty(), true, "Queue should be empty after draining");
 
-        NS_TEST_ASSERT_MSG_EQ(scheduler->IsEmpty(), true, "Queue should be empty");
-
-        Simulator::Destroy();
-    }
-};
-
-/**
- * @ingroup distributed-tests
- * @brief Test FifoQueueScheduler behavior with empty queue
- */
-class FifoQueueSchedulerEmptyTestCase : public TestCase
-{
-  public:
-    FifoQueueSchedulerEmptyTestCase()
-        : TestCase("Test FifoQueueScheduler empty queue handling")
-    {
-    }
-
-  private:
-    void DoRun() override
-    {
-        Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
-
-        // Dequeue from empty queue should return nullptr
-        Ptr<Task> task = scheduler->Dequeue();
-        NS_TEST_ASSERT_MSG_EQ((task == nullptr), true, "Dequeue on empty should return nullptr");
-
-        // Peek from empty queue should return nullptr
-        task = scheduler->Peek();
-        NS_TEST_ASSERT_MSG_EQ((task == nullptr), true, "Peek on empty should return nullptr");
-
-        // Clear on empty queue should not crash
+        scheduler->Enqueue(CreateObject<SimpleTask>());
         scheduler->Clear();
-        NS_TEST_ASSERT_MSG_EQ(scheduler->IsEmpty(), true, "Clear should leave queue empty");
-
-        Simulator::Destroy();
-    }
-};
-
-/**
- * @ingroup distributed-tests
- * @brief Test FifoQueueScheduler Peek operation
- */
-class FifoQueueSchedulerPeekTestCase : public TestCase
-{
-  public:
-    FifoQueueSchedulerPeekTestCase()
-        : TestCase("Test FifoQueueScheduler peek operation")
-    {
-    }
-
-  private:
-    void DoRun() override
-    {
-        Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
-
-        Ptr<Task> task1 = CreateObject<SimpleTask>();
-        task1->SetTaskId(1);
-        Ptr<Task> task2 = CreateObject<SimpleTask>();
-        task2->SetTaskId(2);
-
-        scheduler->Enqueue(task1);
-        scheduler->Enqueue(task2);
-
-        // Peek should return first task without removing it
-        Ptr<Task> peeked = scheduler->Peek();
-        NS_TEST_ASSERT_MSG_EQ(peeked->GetTaskId(), 1, "Peek should return first task");
-        NS_TEST_ASSERT_MSG_EQ(scheduler->GetLength(), 2, "Peek should not remove task");
-
-        // Peek again should return same task
-        peeked = scheduler->Peek();
-        NS_TEST_ASSERT_MSG_EQ(peeked->GetTaskId(), 1, "Second peek should return same task");
-
-        // After dequeue, peek should return next task
-        scheduler->Dequeue();
-        peeked = scheduler->Peek();
-        NS_TEST_ASSERT_MSG_EQ(peeked->GetTaskId(), 2, "Peek after dequeue should return task 2");
+        NS_TEST_ASSERT_MSG_EQ(scheduler->IsEmpty(), true, "Clear should empty the queue");
 
         Simulator::Destroy();
     }
@@ -185,27 +74,9 @@ class FifoQueueSchedulerPeekTestCase : public TestCase
 } // namespace
 
 TestCase*
-CreateFifoQueueSchedulerEnqueueDequeueTestCase()
+CreateFifoQueueSchedulerTestCase()
 {
-    return new FifoQueueSchedulerEnqueueDequeueTestCase;
-}
-
-TestCase*
-CreateFifoQueueSchedulerOrderTestCase()
-{
-    return new FifoQueueSchedulerOrderTestCase;
-}
-
-TestCase*
-CreateFifoQueueSchedulerEmptyTestCase()
-{
-    return new FifoQueueSchedulerEmptyTestCase;
-}
-
-TestCase*
-CreateFifoQueueSchedulerPeekTestCase()
-{
-    return new FifoQueueSchedulerPeekTestCase;
+    return new FifoQueueSchedulerTestCase;
 }
 
 } // namespace ns3

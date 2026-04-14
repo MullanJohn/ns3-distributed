@@ -10,7 +10,7 @@
 
 #include "accelerator.h"
 #include "device-metrics-header.h"
-#include "scaling-command-header.h"
+#include "scaling-policy.h"
 
 #include "ns3/log.h"
 
@@ -26,7 +26,7 @@ GpuDeviceProtocol::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::GpuDeviceProtocol")
                             .SetParent<DeviceProtocol>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<GpuDeviceProtocol>();
     return tid;
 }
@@ -48,10 +48,7 @@ GpuDeviceProtocol::CreateMetricsPacket(Ptr<const Accelerator> accel)
 
     DeviceMetricsHeader header;
     header.SetMessageType(DeviceMetricsHeader::DEVICE_METRICS);
-    header.SetFrequency(accel->GetFrequency());
-    header.SetVoltage(accel->GetVoltage());
-    header.SetBusy(accel->IsBusy());
-    header.SetQueueLength(accel->GetQueueLength());
+    header.SetUtilization(accel->GetUtilization());
     header.SetCurrentPower(accel->GetCurrentPower());
 
     Ptr<Packet> packet = Create<Packet>();
@@ -68,43 +65,10 @@ GpuDeviceProtocol::ParseMetrics(Ptr<Packet> packet)
     packet->RemoveHeader(header);
 
     Ptr<DeviceMetrics> metrics = Create<DeviceMetrics>();
-    metrics->frequency = header.GetFrequency();
-    metrics->voltage = header.GetVoltage();
-    metrics->busy = header.GetBusy();
-    metrics->queueLength = header.GetQueueLength();
+    metrics->utilization = header.GetUtilization();
     metrics->currentPower = header.GetCurrentPower();
 
     return metrics;
-}
-
-Ptr<Packet>
-GpuDeviceProtocol::CreateCommandPacket(Ptr<ScalingDecision> decision)
-{
-    NS_LOG_FUNCTION(this);
-
-    ScalingCommandHeader header;
-    header.SetMessageType(ScalingCommandHeader::SCALING_COMMAND);
-    header.SetTargetFrequency(decision->targetFrequency);
-    header.SetTargetVoltage(decision->targetVoltage);
-
-    Ptr<Packet> packet = Create<Packet>();
-    packet->AddHeader(header);
-    return packet;
-}
-
-void
-GpuDeviceProtocol::ApplyCommand(Ptr<Packet> packet, Ptr<Accelerator> accel)
-{
-    NS_LOG_FUNCTION(this << packet << accel);
-
-    ScalingCommandHeader header;
-    packet->RemoveHeader(header);
-
-    NS_LOG_INFO("Applying scaling command: freq=" << header.GetTargetFrequency()
-                                                  << " volt=" << header.GetTargetVoltage());
-
-    accel->SetFrequency(header.GetTargetFrequency());
-    accel->SetVoltage(header.GetTargetVoltage());
 }
 
 std::string

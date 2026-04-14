@@ -10,8 +10,6 @@
 
 #include "ns3/log.h"
 
-#include <cstring>
-
 namespace ns3
 {
 
@@ -24,15 +22,14 @@ ScalingCommandHeader::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::ScalingCommandHeader")
                             .SetParent<Header>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<ScalingCommandHeader>();
     return tid;
 }
 
 ScalingCommandHeader::ScalingCommandHeader()
     : m_messageType(SCALING_COMMAND),
-      m_targetFrequency(0),
-      m_targetVoltage(0)
+      m_targetStateIdx(0)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -55,30 +52,17 @@ ScalingCommandHeader::SetMessageType(uint8_t type)
     m_messageType = type;
 }
 
-double
-ScalingCommandHeader::GetTargetFrequency() const
+uint32_t
+ScalingCommandHeader::GetTargetStateIdx() const
 {
-    return m_targetFrequency;
+    return m_targetStateIdx;
 }
 
 void
-ScalingCommandHeader::SetTargetFrequency(double frequency)
+ScalingCommandHeader::SetTargetStateIdx(uint32_t idx)
 {
-    NS_LOG_FUNCTION(this << frequency);
-    m_targetFrequency = frequency;
-}
-
-double
-ScalingCommandHeader::GetTargetVoltage() const
-{
-    return m_targetVoltage;
-}
-
-void
-ScalingCommandHeader::SetTargetVoltage(double voltage)
-{
-    NS_LOG_FUNCTION(this << voltage);
-    m_targetVoltage = voltage;
+    NS_LOG_FUNCTION(this << idx);
+    m_targetStateIdx = idx;
 }
 
 TypeId
@@ -97,31 +81,16 @@ void
 ScalingCommandHeader::Serialize(Buffer::Iterator start) const
 {
     NS_LOG_FUNCTION(this);
-
     start.WriteU8(m_messageType);
-
-    uint64_t freqBits;
-    std::memcpy(&freqBits, &m_targetFrequency, sizeof(freqBits));
-    start.WriteHtonU64(freqBits);
-
-    uint64_t voltBits;
-    std::memcpy(&voltBits, &m_targetVoltage, sizeof(voltBits));
-    start.WriteHtonU64(voltBits);
+    start.WriteHtonU32(m_targetStateIdx);
 }
 
 uint32_t
 ScalingCommandHeader::Deserialize(Buffer::Iterator start)
 {
     NS_LOG_FUNCTION(this);
-
     m_messageType = start.ReadU8();
-
-    uint64_t freqBits = start.ReadNtohU64();
-    std::memcpy(&m_targetFrequency, &freqBits, sizeof(m_targetFrequency));
-
-    uint64_t voltBits = start.ReadNtohU64();
-    std::memcpy(&m_targetVoltage, &voltBits, sizeof(m_targetVoltage));
-
+    m_targetStateIdx = start.ReadNtohU32();
     return SERIALIZED_SIZE;
 }
 
@@ -129,7 +98,7 @@ void
 ScalingCommandHeader::Print(std::ostream& os) const
 {
     os << "ScalingCommandHeader(type=" << static_cast<int>(m_messageType)
-       << ", targetFreq=" << m_targetFrequency << ", targetVolt=" << m_targetVoltage << ")";
+       << ", targetStateIdx=" << m_targetStateIdx << ")";
 }
 
 } // namespace ns3

@@ -25,9 +25,9 @@ NS_OBJECT_ENSURE_REGISTERED(TcpConnectionManager);
 TypeId
 TcpConnectionManager::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::distributed::TcpConnectionManager")
+    static TypeId tid = TypeId("ns3::continuum::TcpConnectionManager")
                             .SetParent<ConnectionManager>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<TcpConnectionManager>()
                             .AddAttribute("PoolSize",
                                           "Number of TCP connections in the pool (client mode). "

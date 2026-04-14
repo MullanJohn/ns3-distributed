@@ -16,8 +16,6 @@
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
 
-#include <vector>
-
 namespace ns3
 {
 
@@ -25,20 +23,7 @@ class Node;
 class EnergyModel;
 
 /**
- * @ingroup distributed
- * @brief A discrete frequency-voltage operating point for an accelerator.
- *
- * Represents a single entry in the OPP (Operating Performance Point) table.
- * Sorted by frequency ascending when stored on an Accelerator.
- */
-struct OperatingPoint
-{
-    double frequency; //!< Operating frequency in Hz
-    double voltage;   //!< Operating voltage in Volts
-};
-
-/**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for computational accelerators.
  *
  * Accelerator defines the interface for hardware that processes computational
@@ -57,7 +42,7 @@ struct OperatingPoint
  * gpu->TraceConnectWithoutContext("TaskCompleted", MakeCallback(&OnComplete));
  *
  * // Submit a task
- * Ptr<ComputeTask> task = CreateObject<ComputeTask>();
+ * Ptr<SimpleTask> task = CreateObject<SimpleTask>();
  * task->SetComputeDemand(1e9);
  * task->SetInputSize(1e6);
  * task->SetOutputSize(1e6);
@@ -122,62 +107,57 @@ class Accelerator : public Object
     virtual bool IsBusy() const;
 
     /**
-     * @brief Get the current operating voltage.
+     * @brief Get the current compute utilization.
      *
-     * Default implementation returns 1.0V. Override in subclasses that
-     * support DVFS or have configurable voltage.
+     * Default implementation returns 0.0. GpuAccelerator overrides this
+     * with a rolling-window measurement of the fraction of time spent
+     * in the compute phase over the configured UtilizationWindow.
      *
-     * @return Operating voltage in Volts.
+     * @return Utilization in [0.0, 1.0].
      */
-    virtual double GetVoltage() const;
+    virtual double GetUtilization() const;
 
     /**
-     * @brief Get the current operating frequency.
+     * @brief Get the effective compute rate of the accelerator.
      *
-     * Default implementation returns 1.0Hz. Override in subclasses that
-     * support DVFS or have configurable frequency.
+     * Default implementation returns 0.0. Override in subclasses that
+     * model computational throughput.
      *
-     * @return Operating frequency in Hz.
+     * @return Effective compute rate in FLOP/s.
      */
-    virtual double GetFrequency() const;
+    virtual double GetComputeRate() const;
 
     /**
-     * @brief Set the operating frequency.
+     * @brief Apply a performance state by index.
      *
-     * Default implementation is a no-op. Override in subclasses that
-     * support DVFS.
+     * Each subclass interprets the index for its hardware. For GPUs this
+     * looks up the OPP table and calls SetFrequency/SetVoltage. Default
+     * implementation is a no-op.
      *
-     * @param frequency The new frequency in Hz.
+     * @param stateIdx Index into the device's performance state table.
      */
-    virtual void SetFrequency(double frequency);
+    virtual void ApplyState(uint32_t stateIdx);
 
     /**
-     * @brief Set the operating voltage.
+     * @brief Get the number of available performance states.
      *
-     * Default implementation is a no-op. Override in subclasses that
-     * support DVFS.
+     * Default implementation returns 0 (no scaling). Override in subclasses
+     * that support multiple performance states.
      *
-     * @param voltage The new voltage in Volts.
+     * @return Number of performance states.
      */
-    virtual void SetVoltage(double voltage);
+    virtual uint32_t GetNumPerformanceStates() const;
 
     /**
-     * @brief Add a discrete operating point (frequency-voltage pair).
+     * @brief Get the compute rate at a given performance state.
      *
-     * Points are kept sorted by frequency ascending. This defines the
-     * hardware's OPP table, used by scaling policies to select valid
-     * frequency/voltage pairs.
+     * Default implementation returns the current compute rate regardless
+     * of state index. Override in subclasses that support scaling.
      *
-     * @param frequency Operating frequency in Hz.
-     * @param voltage Operating voltage in Volts.
+     * @param stateIdx Performance state index.
+     * @return Compute rate at that state in FLOP/s.
      */
-    void AddOperatingPoint(double frequency, double voltage);
-
-    /**
-     * @brief Get the operating point table.
-     * @return Const reference to the OPP table, sorted by frequency ascending.
-     */
-    const std::vector<OperatingPoint>& GetOperatingPoints() const;
+    virtual double GetComputeRateAtState(uint32_t stateIdx) const;
 
     /**
      * @brief Get the node this accelerator is aggregated to.
@@ -280,12 +260,11 @@ class Accelerator : public Object
     TracedCallback<Ptr<const Task>, double> m_taskEnergyTrace;      //!< Per-task energy
 
   private:
-    Ptr<EnergyModel> m_energyModel;                //!< Energy model for power calculation
-    Time m_lastEnergyUpdateTime;                   //!< Time of last energy state update
-    double m_totalEnergy;                          //!< Total energy consumed in Joules
-    double m_currentPower;                         //!< Current power consumption in Watts
-    double m_taskStartEnergy;                      //!< Energy at task start for per-task tracking
-    std::vector<OperatingPoint> m_operatingPoints; //!< OPP table sorted by frequency
+    Ptr<EnergyModel> m_energyModel; //!< Energy model for power calculation
+    Time m_lastEnergyUpdateTime;    //!< Time of last energy state update
+    double m_totalEnergy;           //!< Total energy consumed in Joules
+    double m_currentPower;          //!< Current power consumption in Watts
+    double m_taskStartEnergy;       //!< Energy at task start for per-task tracking
 };
 
 } // namespace ns3

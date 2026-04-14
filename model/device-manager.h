@@ -9,7 +9,6 @@
 #ifndef DEVICE_MANAGER_H
 #define DEVICE_MANAGER_H
 
-#include "accelerator.h"
 #include "cluster-state.h"
 #include "cluster.h"
 #include "connection-manager.h"
@@ -26,17 +25,13 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
- * @brief Manages DVFS scaling for backend accelerators in the orchestrator.
+ * @ingroup continuum
+ * @brief Manages performance scaling for backend accelerators in the orchestrator.
  *
- * DeviceManager is a concrete component of EdgeOrchestrator. It evaluates a
+ * DeviceManager is a concrete component of Orchestrator. It evaluates a
  * pluggable ScalingPolicy using per-backend state from ClusterState, and sends
  * ScalingCommandHeader packets to backends via the orchestrator's worker
  * ConnectionManager.
- *
- * Metrics arrive via HandleMetrics() (called by EdgeOrchestrator when a type-4
- * packet arrives). Scaling is evaluated via EvaluateScaling() (called by
- * EdgeOrchestrator on task events).
  */
 class DeviceManager : public Object
 {
@@ -57,14 +52,15 @@ class DeviceManager : public Object
      *
      * @param cluster The backend cluster.
      * @param backendCm The backend connection manager for sending commands.
-     * @param state The cluster state to initialize commanded frequencies.
+     * @param state The cluster state to initialize performance states and
+     * backend compute capabilities.
      */
     void Start(const Cluster& cluster, Ptr<ConnectionManager> backendCm, ClusterState& state);
 
     /**
      * @brief Store metrics received from a backend.
      *
-     * Called by EdgeOrchestrator when a type-4 packet arrives.
+     * Called by Orchestrator when a type-4 packet arrives.
      *
      * @param packet The metrics packet (DeviceMetricsHeader).
      * @param backendIdx The backend index in the cluster.
@@ -89,37 +85,37 @@ class DeviceManager : public Object
     /**
      * @brief Evaluate scaling decisions for all backends.
      *
-     * Called by EdgeOrchestrator on task events. For each backend,
+     * Called by Orchestrator on task events. For each backend,
      * runs ScalingPolicy::Decide() and sends command packets
-     * if frequency or voltage changed.
+     * if the performance state changed.
      *
      * @param state The cluster state with per-backend load and metrics.
      */
     void EvaluateScaling(ClusterState& state);
 
     /**
-     * @brief TracedCallback signature for frequency change events.
+     * @brief TracedCallback signature for performance state change events.
      * @param backendIdx The backend index.
-     * @param oldFreq The previous frequency in Hz.
-     * @param newFreq The new frequency in Hz.
+     * @param oldStateIdx The previous performance state index.
+     * @param newStateIdx The new performance state index.
      */
-    typedef void (*FrequencyChangedTracedCallback)(uint32_t backendIdx,
-                                                   double oldFreq,
-                                                   double newFreq);
+    typedef void (*StateChangedTracedCallback)(uint32_t backendIdx,
+                                               uint32_t oldStateIdx,
+                                               uint32_t newStateIdx);
 
   protected:
     void DoDispose() override;
 
   private:
     Ptr<ScalingPolicy> m_scalingPolicy;   //!< Pluggable scaling strategy
-    Ptr<DeviceProtocol> m_deviceProtocol; //!< Protocol for metrics/command serialization
+    Ptr<DeviceProtocol> m_deviceProtocol; //!< Protocol for metrics serialization
 
     Ptr<ConnectionManager> m_backendConnMgr; //!< Backend connection for sending commands
     Cluster m_cluster;                       //!< Backend cluster reference
-    std::vector<std::vector<OperatingPoint>>
-        m_operatingPoints; //!< Per-backend OPP tables extracted at startup
+    std::vector<std::vector<double>>
+        m_stateComputeRates; //!< Per-backend compute rate at each performance state
 
-    TracedCallback<uint32_t, double, double> m_frequencyChangedTrace; //!< Frequency change trace
+    TracedCallback<uint32_t, uint32_t, uint32_t> m_stateChangedTrace; //!< State change trace
 };
 
 } // namespace ns3

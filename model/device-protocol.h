@@ -9,8 +9,6 @@
 #ifndef DEVICE_PROTOCOL_H
 #define DEVICE_PROTOCOL_H
 
-#include "scaling-policy.h"
-
 #include "ns3/object.h"
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
@@ -19,15 +17,15 @@ namespace ns3
 {
 
 class Accelerator;
+class DeviceMetrics;
 
 /**
- * @ingroup distributed
- * @brief Abstract base class for device management wire protocols.
+ * @ingroup continuum
+ * @brief Abstract base class for device metrics protocols.
  *
  * DeviceProtocol encapsulates how accelerator metrics are serialized into
- * packets and how scaling commands are deserialized and applied. Each
- * accelerator type provides its own concrete protocol implementation.
- *
+ * packets and parsed back into DeviceMetrics objects. Each accelerator type
+ * provides its own concrete protocol implementation.
  */
 class DeviceProtocol : public Object
 {
@@ -59,26 +57,6 @@ class DeviceProtocol : public Object
      * @return The parsed DeviceMetrics.
      */
     virtual Ptr<DeviceMetrics> ParseMetrics(Ptr<Packet> packet) = 0;
-
-    /**
-     * @brief Serialize a scaling decision into a command packet.
-     *
-     * Called by the DeviceManager when a scaling decision is made.
-     *
-     * @param decision The scaling decision to serialize.
-     * @return A packet containing the serialized command header.
-     */
-    virtual Ptr<Packet> CreateCommandPacket(Ptr<ScalingDecision> decision) = 0;
-
-    /**
-     * @brief Parse and apply a command packet to an accelerator.
-     *
-     * Called by the server application when a type-5 packet arrives.
-     *
-     * @param packet The packet containing the command header.
-     * @param accel The accelerator to which the command is applied.
-     */
-    virtual void ApplyCommand(Ptr<Packet> packet, Ptr<Accelerator> accel) = 0;
 
     /**
      * @brief Get the name of this device protocol.

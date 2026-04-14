@@ -23,7 +23,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for transport-layer connection management.
  *
  * ConnectionManager provides a protocol-agnostic interface for managing

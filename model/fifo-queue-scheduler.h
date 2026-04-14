@@ -17,7 +17,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief FIFO (First-In-First-Out) task queue scheduler.
  *
  * FifoQueueScheduler processes tasks in strict first-in-first-out order.
@@ -28,8 +28,8 @@ namespace ns3
  * @code
  * Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
  *
- * Ptr<ComputeTask> task1 = CreateObject<ComputeTask>();
- * Ptr<ComputeTask> task2 = CreateObject<ComputeTask>();
+ * Ptr<SimpleTask> task1 = CreateObject<SimpleTask>();
+ * Ptr<SimpleTask> task2 = CreateObject<SimpleTask>();
  *
  * scheduler->Enqueue(task1);
  * scheduler->Enqueue(task2);

@@ -24,7 +24,7 @@ FixedRatioProcessingModel::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::FixedRatioProcessingModel")
                             .SetParent<ProcessingModel>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<FixedRatioProcessingModel>();
     return tid;
 }
@@ -66,25 +66,26 @@ FixedRatioProcessingModel::Process(Ptr<const Task> task, Ptr<const Accelerator> 
     }
 
     double computeRate = gpu->GetComputeRate();
-    double memoryBandwidth = gpu->GetMemoryBandwidth();
+    double transferBandwidth = gpu->GetTransferBandwidth();
 
     uint64_t inputSize = task->GetInputSize();
     double computeDemand = task->GetComputeDemand();
     uint64_t outputSize = task->GetOutputSize();
 
-    double inputTransferSeconds = static_cast<double>(inputSize) / memoryBandwidth;
+    double inputTransferSeconds = static_cast<double>(inputSize) / transferBandwidth;
     double computeSeconds = computeDemand / computeRate;
-    double outputTransferSeconds = static_cast<double>(outputSize) / memoryBandwidth;
-    double totalSeconds = inputTransferSeconds + computeSeconds + outputTransferSeconds;
-
-    double utilization = (totalSeconds > 0) ? (computeSeconds / totalSeconds) : 1.0;
+    double outputTransferSeconds = static_cast<double>(outputSize) / transferBandwidth;
 
     NS_LOG_DEBUG("Task " << task->GetTaskId() << " processing:"
-                         << " input=" << Seconds(inputTransferSeconds) << " compute="
-                         << Seconds(computeSeconds) << " output=" << Seconds(outputTransferSeconds)
-                         << " total=" << Seconds(totalSeconds) << " utilization=" << utilization);
+                         << " input=" << Seconds(inputTransferSeconds)
+                         << " compute=" << Seconds(computeSeconds)
+                         << " output=" << Seconds(outputTransferSeconds) << " total="
+                         << Seconds(inputTransferSeconds + computeSeconds + outputTransferSeconds));
 
-    return Result(Seconds(totalSeconds), outputSize, utilization);
+    return Result(Seconds(inputTransferSeconds),
+                  Seconds(computeSeconds),
+                  Seconds(outputTransferSeconds),
+                  outputSize);
 }
 
 } // namespace ns3

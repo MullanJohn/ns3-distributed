@@ -8,12 +8,10 @@
 
 #include "dvfs-energy-model.h"
 
-#include "accelerator.h"
+#include "gpu-accelerator.h"
 
 #include "ns3/double.h"
 #include "ns3/log.h"
-
-#include <algorithm>
 
 namespace ns3
 {
@@ -28,7 +26,7 @@ DvfsEnergyModel::GetTypeId()
     static TypeId tid =
         TypeId("ns3::DvfsEnergyModel")
             .SetParent<EnergyModel>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddConstructor<DvfsEnergyModel>()
             .AddAttribute("EffectiveCapacitance",
                           "Effective capacitance in Farads (C in P = C*V^2*f)",
@@ -72,7 +70,7 @@ EnergyModel::PowerState
 DvfsEnergyModel::CalculateIdlePower(Ptr<Accelerator> accelerator)
 {
     NS_LOG_FUNCTION(this << accelerator);
-    return EnergyModel::PowerState(m_staticPower, 0.0);
+    return {m_staticPower, 0.0};
 }
 
 EnergyModel::PowerState
@@ -80,16 +78,15 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
 {
     NS_LOG_FUNCTION(this << accelerator << utilization);
 
-    if (!accelerator)
+    auto gpu = DynamicCast<GpuAccelerator>(accelerator);
+    if (!gpu)
     {
-        NS_LOG_WARN("CalculateActivePower called with null accelerator");
-        return EnergyModel::PowerState();
+        NS_LOG_WARN("CalculateActivePower called with non-GPU accelerator");
+        return {m_staticPower, 0.0};
     }
 
-    utilization = std::max(0.0, std::min(1.0, utilization));
-
-    double voltage = accelerator->GetVoltage();
-    double frequency = accelerator->GetFrequency();
+    double voltage = gpu->GetVoltage();
+    double frequency = gpu->GetFrequency();
 
     // Calculate dynamic power: P = C * V^2 * f * utilization
     double dynamicPower = m_effectiveCapacitance * voltage * voltage * frequency * utilization;
@@ -98,7 +95,7 @@ DvfsEnergyModel::CalculateActivePower(Ptr<Accelerator> accelerator, double utili
                                               << " f=" << frequency << " util=" << utilization
                                               << " -> P_dyn=" << dynamicPower);
 
-    return EnergyModel::PowerState(m_staticPower, dynamicPower);
+    return {m_staticPower, dynamicPower};
 }
 
 double

@@ -12,6 +12,42 @@
 
 #include "ns3/log.h"
 
+namespace
+{
+
+bool
+IsBetterCandidate(double score,
+                  uint32_t activeTasks,
+                  uint32_t backendIdx,
+                  double bestScore,
+                  uint32_t bestActiveTasks,
+                  int32_t bestBackendIdx)
+{
+    if (bestBackendIdx < 0)
+    {
+        return true;
+    }
+    if (score < bestScore)
+    {
+        return true;
+    }
+    if (score > bestScore)
+    {
+        return false;
+    }
+    if (activeTasks < bestActiveTasks)
+    {
+        return true;
+    }
+    if (activeTasks > bestActiveTasks)
+    {
+        return false;
+    }
+    return backendIdx < static_cast<uint32_t>(bestBackendIdx);
+}
+
+} // namespace
+
 namespace ns3
 {
 
@@ -23,7 +59,7 @@ LeastLoadedScheduler::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::LeastLoadedScheduler")
                             .SetParent<ClusterScheduler>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<LeastLoadedScheduler>();
     return tid;
 }
@@ -31,7 +67,6 @@ LeastLoadedScheduler::GetTypeId()
 LeastLoadedScheduler::LeastLoadedScheduler()
 {
     NS_LOG_FUNCTION(this);
-    m_tiebreaker = CreateObject<UniformRandomVariable>();
 }
 
 LeastLoadedScheduler::~LeastLoadedScheduler()
@@ -43,7 +78,6 @@ void
 LeastLoadedScheduler::DoDispose()
 {
     NS_LOG_FUNCTION(this);
-    m_tiebreaker = nullptr;
     ClusterScheduler::DoDispose();
 }
 
@@ -77,31 +111,41 @@ LeastLoadedScheduler::ScheduleTask(Ptr<Task> task,
         return -1;
     }
 
-    uint32_t minLoad = UINT32_MAX;
+    double incomingWork = task->GetComputeDemand();
+    double bestScore = 0.0;
+    uint32_t bestActiveTasks = 0;
+    int32_t bestIdx = -1;
+
     for (uint32_t idx : pool)
     {
-        uint32_t load = state.Get(idx).activeTasks;
-        if (load < minLoad)
-        {
-            minLoad = load;
-        }
-    }
+        const ClusterState::BackendState& backend = state.Get(idx);
+        double queuedWork = backend.orchestration.estimatedRemainingComputeWork;
+        double totalWork = queuedWork + incomingWork;
+        double effectiveRate = backend.device.effectiveComputeRate > 0.0
+                                   ? backend.device.effectiveComputeRate
+                                   : backend.device.nominalComputeRate;
+        double score = effectiveRate > 0.0 ? (totalWork / effectiveRate) : totalWork;
 
-    std::vector<uint32_t> tied;
-    for (uint32_t idx : pool)
-    {
-        if (state.Get(idx).activeTasks == minLoad)
+        if (IsBetterCandidate(score,
+                              backend.orchestration.activeTasks,
+                              idx,
+                              bestScore,
+                              bestActiveTasks,
+                              bestIdx))
         {
-            tied.push_back(idx);
+            bestScore = score;
+            bestActiveTasks = backend.orchestration.activeTasks;
+            bestIdx = static_cast<int32_t>(idx);
         }
-    }
 
-    uint32_t pick = m_tiebreaker->GetInteger(0, tied.size() - 1);
-    int32_t bestIdx = static_cast<int32_t>(tied[pick]);
+        NS_LOG_DEBUG("LeastLoaded: backend " << idx << " work=" << totalWork
+                                             << " rate=" << effectiveRate << " score=" << score
+                                             << " active=" << backend.orchestration.activeTasks);
+    }
 
     NS_LOG_DEBUG("LeastLoaded: scheduled task " << task->GetTaskId() << " to backend " << bestIdx
-                                                << " (load=" << minLoad << ", tied=" << tied.size()
-                                                << ")");
+                                                << " (score=" << bestScore
+                                                << ", active=" << bestActiveTasks << ")");
     return bestIdx;
 }
 

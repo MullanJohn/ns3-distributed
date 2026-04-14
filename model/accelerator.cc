@@ -14,15 +14,11 @@
 #include "ns3/node.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
-#include "ns3/uinteger.h"
-
-#include <algorithm>
 
 namespace ns3
 {
 
 NS_LOG_COMPONENT_DEFINE("Accelerator");
-
 NS_OBJECT_ENSURE_REGISTERED(Accelerator);
 
 TypeId
@@ -31,7 +27,7 @@ Accelerator::GetTypeId()
     static TypeId tid =
         TypeId("ns3::Accelerator")
             .SetParent<Object>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddAttribute("EnergyModel",
                           "Energy model for power consumption calculation",
                           PointerValue(),
@@ -66,8 +62,7 @@ Accelerator::GetTypeId()
 
 Accelerator::Accelerator()
     : m_node(nullptr),
-      m_energyModel(nullptr),
-      m_lastEnergyUpdateTime(Seconds(-1)), // Sentinel value: not yet initialized
+      m_lastEnergyUpdateTime(Seconds(-1)),
       m_totalEnergy(0.0),
       m_currentPower(0.0),
       m_taskStartEnergy(0.0)
@@ -93,46 +88,33 @@ Accelerator::IsBusy() const
 }
 
 double
-Accelerator::GetVoltage() const
+Accelerator::GetUtilization() const
 {
-    return 1.0;
+    return 0.0;
 }
 
 double
-Accelerator::GetFrequency() const
+Accelerator::GetComputeRate() const
 {
-    return 1.0;
+    return 0.0;
 }
 
 void
-Accelerator::SetFrequency(double frequency)
+Accelerator::ApplyState(uint32_t stateIdx)
 {
-    NS_LOG_FUNCTION(this << frequency);
+    NS_LOG_FUNCTION(this << stateIdx);
 }
 
-void
-Accelerator::SetVoltage(double voltage)
+uint32_t
+Accelerator::GetNumPerformanceStates() const
 {
-    NS_LOG_FUNCTION(this << voltage);
+    return 0;
 }
 
-void
-Accelerator::AddOperatingPoint(double frequency, double voltage)
+double
+Accelerator::GetComputeRateAtState(uint32_t /* stateIdx */) const
 {
-    NS_LOG_FUNCTION(this << frequency << voltage);
-    OperatingPoint opp{frequency, voltage};
-    auto it = std::lower_bound(
-        m_operatingPoints.begin(),
-        m_operatingPoints.end(),
-        opp,
-        [](const OperatingPoint& a, const OperatingPoint& b) { return a.frequency < b.frequency; });
-    m_operatingPoints.insert(it, opp);
-}
-
-const std::vector<OperatingPoint>&
-Accelerator::GetOperatingPoints() const
-{
-    return m_operatingPoints;
+    return GetComputeRate();
 }
 
 Ptr<Node>
@@ -144,13 +126,48 @@ Accelerator::GetNode() const
 double
 Accelerator::GetCurrentPower() const
 {
+    if (!m_energyModel)
+    {
+        return m_currentPower;
+    }
+
+    if (m_lastEnergyUpdateTime.IsStrictlyNegative())
+    {
+        EnergyModel::PowerState idleState =
+            m_energyModel->CalculateIdlePower(const_cast<Accelerator*>(this));
+        return idleState.GetTotalPower();
+    }
+
     return m_currentPower;
 }
 
 double
 Accelerator::GetTotalEnergy() const
 {
-    return m_totalEnergy;
+    if (!m_energyModel)
+    {
+        return m_totalEnergy;
+    }
+
+    Time now = Simulator::Now();
+
+    if (m_lastEnergyUpdateTime.IsStrictlyNegative())
+    {
+        EnergyModel::PowerState idleState =
+            m_energyModel->CalculateIdlePower(const_cast<Accelerator*>(this));
+        return (now > Seconds(0)) ? idleState.GetTotalPower() * now.GetSeconds() : 0.0;
+    }
+
+    double totalEnergy = m_totalEnergy;
+    if (m_lastEnergyUpdateTime < now)
+    {
+        double elapsed = (now - m_lastEnergyUpdateTime).GetSeconds();
+        if (elapsed > 0)
+        {
+            totalEnergy += m_currentPower * elapsed;
+        }
+    }
+    return totalEnergy;
 }
 
 void
@@ -168,14 +185,10 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
     if (m_lastEnergyUpdateTime.IsStrictlyNegative())
     {
         EnergyModel::PowerState idleState = m_energyModel->CalculateIdlePower(this);
-        if (idleState.valid)
+        m_currentPower = idleState.GetTotalPower();
+        if (now > Seconds(0))
         {
-            m_currentPower = idleState.GetTotalPower();
-            // Accumulate idle energy from simulation start to now
-            if (now > Seconds(0))
-            {
-                m_totalEnergy = m_currentPower * now.GetSeconds();
-            }
+            m_totalEnergy = m_currentPower * now.GetSeconds();
         }
         m_lastEnergyUpdateTime = now;
     }
@@ -190,27 +203,12 @@ Accelerator::UpdateEnergyState(bool active, double utilization)
         }
     }
 
-    // Calculate new power state
-    EnergyModel::PowerState powerState;
-    if (active)
-    {
-        powerState = m_energyModel->CalculateActivePower(this, utilization);
-    }
-    else
-    {
-        powerState = m_energyModel->CalculateIdlePower(this);
-    }
-
-    if (powerState.valid)
-    {
-        m_currentPower = powerState.GetTotalPower();
-        m_powerTrace(m_currentPower);
-        m_energyTrace(m_totalEnergy);
-
-        NS_LOG_DEBUG("Energy state updated: power=" << m_currentPower
-                                                    << "W, totalEnergy=" << m_totalEnergy << "J");
-    }
-
+    EnergyModel::PowerState powerState =
+        active ? m_energyModel->CalculateActivePower(this, utilization)
+               : m_energyModel->CalculateIdlePower(this);
+    m_currentPower = powerState.GetTotalPower();
+    m_powerTrace(m_currentPower);
+    m_energyTrace(m_totalEnergy);
     m_lastEnergyUpdateTime = now;
 }
 
@@ -246,7 +244,6 @@ Accelerator::DoDispose()
         }
         m_energyModel = nullptr;
     }
-
     m_node = nullptr;
     Object::DoDispose();
 }

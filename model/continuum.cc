@@ -1,0 +1,17 @@
+/*
+ * Copyright (c) 2025 UCC
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ *
+ * Author: John Mullan <122331816@umail.ucc.ie>
+ */
+
+#include "continuum.h"
+
+/**
+ * @file continuum.cc
+ * @ingroup continuum
+ *
+ * This file exists for CMake build system compatibility.
+ * All model functionality is provided by the individual model classes:
+ */

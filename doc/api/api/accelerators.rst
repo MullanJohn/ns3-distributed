@@ -37,12 +37,6 @@ FifoQueueScheduler
 .. doxygenclass:: ns3::FifoQueueScheduler
    :members:
 
-BatchingQueueScheduler
-----------------------
-
-.. doxygenclass:: ns3::BatchingQueueScheduler
-   :members:
-
 EnergyModel
 -----------
 

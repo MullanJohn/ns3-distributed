@@ -12,7 +12,7 @@ What is the computing continuum?
 --------------------------------
 
 The computing continuum is the combination of the multiple computing paradigms used commonly
-in distributed computing environments. Three computing paradigms of note included in the comuputing continuum
+in distributed computing environments. Three computing paradigms of note included in the computing continuum
 are cloud, fog and edge. These computing paradigms are distinctly different and each paradigm was created to meet the latency, bandwidth,
 security, cost, and control requirements of specific kinds of applications. For example, AR devices commonly use edge servers
 instead of cloud servers due to a need for low latency responses.
@@ -20,7 +20,7 @@ instead of cloud servers due to a need for low latency responses.
 Combining the various computing paradigms allows a diverse array of distributed devices with unique characteristics
 to work together to meet the demands of both current and emerging applications.
 
-What is distrbiuted computing?
+What is distributed computing?
 ------------------------------
 
 Distributed computing studies computer systems whose components are located on differ-

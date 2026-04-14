@@ -6,7 +6,7 @@ ns-3 Continuum Documentation
 
 .. |lastupdated| image:: https://img.shields.io/github/last-commit/MullanJohn/ns3-distributed
 
-.. |github| image:: https://img.shields.io/badge/GitHub-ns3--continuum-181717?logo=github&style=flat-square
+.. |github| image:: https://img.shields.io/badge/GitHub-ns3--distributed-181717?logo=github&style=flat-square
             :target: https://github.com/MullanJohn/ns3-distributed
 
 .. |release| image:: https://img.shields.io/github/v/release/MullanJohn/ns3-distributed

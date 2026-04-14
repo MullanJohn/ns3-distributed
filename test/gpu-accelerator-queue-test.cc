@@ -23,8 +23,8 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
- * @brief Test GpuAccelerator with multiple tasks in queue
+ * @ingroup continuum-tests
+ * @brief Test GpuAccelerator processes multiple tasks queued back-to-back.
  */
 class GpuAcceleratorQueueTestCase : public TestCase
 {
@@ -38,17 +38,14 @@ class GpuAcceleratorQueueTestCase : public TestCase
   private:
     void DoRun() override
     {
-        // Create processing model and queue scheduler
         Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
         Ptr<FifoQueueScheduler> scheduler = CreateObject<FifoQueueScheduler>();
-
-        // Create energy model
         Ptr<DvfsEnergyModel> energyModel = CreateObject<DvfsEnergyModel>();
 
-        // Create GPU accelerator with processing model and queue scheduler
         Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
         gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
         gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e12));
+        gpu->SetAttribute("TransferBandwidth", DoubleValue(1e12));
         gpu->SetAttribute("ProcessingModel", PointerValue(model));
         gpu->SetAttribute("QueueScheduler", PointerValue(scheduler));
         gpu->SetAttribute("EnergyModel", PointerValue(energyModel));

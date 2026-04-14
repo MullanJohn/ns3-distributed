@@ -22,7 +22,7 @@ FifoQueueScheduler::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::FifoQueueScheduler")
                             .SetParent<QueueScheduler>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<FifoQueueScheduler>();
     return tid;
 }

@@ -21,17 +21,17 @@ namespace ns3
 class ClusterState;
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Abstract base class for task scheduling policies.
  *
  * ClusterScheduler determines which backend in a cluster should execute a given task.
  *
- * ClusterScheduler is used by EdgeOrchestrator for task placement decisions during
+ * ClusterScheduler is used by Orchestrator for task placement decisions during
  * DAG execution.
  *
  * Example usage:
  * @code
- * Ptr<ClusterScheduler> scheduler = CreateObject<FirstFitScheduler>();
+ * Ptr<ClusterScheduler> scheduler = CreateObject<RoundRobinScheduler>();
  *
  * Ptr<Task> task = CreateObject<SimpleTask>();
  * task->SetRequiredAcceleratorType("GPU");

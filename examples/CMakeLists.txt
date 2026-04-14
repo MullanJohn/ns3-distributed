@@ -1,24 +1,13 @@
 build_lib_example(
-    NAME distributed-example
-    SOURCE_FILES distributed-example.cc
-    LIBRARIES_TO_LINK ${libdistributed}
+    NAME continuum-example
+    SOURCE_FILES continuum-example.cc
+    LIBRARIES_TO_LINK ${libcontinuum}
                       ${libpoint-to-point}
 )
 
 build_lib_example(
-    NAME distributed-multi-client-example
-    SOURCE_FILES distributed-multi-client-example.cc
-    LIBRARIES_TO_LINK ${libdistributed}
+    NAME continuum-multi-client-example
+    SOURCE_FILES continuum-multi-client-example.cc
+    LIBRARIES_TO_LINK ${libcontinuum}
                       ${libpoint-to-point}
 )
-
-build_lib_example(
-    NAME distributed-periodic-evaluation
-    SOURCE_FILES distributed-periodic-evaluation.cc
-    LIBRARIES_TO_LINK ${libdistributed}
-                      ${libpoint-to-point}
-                      ${libwifi}
-                      ${libspectrum}
-                      ${libmobility}
-)
-

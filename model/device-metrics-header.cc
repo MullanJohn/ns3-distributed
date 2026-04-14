@@ -24,26 +24,14 @@ DeviceMetricsHeader::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::DeviceMetricsHeader")
                             .SetParent<Header>()
-                            .SetGroupName("Distributed")
+                            .SetGroupName("Continuum")
                             .AddConstructor<DeviceMetricsHeader>();
     return tid;
 }
 
-DeviceMetricsHeader::DeviceMetricsHeader()
-    : m_messageType(DEVICE_METRICS),
-      m_frequency(0),
-      m_voltage(0),
-      m_busy(false),
-      m_queueLength(0),
-      m_currentPower(0)
-{
-    NS_LOG_FUNCTION(this);
-}
+DeviceMetricsHeader::DeviceMetricsHeader() = default;
 
-DeviceMetricsHeader::~DeviceMetricsHeader()
-{
-    NS_LOG_FUNCTION(this);
-}
+DeviceMetricsHeader::~DeviceMetricsHeader() = default;
 
 uint8_t
 DeviceMetricsHeader::GetMessageType() const
@@ -59,55 +47,16 @@ DeviceMetricsHeader::SetMessageType(uint8_t type)
 }
 
 double
-DeviceMetricsHeader::GetFrequency() const
+DeviceMetricsHeader::GetUtilization() const
 {
-    return m_frequency;
+    return m_utilization;
 }
 
 void
-DeviceMetricsHeader::SetFrequency(double frequency)
+DeviceMetricsHeader::SetUtilization(double utilization)
 {
-    NS_LOG_FUNCTION(this << frequency);
-    m_frequency = frequency;
-}
-
-double
-DeviceMetricsHeader::GetVoltage() const
-{
-    return m_voltage;
-}
-
-void
-DeviceMetricsHeader::SetVoltage(double voltage)
-{
-    NS_LOG_FUNCTION(this << voltage);
-    m_voltage = voltage;
-}
-
-bool
-DeviceMetricsHeader::GetBusy() const
-{
-    return m_busy;
-}
-
-void
-DeviceMetricsHeader::SetBusy(bool busy)
-{
-    NS_LOG_FUNCTION(this << busy);
-    m_busy = busy;
-}
-
-uint32_t
-DeviceMetricsHeader::GetQueueLength() const
-{
-    return m_queueLength;
-}
-
-void
-DeviceMetricsHeader::SetQueueLength(uint32_t queueLength)
-{
-    NS_LOG_FUNCTION(this << queueLength);
-    m_queueLength = queueLength;
+    NS_LOG_FUNCTION(this << utilization);
+    m_utilization = utilization;
 }
 
 double
@@ -138,54 +87,32 @@ DeviceMetricsHeader::GetSerializedSize() const
 void
 DeviceMetricsHeader::Serialize(Buffer::Iterator start) const
 {
-    NS_LOG_FUNCTION(this);
-
     start.WriteU8(m_messageType);
 
-    uint64_t freqBits;
-    std::memcpy(&freqBits, &m_frequency, sizeof(freqBits));
-    start.WriteHtonU64(freqBits);
-
-    uint64_t voltBits;
-    std::memcpy(&voltBits, &m_voltage, sizeof(voltBits));
-    start.WriteHtonU64(voltBits);
-
-    start.WriteU8(m_busy ? 1 : 0);
-    start.WriteHtonU32(m_queueLength);
-
-    uint64_t powerBits;
-    std::memcpy(&powerBits, &m_currentPower, sizeof(powerBits));
-    start.WriteHtonU64(powerBits);
+    uint64_t bits = 0;
+    std::memcpy(&bits, &m_utilization, sizeof(bits));
+    start.WriteHtonU64(bits);
+    std::memcpy(&bits, &m_currentPower, sizeof(bits));
+    start.WriteHtonU64(bits);
 }
 
 uint32_t
 DeviceMetricsHeader::Deserialize(Buffer::Iterator start)
 {
-    NS_LOG_FUNCTION(this);
-
     m_messageType = start.ReadU8();
 
-    uint64_t freqBits = start.ReadNtohU64();
-    std::memcpy(&m_frequency, &freqBits, sizeof(m_frequency));
-
-    uint64_t voltBits = start.ReadNtohU64();
-    std::memcpy(&m_voltage, &voltBits, sizeof(m_voltage));
-
-    m_busy = (start.ReadU8() != 0);
-    m_queueLength = start.ReadNtohU32();
-
-    uint64_t powerBits = start.ReadNtohU64();
-    std::memcpy(&m_currentPower, &powerBits, sizeof(m_currentPower));
-
+    uint64_t bits = start.ReadNtohU64();
+    std::memcpy(&m_utilization, &bits, sizeof(m_utilization));
+    bits = start.ReadNtohU64();
+    std::memcpy(&m_currentPower, &bits, sizeof(m_currentPower));
     return SERIALIZED_SIZE;
 }
 
 void
 DeviceMetricsHeader::Print(std::ostream& os) const
 {
-    os << "DeviceMetricsHeader(type=" << static_cast<int>(m_messageType) << ", freq=" << m_frequency
-       << ", volt=" << m_voltage << ", busy=" << (m_busy ? "true" : "false")
-       << ", qLen=" << m_queueLength << ", power=" << m_currentPower << ")";
+    os << "DeviceMetricsHeader(type=" << static_cast<int>(m_messageType)
+       << ", util=" << m_utilization << ", power=" << m_currentPower << ")";
 }
 
 } // namespace ns3

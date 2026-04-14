@@ -1,10 +1,10 @@
 Orchestration
 =============
 
-EdgeOrchestrator
-----------------
+Orchestrator
+------------
 
-.. doxygenclass:: ns3::EdgeOrchestrator
+.. doxygenclass:: ns3::Orchestrator
    :members:
 
 Cluster
@@ -25,10 +25,10 @@ ClusterScheduler
 .. doxygenclass:: ns3::ClusterScheduler
    :members:
 
-FirstFitScheduler
------------------
+RoundRobinScheduler
+-------------------
 
-.. doxygenclass:: ns3::FirstFitScheduler
+.. doxygenclass:: ns3::RoundRobinScheduler
    :members:
 
 LeastLoadedScheduler
@@ -43,20 +43,8 @@ AdmissionPolicy
 .. doxygenclass:: ns3::AdmissionPolicy
    :members:
 
-AlwaysAdmitPolicy
------------------
-
-.. doxygenclass:: ns3::AlwaysAdmitPolicy
-   :members:
-
 MaxActiveTasksPolicy
 --------------------
 
 .. doxygenclass:: ns3::MaxActiveTasksPolicy
-   :members:
-
-DeadlineAwareAdmissionPolicy
------------------------------
-
-.. doxygenclass:: ns3::DeadlineAwareAdmissionPolicy
    :members:

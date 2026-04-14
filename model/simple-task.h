@@ -15,7 +15,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Concrete task implementation using the common Task fields.
  *
  * SimpleTask is the basic concrete implementation of Task, providing
@@ -46,20 +46,6 @@ class SimpleTask : public Task
      * @return SimpleTask::TASK_TYPE (0)
      */
     uint8_t GetTaskType() const override;
-
-    /**
-     * @brief Serialize this task to a packet using SimpleTaskHeader.
-     *
-     * @param isResponse true for response (output payload), false for request (input payload).
-     * @return A packet with SimpleTaskHeader and payload.
-     */
-    Ptr<Packet> Serialize(bool isResponse) const override;
-
-    /**
-     * @brief Get SimpleTaskHeader size.
-     * @return SimpleTaskHeader::SERIALIZED_SIZE
-     */
-    uint32_t GetSerializedHeaderSize() const override;
 
     /**
      * @brief Deserialize a SimpleTask from a packet buffer.

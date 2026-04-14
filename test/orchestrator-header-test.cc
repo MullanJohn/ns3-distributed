@@ -17,8 +17,8 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
- * @brief Test OrchestratorHeader serialization roundtrip for ADMISSION_REQUEST
+ * @ingroup continuum-tests
+ * @brief Test OrchestratorHeader serialization round-trip for ADMISSION_REQUEST.
  */
 class OrchestratorHeaderRequestTestCase : public TestCase
 {
@@ -33,26 +33,23 @@ class OrchestratorHeaderRequestTestCase : public TestCase
     {
         OrchestratorHeader original;
         original.SetMessageType(OrchestratorHeader::ADMISSION_REQUEST);
-        original.SetTaskId(42);
+        original.SetDagId(42);
         original.SetPayloadSize(1024);
 
-        // Verify serialized size
         NS_TEST_ASSERT_MSG_EQ(original.GetSerializedSize(),
                               OrchestratorHeader::SERIALIZED_SIZE,
                               "Serialized size should be 18 bytes");
 
-        // Serialize and deserialize
         Ptr<Packet> packet = Create<Packet>();
         packet->AddHeader(original);
 
         OrchestratorHeader deserialized;
         packet->RemoveHeader(deserialized);
 
-        // Verify fields
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetMessageType(),
                               OrchestratorHeader::ADMISSION_REQUEST,
                               "Message type should match");
-        NS_TEST_ASSERT_MSG_EQ(deserialized.GetTaskId(), 42, "Task ID should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetDagId(), 42, "DAG ID should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetPayloadSize(), 1024, "Payload size should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.IsRequest(), true, "IsRequest should be true");
         NS_TEST_ASSERT_MSG_EQ(deserialized.IsResponse(), false, "IsResponse should be false");
@@ -60,8 +57,8 @@ class OrchestratorHeaderRequestTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
- * @brief Test OrchestratorHeader serialization for ADMISSION_RESPONSE
+ * @ingroup continuum-tests
+ * @brief Test OrchestratorHeader serialization round-trip for ADMISSION_RESPONSE.
  */
 class OrchestratorHeaderResponseTestCase : public TestCase
 {
@@ -76,7 +73,7 @@ class OrchestratorHeaderResponseTestCase : public TestCase
     {
         OrchestratorHeader original;
         original.SetMessageType(OrchestratorHeader::ADMISSION_RESPONSE);
-        original.SetTaskId(123);
+        original.SetDagId(123);
         original.SetAdmitted(true);
         original.SetPayloadSize(0);
 
@@ -90,7 +87,7 @@ class OrchestratorHeaderResponseTestCase : public TestCase
                               OrchestratorHeader::ADMISSION_RESPONSE,
                               "Message type should be ADMISSION_RESPONSE");
         NS_TEST_ASSERT_MSG_EQ(deserialized.IsAdmitted(), true, "Should be admitted");
-        NS_TEST_ASSERT_MSG_EQ(deserialized.GetTaskId(), 123, "Task ID should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetDagId(), 123, "DAG ID should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetPayloadSize(), 0, "Payload size should be 0");
         NS_TEST_ASSERT_MSG_EQ(deserialized.IsRequest(), false, "IsRequest should be false");
         NS_TEST_ASSERT_MSG_EQ(deserialized.IsResponse(), true, "IsResponse should be true");

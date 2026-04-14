@@ -25,7 +25,7 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Container for a directed acyclic graph (DAG) of tasks.
  *
  * DagTask holds multiple Task objects and their dependency edges,

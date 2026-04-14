@@ -20,14 +20,14 @@ namespace
 {
 
 /**
- * @ingroup distributed-tests
- * @brief Test LeastLoadedScheduler selects the backend with fewest active tasks.
+ * @ingroup continuum-tests
+ * @brief Test LeastLoadedScheduler selects the backend with the shortest estimated completion time.
  */
 class LeastLoadedSchedulerTestCase : public TestCase
 {
   public:
     LeastLoadedSchedulerTestCase()
-        : TestCase("LeastLoadedScheduler selects least-loaded backend")
+        : TestCase("LeastLoadedScheduler selects backend by estimated completion time")
     {
     }
 
@@ -45,33 +45,33 @@ class LeastLoadedSchedulerTestCase : public TestCase
 
         ClusterState state;
         state.Resize(2);
+        state.SetBackendCapability(0, 1.0e12);
+        state.SetBackendCapability(1, 1.0e12);
+
+        // Backend 0 already has 5s of queued work; backend 1 is empty.
+        state.NotifyTaskDispatched(0, 5.0e12);
 
         Ptr<LeastLoadedScheduler> scheduler = CreateObject<LeastLoadedScheduler>();
 
-        // Both idle — tie, should pick either 0 or 1
+        // Score(0) = (5e12 + 1e12) / 1e12 = 6s; score(1) = (0 + 1e12) / 1e12 = 1s.
+        // Backend 1 wins by score (smaller estimated completion), not by tie-break.
         Ptr<SimpleTask> task1 = CreateObject<SimpleTask>();
         task1->SetTaskId(1);
-        int32_t idx1 = scheduler->ScheduleTask(task1, cluster, state);
-        bool validTie1 = (idx1 == 0 || idx1 == 1);
-        NS_TEST_ASSERT_MSG_EQ(validTie1, true, "Should pick a valid backend when both idle");
+        task1->SetComputeDemand(1.0e12);
+        NS_TEST_ASSERT_MSG_EQ(scheduler->ScheduleTask(task1, cluster, state),
+                              1,
+                              "Backend 1 has lower estimated completion time");
 
-        // Load backend 0
-        state.NotifyTaskDispatched(0);
+        // Dispatch enough work to backend 1 to invert the relative load, then check
+        // backend 0 becomes the better candidate.
+        state.NotifyTaskDispatched(1, 6.0e12);
 
-        // Backend 1 now less loaded — deterministic, no tie
         Ptr<SimpleTask> task2 = CreateObject<SimpleTask>();
         task2->SetTaskId(2);
-        int32_t idx2 = scheduler->ScheduleTask(task2, cluster, state);
-        NS_TEST_ASSERT_MSG_EQ(idx2, 1, "Should pick backend 1 (less loaded)");
-
-        // Load backend 1 — tie again, should pick either
-        state.NotifyTaskDispatched(1);
-
-        Ptr<SimpleTask> task3 = CreateObject<SimpleTask>();
-        task3->SetTaskId(3);
-        int32_t idx3 = scheduler->ScheduleTask(task3, cluster, state);
-        bool validTie3 = (idx3 == 0 || idx3 == 1);
-        NS_TEST_ASSERT_MSG_EQ(validTie3, true, "Should pick a valid backend on tie");
+        task2->SetComputeDemand(1.0e12);
+        NS_TEST_ASSERT_MSG_EQ(scheduler->ScheduleTask(task2, cluster, state),
+                              0,
+                              "Backend 0 now has lower estimated completion time");
 
         NS_TEST_ASSERT_MSG_EQ(scheduler->GetName(),
                               "LeastLoaded",
@@ -80,7 +80,7 @@ class LeastLoadedSchedulerTestCase : public TestCase
 };
 
 /**
- * @ingroup distributed-tests
+ * @ingroup continuum-tests
  * @brief Test LeastLoadedScheduler filters by required accelerator type.
  */
 class LeastLoadedSchedulerTypeFilterTestCase : public TestCase
@@ -126,7 +126,6 @@ class LeastLoadedSchedulerTypeFilterTestCase : public TestCase
                               expectedOther,
                               "Should pick the other GPU backend (less loaded)");
 
-        // Nonexistent type returns -1
         Ptr<SimpleTask> task3 = CreateObject<SimpleTask>();
         task3->SetTaskId(3);
         task3->SetRequiredAcceleratorType("FPGA");

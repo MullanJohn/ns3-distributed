@@ -15,12 +15,12 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
+ * @ingroup continuum
  * @brief Utilization-based DVFS scaling policy inspired by Linux ondemand governor.
  *
- * Simple binary policy using the accelerator's OPP table:
- * - Busy or queued tasks -> highest OPP (aggressive scale-up for latency)
- * - Idle -> lowest OPP (energy savings)
+ * Simple binary policy using the accelerator's performance state table:
+ * - Busy or queued tasks -> highest performance state (aggressive scale-up for latency)
+ * - Idle -> lowest performance state (energy savings)
  */
 class UtilizationScalingPolicy : public ScalingPolicy
 {
@@ -34,8 +34,8 @@ class UtilizationScalingPolicy : public ScalingPolicy
     UtilizationScalingPolicy();
     ~UtilizationScalingPolicy() override;
 
-    Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
-                                const std::vector<OperatingPoint>& opps) override;
+    Ptr<ScalingDecision> Decide(uint32_t backendIdx,
+                                const ClusterState::BackendState& backend) override;
     std::string GetName() const override;
 };
 

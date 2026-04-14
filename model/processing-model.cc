@@ -21,7 +21,7 @@ TypeId
 ProcessingModel::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3::ProcessingModel").SetParent<Object>().SetGroupName("Distributed");
+        TypeId("ns3::ProcessingModel").SetParent<Object>().SetGroupName("Continuum");
     return tid;
 }
 

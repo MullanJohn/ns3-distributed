@@ -9,7 +9,6 @@
 #ifndef SCALING_POLICY_H
 #define SCALING_POLICY_H
 
-#include "accelerator.h"
 #include "cluster-state.h"
 
 #include "ns3/object.h"
@@ -17,51 +16,48 @@
 #include "ns3/simple-ref-count.h"
 
 #include <cstdint>
-#include <vector>
 
 namespace ns3
 {
 
 /**
- * @ingroup distributed
- * @brief Polymorphic base for accelerator metrics reported by backends.
+ * @ingroup continuum
+ * @brief Backend telemetry reported from accelerator to orchestrator.
  *
- * Standard fields are defined here; subclasses add accelerator-specific fields.
+ * Contains only metrics the orchestrator cannot infer from its own
+ * bookkeeping.
  */
 class DeviceMetrics : public SimpleRefCount<DeviceMetrics>
 {
   public:
     virtual ~DeviceMetrics() = default;
 
-    double frequency{0};     //!< Current frequency in Hz
-    double voltage{0};       //!< Current voltage in Volts
-    bool busy{false};        //!< Currently processing a task?
-    uint32_t queueLength{0}; //!< Tasks in queue (including current)
-    double currentPower{0};  //!< Current power consumption in Watts
+    double utilization{0};  //!< Rolling compute utilization [0.0, 1.0]
+    double currentPower{0}; //!< Current total power draw in Watts
 };
 
 /**
- * @ingroup distributed
- * @brief Polymorphic base for scaling decisions.
+ * @ingroup continuum
+ * @brief Scaling command produced by a ScalingPolicy.
  *
- * Standard fields are defined here; subclasses add accelerator-specific fields.
+ * Carries the target performance state index for a backend accelerator.
+ * Serialized into a ScalingCommandHeader by DeviceManager and sent
+ * to the backend.
  */
 class ScalingDecision : public SimpleRefCount<ScalingDecision>
 {
   public:
     virtual ~ScalingDecision() = default;
 
-    double targetFrequency{0}; //!< Target frequency in Hz
-    double targetVoltage{0};   //!< Target voltage in Volts
+    uint32_t targetStateIdx{0}; //!< Target performance state index
 };
 
 /**
- * @ingroup distributed
- * @brief Abstract base class for DVFS scaling policies.
+ * @ingroup continuum
+ * @brief Abstract base class for scaling policies.
  *
- * ScalingPolicy decides target frequency/voltage for a backend accelerator
- * based on reported DeviceMetrics. The DeviceManager calls Decide() for
- * each backend when evaluating scaling.
+ * ScalingPolicy decides the target performance state for a backend
+ * accelerator based on per-backend state.
  */
 class ScalingPolicy : public Object
 {
@@ -75,18 +71,17 @@ class ScalingPolicy : public Object
     ~ScalingPolicy() override;
 
     /**
-     * @brief Decide on a scaling action based on backend state and available OPPs.
-     *
-     * @param backend Per-backend state including device metrics and load counters.
-     * @param opps The accelerator's operating point table, sorted by frequency ascending.
-     * @return A scaling decision, or nullptr if no change needed.
+     * @brief Decide the target performance state for a backend.
+     * @param backendIdx The backend index in the cluster.
+     * @param backend The backend's current state.
+     * @return A scaling decision, or nullptr if no change is needed.
      */
-    virtual Ptr<ScalingDecision> Decide(const ClusterState::BackendState& backend,
-                                        const std::vector<OperatingPoint>& opps) = 0;
+    virtual Ptr<ScalingDecision> Decide(uint32_t backendIdx,
+                                        const ClusterState::BackendState& backend) = 0;
 
     /**
-     * @brief Get the name of this scaling policy.
-     * @return A string identifying the policy.
+     * @brief Get the policy name for logging.
+     * @return A string identifying this policy type.
      */
     virtual std::string GetName() const = 0;
 };

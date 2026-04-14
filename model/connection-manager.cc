@@ -13,18 +13,18 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("DistributedConnectionManager");
+NS_LOG_COMPONENT_DEFINE("ContinuumConnectionManager");
 
 NS_OBJECT_ENSURE_REGISTERED(ConnectionManager);
 
 TypeId
 ConnectionManager::GetTypeId()
 {
-    // Uses ns3::distributed prefix to avoid collision with src/wimax/model/connection-manager.cc
+    // Uses ns3::continuum prefix to avoid collision with src/wimax/model/connection-manager.cc
     static TypeId tid =
-        TypeId("ns3::distributed::ConnectionManager")
+        TypeId("ns3::continuum::ConnectionManager")
             .SetParent<Object>()
-            .SetGroupName("Distributed")
+            .SetGroupName("Continuum")
             .AddTraceSource("Tx",
                             "A packet has been sent successfully",
                             MakeTraceSourceAccessor(&ConnectionManager::m_txTrace),

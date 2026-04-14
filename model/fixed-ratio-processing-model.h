@@ -15,17 +15,17 @@ namespace ns3
 {
 
 /**
- * @ingroup distributed
- * @brief Processing model using three-phase timing for ComputeTask on GpuAccelerator.
+ * @ingroup continuum
+ * @brief Processing model using three-phase timing on GpuAccelerator.
  *
  * FixedRatioProcessingModel calculates processing time using a three-phase
- * model (input transfer, compute, output transfer) based on ComputeTask
- * properties and GpuAccelerator hardware characteristics.
+ * model (input transfer, compute, output transfer) based on Task properties
+ * and GpuAccelerator hardware characteristics.
  *
  * Processing time calculation:
- * - Input transfer: inputSize / GpuAccelerator.MemoryBandwidth
+ * - Input transfer: inputSize / GpuAccelerator.TransferBandwidth
  * - Compute: computeDemand / GpuAccelerator.ComputeRate
- * - Output transfer: outputSize / GpuAccelerator.MemoryBandwidth
+ * - Output transfer: outputSize / GpuAccelerator.TransferBandwidth
  * - Total: sum of all three phases
  *
  * Example usage:
@@ -33,8 +33,9 @@ namespace ns3
  * Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
  *
  * Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
- * gpu->SetAttribute("ComputeRate", DoubleValue(1e12));      // 1 TFLOPS
- * gpu->SetAttribute("MemoryBandwidth", DoubleValue(900e9)); // 900 GB/s
+ * gpu->SetAttribute("ComputeRate", DoubleValue(1e12));           // 1 TFLOPS
+ * gpu->SetAttribute("MemoryBandwidth", DoubleValue(900e9));      // 900 GB/s GPU DRAM
+ * gpu->SetAttribute("TransferBandwidth", DoubleValue(32e9));     // 32 GB/s PCIe 5.0 x8
  * gpu->SetAttribute("ProcessingModel", PointerValue(model));
  * @endcode
  */

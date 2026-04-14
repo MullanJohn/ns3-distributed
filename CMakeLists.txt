@@ -6,23 +6,21 @@ endif()
 set(examples_as_tests_sources)
 if(${ENABLE_EXAMPLES})
     set(examples_as_tests_sources
-        #test/distributed-examples-test-suite.cc
+        #test/continuum-examples-test-suite.cc
         )
 endif()
 
 build_lib(
-    LIBNAME distributed
-    SOURCE_FILES model/distributed.cc
+    LIBNAME continuum
+    SOURCE_FILES model/continuum.cc
                  model/task-header.cc
                  model/task.cc
                  model/simple-task.cc
                  model/dag-task.cc
                  model/admission-policy.cc
-                 model/always-admit-policy.cc
                  model/max-active-tasks-policy.cc
-                 model/deadline-aware-admission-policy.cc
                  model/cluster-scheduler.cc
-                 model/first-fit-scheduler.cc
+                 model/round-robin-scheduler.cc
                  model/least-loaded-scheduler.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
@@ -35,8 +33,6 @@ build_lib(
                  model/fixed-ratio-processing-model.cc
                  model/queue-scheduler.cc
                  model/fifo-queue-scheduler.cc
-                 model/batching-queue-scheduler.cc
-                 model/simple-task-header.cc
                  model/orchestrator-header.cc
                  model/device-metrics-header.cc
                  model/scaling-command-header.cc
@@ -46,26 +42,27 @@ build_lib(
                  model/device-protocol.cc
                  model/gpu-device-protocol.cc
                  model/device-manager.cc
-                 model/edge-orchestrator.cc
-                 model/periodic-client.cc
-                 model/periodic-server.cc
+                 model/orchestrator.cc
+                 model/client-submission-policy.cc
+                 model/always-submit-policy.cc
+                 model/drop-while-pending-submission-policy.cc
+                 model/offload-client.cc
+                 model/backend-server.cc
                  model/cluster.cc
                  model/cluster-state.cc
-                 helper/distributed-helper.cc
-                 helper/edge-orchestrator-helper.cc
-                 helper/periodic-client-helper.cc
-                 helper/periodic-server-helper.cc
-    HEADER_FILES model/distributed.h
+                 helper/continuum-helper.cc
+                 helper/orchestrator-helper.cc
+                 helper/offload-client-helper.cc
+                 helper/backend-server-helper.cc
+    HEADER_FILES model/continuum.h
                  model/task-header.h
                  model/task.h
                  model/simple-task.h
                  model/dag-task.h
                  model/admission-policy.h
-                 model/always-admit-policy.h
                  model/max-active-tasks-policy.h
-                 model/deadline-aware-admission-policy.h
                  model/cluster-scheduler.h
-                 model/first-fit-scheduler.h
+                 model/round-robin-scheduler.h
                  model/least-loaded-scheduler.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
@@ -78,8 +75,6 @@ build_lib(
                  model/fixed-ratio-processing-model.h
                  model/queue-scheduler.h
                  model/fifo-queue-scheduler.h
-                 model/batching-queue-scheduler.h
-                 model/simple-task-header.h
                  model/orchestrator-header.h
                  model/device-metrics-header.h
                  model/scaling-command-header.h
@@ -89,40 +84,45 @@ build_lib(
                  model/device-protocol.h
                  model/gpu-device-protocol.h
                  model/device-manager.h
-                 model/edge-orchestrator.h
-                 model/periodic-client.h
-                 model/periodic-server.h
+                 model/orchestrator.h
+                 model/client-submission-policy.h
+                 model/always-submit-policy.h
+                 model/drop-while-pending-submission-policy.h
+                 model/offload-client.h
+                 model/backend-server.h
                  model/cluster.h
                  model/cluster-state.h
-                 helper/distributed-helper.h
-                 helper/edge-orchestrator-helper.h
-                 helper/periodic-client-helper.h
-                 helper/periodic-server-helper.h
+                 helper/continuum-helper.h
+                 helper/orchestrator-helper.h
+                 helper/offload-client-helper.h
+                 helper/backend-server-helper.h
     LIBRARIES_TO_LINK ${libcore}
                       ${libnetwork}
                       ${libinternet}
                       ${libpoint-to-point}
-    TEST_SOURCES test/distributed-test-suite.cc
+                      ${libcsma}
+    TEST_SOURCES test/continuum-test-suite.cc
                  test/gpu-accelerator-test.cc
                  test/energy-model-test.cc
                  test/gpu-accelerator-queue-test.cc
                  test/task-header-test.cc
-                 test/simple-task-header-test.cc
                  test/orchestrator-header-test.cc
                  test/cluster-test.cc
+                 test/cluster-state-test.cc
                  test/fixed-ratio-processing-test.cc
                  test/fifo-queue-scheduler-test.cc
-                 test/batching-queue-scheduler-test.cc
                  test/connection-manager-test.cc
                  test/dag-task-test.cc
                  test/dag-task-serialization-test.cc
+                 test/device-manager-test.cc
                  test/device-metrics-header-test.cc
                  test/scaling-command-header-test.cc
+                 test/round-robin-scheduler-test.cc
                  test/least-loaded-scheduler-test.cc
-                 test/edge-orchestrator-test.cc
-                 test/deadline-aware-admission-policy-test.cc
+                 test/orchestrator-test.cc
                  test/conservative-scaling-policy-test.cc
                  test/utilization-scaling-policy-test.cc
                  test/max-active-tasks-policy-test.cc
+                 test/drop-while-pending-submission-policy-test.cc
                  ${examples_as_tests_sources}
 )
