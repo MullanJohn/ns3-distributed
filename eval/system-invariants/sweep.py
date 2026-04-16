@@ -9,7 +9,7 @@ EXECUTABLE = "distributed-system-invariants-validation"
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
-SCHEMES = ["RR-NS", "LU-NS", "LU-SG"]
+SCHEMES = ["RR-NS", "LL-NS", "LL-SG"]
 N_CLIENTS = [1]
 SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 RUNS = [1]

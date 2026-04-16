@@ -9,7 +9,7 @@ EXECUTABLE = "distributed-single-metric-validation"
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
-SCHEMES = ["LU-SG"]
+SCHEMES = ["LL-SG"]
 N_CLIENTS = [1]
 SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 RUNS = [1]

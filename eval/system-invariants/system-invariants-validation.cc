@@ -167,7 +167,7 @@ main(int argc, char* argv[])
     uint32_t runNumber = 1;
 
     CommandLine cmd(__FILE__);
-    cmd.AddValue("scheme", "Scheduling scheme: RR-NS, LU-NS, LU-SG", scheme);
+    cmd.AddValue("scheme", "Scheduling scheme: RR-NS, LL-NS, LL-SG", scheme);
     cmd.AddValue("nClients", "Number of periodic clients", nClients);
     cmd.AddValue("nBackends", "Number of GPU backend servers", nBackends);
     cmd.AddValue("frameRate", "Frames per second", frameRate);
@@ -190,8 +190,8 @@ main(int argc, char* argv[])
     cmd.AddValue("runNumber", "RNG run number for independent replications", runNumber);
     cmd.Parse(argc, argv);
 
-    NS_ABORT_MSG_IF(scheme != "RR-NS" && scheme != "LU-NS" && scheme != "LU-SG",
-                    "Unknown scheme: " << scheme << ". Use RR-NS, LU-NS, or LU-SG.");
+    NS_ABORT_MSG_IF(scheme != "RR-NS" && scheme != "LL-NS" && scheme != "LL-SG",
+                    "Unknown scheme: " << scheme << ". Use RR-NS, LL-NS, or LL-SG.");
 
     RngSeedManager::SetSeed(seed);
     RngSeedManager::SetRun(runNumber);
@@ -332,7 +332,7 @@ main(int argc, char* argv[])
         scheduler = CreateObject<RoundRobinScheduler>();
         scalingPolicy = CreateObject<UtilizationScalingPolicy>();
     }
-    else if (scheme == "LU-NS")
+    else if (scheme == "LL-NS")
     {
         scheduler = CreateObject<LeastLoadedScheduler>();
         scalingPolicy = CreateObject<UtilizationScalingPolicy>();

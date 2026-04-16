@@ -154,7 +154,7 @@ main(int argc, char* argv[])
     uint32_t maxActiveTasks = 16;
     std::string linkRate = "1Gbps";
     std::string linkDelay = "2us";
-    std::string scheme = "LU-SG";
+    std::string scheme = "LL-SG";
     std::string outputDir = "";
     uint32_t seed = 1;
     uint32_t runNumber = 1;
@@ -171,13 +171,13 @@ main(int argc, char* argv[])
     cmd.AddValue("maxActiveTasks", "Admission policy per-backend capacity", maxActiveTasks);
     cmd.AddValue("linkRate", "P2P link data rate", linkRate);
     cmd.AddValue("linkDelay", "P2P link propagation delay", linkDelay);
-    cmd.AddValue("scheme", "Scheduling scheme: RR-NS, LU-NS, LU-SG", scheme);
+    cmd.AddValue("scheme", "Scheduling scheme: RR-NS, LL-NS, LL-SG", scheme);
     cmd.AddValue("outputDir", "Directory for CSV output", outputDir);
     cmd.AddValue("seed", "RNG seed", seed);
     cmd.AddValue("runNumber", "RNG run number", runNumber);
     cmd.Parse(argc, argv);
 
-    NS_ABORT_MSG_IF(scheme != "RR-NS" && scheme != "LU-NS" && scheme != "LU-SG",
+    NS_ABORT_MSG_IF(scheme != "RR-NS" && scheme != "LL-NS" && scheme != "LL-SG",
                     "Unknown scheme: " << scheme);
 
     RngSeedManager::SetSeed(seed);
@@ -292,7 +292,7 @@ main(int argc, char* argv[])
         scheduler = CreateObject<RoundRobinScheduler>();
         scalingPolicy = CreateObject<UtilizationScalingPolicy>();
     }
-    else if (scheme == "LU-NS")
+    else if (scheme == "LL-NS")
     {
         scheduler = CreateObject<LeastLoadedScheduler>();
         scalingPolicy = CreateObject<UtilizationScalingPolicy>();

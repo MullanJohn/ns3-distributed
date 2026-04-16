@@ -14,7 +14,7 @@ EXECUTABLE = "distributed-dag-validation"
 # (T_compute = 6.6246 ms at base OPP, 9 W static, RTX 5060 profile).
 RESULTS_DIR = Path(__file__).resolve().parent / "results_dag_validation"
 
-SCHEME = "LU-SG"
+SCHEME = "LL-SG"
 CONFIGS = [
     ("chain", 1),
     ("forkjoin", 1),
