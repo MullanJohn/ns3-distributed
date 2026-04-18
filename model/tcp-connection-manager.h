@@ -27,26 +27,6 @@ namespace ns3
  * TcpConnectionManager provides reliable, ordered delivery using TCP sockets.
  * It supports both client and server modes with full bidirectional communication.
  *
- * ## Client Mode Features
- *
- * **Multiple Servers**: Connect() can be called multiple times with different
- * addresses to establish connections to multiple servers. Use Send(packet, addr)
- * to route to a specific server:
- * @code
- * conn->Connect(server1Address);
- * conn->Connect(server2Address);
- * conn->Send(packet, server1Address);  // Routes to server1
- * @endcode
- *
- * **Connection Pooling**: When connecting to a single server with PoolSize > 1,
- * multiple TCP connections are created to improve throughput by avoiding
- * head-of-line blocking:
- * @code
- * conn->SetAttribute("PoolSize", UintegerValue(4));
- * conn->Connect(serverAddress);
- * conn->Send(packet);  // Manager picks an idle connection
- * @endcode
- *
  */
 class TcpConnectionManager : public ConnectionManager
 {
