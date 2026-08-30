@@ -53,6 +53,7 @@ TestCase* CreateClusterStateTestCase();
 TestCase* CreateDeviceManagerTestCase();
 TestCase* CreateSingleTaskEndToEndTestCase();
 TestCase* CreateMultiBackendTestCase();
+TestCase* CreateCancelNotifiesClientTestCase();
 TestCase* CreateConservativeStepUpTestCase();
 TestCase* CreateConservativeStepDownTestCase();
 TestCase* CreateConservativeBoundaryStateTestCase();
@@ -114,6 +115,7 @@ ContinuumTestSuite::ContinuumTestSuite()
     AddTestCase(CreateDeviceManagerTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateSingleTaskEndToEndTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateMultiBackendTestCase(), TestCase::Duration::QUICK);
+    AddTestCase(CreateCancelNotifiesClientTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConservativeStepUpTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConservativeStepDownTestCase(), TestCase::Duration::QUICK);
     AddTestCase(CreateConservativeBoundaryStateTestCase(), TestCase::Duration::QUICK);

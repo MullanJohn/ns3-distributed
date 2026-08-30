@@ -152,6 +152,11 @@ Orchestrator::CancelWorkload(uint64_t workloadId)
     m_workloadCancelledTrace(workloadId);
     m_clusterState.SetActiveWorkloadCount(static_cast<uint32_t>(m_workloads.size()));
 
+    if (!state.clientAddr.IsInvalid() && m_clientConnMgr)
+    {
+        SendAdmissionResponse(state.clientAddr, state.dagId, false);
+    }
+
     return true;
 }
 
@@ -654,13 +659,14 @@ Orchestrator::CheckAdmission(Ptr<DagTask> dag)
 }
 
 uint64_t
-Orchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& clientAddr)
+Orchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, uint64_t dagId, const Address& clientAddr)
 {
-    NS_LOG_FUNCTION(this << dag);
+    NS_LOG_FUNCTION(this << dag << dagId);
 
     uint64_t workloadId = m_nextWorkloadId++;
     WorkloadState state;
     state.dag = dag;
+    state.dagId = dagId;
     state.clientAddr = clientAddr;
     state.pendingTasks = 0;
 
@@ -1025,7 +1031,7 @@ Orchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Addres
 
     if (dag)
     {
-        CreateAndDispatchWorkload(dag, clientAddr);
+        CreateAndDispatchWorkload(dag, dagId, clientAddr);
     }
     else
     {

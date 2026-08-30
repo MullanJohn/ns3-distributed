@@ -278,10 +278,11 @@ class Orchestrator : public Application
     /**
      * @brief Create and dispatch a workload.
      * @param dag The DAG to execute.
+     * @param dagId The client-assigned DAG ID used in responses to the client.
      * @param clientAddr Client address.
      * @return Workload ID on success, 0 on failure.
      */
-    uint64_t CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& clientAddr);
+    uint64_t CreateAndDispatchWorkload(Ptr<DagTask> dag, uint64_t dagId, const Address& clientAddr);
 
     /**
      * @brief Dispatch a task to a backend.
@@ -352,8 +353,9 @@ class Orchestrator : public Application
      * @brief Cancel an active workload, cleaning up all associated state.
      *
      * Erases dispatch tracking, decrements active count, increments cancelled
-     * count, fires the WorkloadCancelled trace, and removes the workload
-     * from m_workloads.
+     * count, fires the WorkloadCancelled trace, removes the workload from
+     * m_workloads and notifies the client with a rejected admission response
+     * so it can release the workload.
      *
      * @param workloadId The workload to cancel.
      * @return true if the workload was found and cancelled.
@@ -476,6 +478,7 @@ class Orchestrator : public Application
     struct WorkloadState
     {
         Ptr<DagTask> dag;                           //!< The DAG workflow
+        uint64_t dagId{0};                          //!< Client-assigned DAG ID
         Address clientAddr;                         //!< Client address for response routing
         std::map<uint64_t, uint32_t> taskToBackend; //!< originalTaskId → backendIdx
         uint32_t pendingTasks{0};                   //!< Tasks dispatched but not completed

@@ -378,6 +378,109 @@ class MultiBackendTestCase : public TestCase
     std::set<uint32_t> m_backendsUsed;
 };
 
+/**
+ * @ingroup continuum-tests
+ * @brief Test Orchestrator notifies the client when it cancels an in-flight workload,
+ * so the client releases the workload instead of waiting forever.
+ */
+class CancelNotifiesClientTestCase : public TestCase
+{
+  public:
+    CancelNotifiesClientTestCase()
+        : TestCase("Orchestrator cancel notifies client")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        NodeContainer nodes;
+        nodes.Create(3);
+        Ptr<Node> clientNode = nodes.Get(0);
+        Ptr<Node> orchNode = nodes.Get(1);
+        Ptr<Node> serverNode = nodes.Get(2);
+
+        PointToPointHelper p2p;
+        p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
+        p2p.SetChannelAttribute("Delay", StringValue("1ms"));
+        NetDeviceContainer devClientOrch = p2p.Install(clientNode, orchNode);
+        NetDeviceContainer devOrchServer = p2p.Install(orchNode, serverNode);
+
+        InternetStackHelper internet;
+        internet.Install(nodes);
+
+        Ipv4AddressHelper ipv4;
+        ipv4.SetBase("10.1.1.0", "255.255.255.0");
+        Ipv4InterfaceContainer ifClientOrch = ipv4.Assign(devClientOrch);
+        ipv4.SetBase("10.1.2.0", "255.255.255.0");
+        Ipv4InterfaceContainer ifOrchServer = ipv4.Assign(devOrchServer);
+
+        Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+        gpu->SetAttribute("ComputeRate", DoubleValue(1e9));
+        gpu->SetAttribute("ProcessingModel",
+                          PointerValue(CreateObject<FixedRatioProcessingModel>()));
+        gpu->SetAttribute("QueueScheduler", PointerValue(CreateObject<FifoQueueScheduler>()));
+        serverNode->AggregateObject(gpu);
+
+        uint16_t serverPort = 9000;
+        Ptr<BackendServer> server = CreateObject<BackendServer>();
+        server->SetAttribute("Port", UintegerValue(serverPort));
+        serverNode->AddApplication(server);
+        server->SetStartTime(Seconds(0.0));
+        server->SetStopTime(Seconds(10.0));
+
+        Cluster cluster;
+        cluster.AddBackend(serverNode, InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
+
+        // Stopping the orchestrator at 2 s cancels the workload whose 100 s task is in flight;
+        // the client outlives it so the cancellation notice can be delivered.
+        uint16_t orchPort = 8080;
+        Ptr<Orchestrator> orchestrator = CreateObject<Orchestrator>();
+        orchestrator->SetAttribute("Port", UintegerValue(orchPort));
+        orchestrator->SetAttribute("Scheduler", PointerValue(CreateObject<RoundRobinScheduler>()));
+        orchestrator->SetCluster(cluster);
+        orchNode->AddApplication(orchestrator);
+        orchestrator->SetStartTime(Seconds(0.0));
+        orchestrator->SetStopTime(Seconds(2.0));
+
+        Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+
+        Ptr<OffloadClient> client = CreateObject<OffloadClient>();
+        client->SetAttribute("Remote",
+                             AddressValue(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort)));
+        client->SetAttribute("InterArrival",
+                             StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
+        client->SetAttribute("InputSize", StringValue("ns3::ConstantRandomVariable[Constant=100]"));
+        client->SetAttribute("ComputeDemand",
+                             StringValue("ns3::ConstantRandomVariable[Constant=1e11]"));
+        client->SetAttribute("OutputSize", StringValue("ns3::ConstantRandomVariable[Constant=10]"));
+        client->TraceConnectWithoutContext(
+            "TaskRejected",
+            MakeCallback(&CancelNotifiesClientTestCase::OnTaskRejected, this));
+        clientNode->AddApplication(client);
+        client->SetStartTime(Seconds(0.1));
+        client->SetStopTime(Seconds(9.0));
+
+        Simulator::Stop(Seconds(10.0));
+        Simulator::Run();
+        Simulator::Destroy();
+
+        NS_TEST_ASSERT_MSG_EQ(client->GetTasksSent(), 1, "One task submitted");
+        NS_TEST_ASSERT_MSG_EQ(orchestrator->GetWorkloadsCancelled(),
+                              1,
+                              "Workload cancelled at stop");
+        NS_TEST_ASSERT_MSG_EQ(m_rejected, 1, "Client notified of the cancelled workload");
+        NS_TEST_ASSERT_MSG_EQ(client->GetResponsesReceived(), 0, "No result was delivered");
+    }
+
+    void OnTaskRejected(Ptr<const Task> /* task */)
+    {
+        m_rejected++;
+    }
+
+    uint32_t m_rejected{0};
+};
+
 } // namespace
 
 TestCase*
@@ -390,6 +493,12 @@ TestCase*
 CreateMultiBackendTestCase()
 {
     return new MultiBackendTestCase;
+}
+
+TestCase*
+CreateCancelNotifiesClientTestCase()
+{
+    return new CancelNotifiesClientTestCase;
 }
 
 } // namespace ns3
