@@ -370,6 +370,7 @@ OffloadClient::GenerateTask()
     PendingWorkload pw;
     pw.dag = dag;
     pw.submitTime = Simulator::Now();
+    pw.pendingSinks = static_cast<uint32_t>(dag->GetSinkTasks().size());
     m_pendingWorkloads[dagId] = pw;
 
     m_tasksSent++;
@@ -538,7 +539,11 @@ OffloadClient::HandleTaskResponse()
             m_taskProcessedTrace(task, latency);
 
             dag->MarkCompleted(static_cast<uint32_t>(dagIdx));
-            if (dag->IsComplete())
+            if (it->second.pendingSinks > 0)
+            {
+                it->second.pendingSinks--;
+            }
+            if (it->second.pendingSinks == 0)
             {
                 m_pendingWorkloads.erase(it);
             }

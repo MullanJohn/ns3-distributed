@@ -200,8 +200,9 @@ class OffloadClient : public Application
     // Pending workload state
     struct PendingWorkload
     {
-        Ptr<DagTask> dag; //!< The DAG wrapping the submitted task
-        Time submitTime;  //!< When the admission request was sent
+        Ptr<DagTask> dag;      //!< The DAG wrapping the submitted task
+        Time submitTime;       //!< When the admission request was sent
+        uint32_t pendingSinks; //!< Sink task responses not yet received
     };
 
     std::map<uint64_t, PendingWorkload> m_pendingWorkloads; //!< dagId -> pending state
