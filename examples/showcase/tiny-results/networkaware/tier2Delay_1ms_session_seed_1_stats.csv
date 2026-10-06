@@ -1,2 +1,0 @@
-scheduler,tier2DelayMs,admissionMode,rngRun,tasksSent,responsesReceived,tasksDropped,workloadsAdmitted,workloadsCompleted
-networkaware,1,session,1,372,372,4,372,372
