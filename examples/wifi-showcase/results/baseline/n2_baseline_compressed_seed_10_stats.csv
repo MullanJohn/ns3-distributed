@@ -1,2 +1,0 @@
-numClients,macVariant,scenario,mpduBufferSize,maxAmpduSize,rngRun,nSuccess,nLate,nDropped,nRejected,uplinkMeanMs,uplinkStddevMs,backendMeanMs,backendStddevMs,queueingMeanMs,queueingStddevMs,computeMeanMs,computeStddevMs,downlinkMeanMs,downlinkStddevMs,totalMeanMs,totalStddevMs,computeEnergyJ,apRadioEnergyJ,staRadioEnergyTotalJ,totalEnergyJ
-2,baseline,compressed,1024,3839148,10,243,0,0,0,1.97051,0.869702,1.84794,0.108473,0,0,1.84794,0.108473,2.45842,0.860934,6.27687,1.57359,292.465,11.6712,11.5758,315.712
