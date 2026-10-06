@@ -11,6 +11,7 @@
 #include "scaling-policy.h"
 
 #include "ns3/log.h"
+#include "ns3/simulator.h"
 
 #include <algorithm>
 
@@ -122,6 +123,22 @@ ClusterState::SetPerformanceStates(uint32_t backendIdx, uint32_t numStates, doub
                                    << ")");
     m_backends[backendIdx].device.numPerformanceStates = numStates;
     m_backends[backendIdx].device.maxComputeRate = maxComputeRate;
+}
+
+void
+ClusterState::UpdateMeasuredNetworkDelay(uint32_t backendIdx, Time sample, double smoothingFactor)
+{
+    NS_LOG_FUNCTION(this << backendIdx << sample << smoothingFactor);
+    NS_ASSERT_MSG(backendIdx < m_backends.size(),
+                  "Backend index " << backendIdx << " out of range (size=" << m_backends.size()
+                                   << ")");
+
+    ClusterState::BackendState::Network& network = m_backends[backendIdx].network;
+    network.measuredDelay =
+        network.delayValid ? (sample * smoothingFactor + network.measuredDelay * (1.0 - smoothingFactor))
+                            : sample;
+    network.delayValid = true;
+    network.lastUpdateTime = Simulator::Now();
 }
 
 void

@@ -11,6 +11,7 @@
 
 #include "ns3/address.h"
 #include "ns3/node.h"
+#include "ns3/nstime.h"
 #include "ns3/ptr.h"
 
 #include <map>
@@ -32,13 +33,15 @@ namespace ns3
  * Each backend in the cluster is represented by a Backend struct containing:
  * - A pointer to the server Node (which may have a GpuAccelerator aggregated)
  * - The network Address (InetSocketAddress with IP and port) for TCP connections
+ * - Optional static commDelay/commCapacity for communication-aware scheduling
+ *   (e.g. ClusterScheduler implementations distinguishing edge from cloud backends)
  *
  * Example usage:
  * @code
  * Cluster cluster;
  * cluster.AddBackend(serverNode1, InetSocketAddress(addr1, 9000));
  * cluster.AddBackend(serverNode2, InetSocketAddress(addr2, 9000));
- * cluster.AddBackend(serverNode3, InetSocketAddress(addr3, 9000));
+ * cluster.AddBackend(serverNode3, InetSocketAddress(addr3, 9000), "GPU", MilliSeconds(40), 1e9);
  *
  * for (auto it = cluster.Begin(); it != cluster.End(); ++it)
  * {
@@ -58,6 +61,9 @@ class Cluster
         Ptr<Node> node;  //!< The backend server node (may have GpuAccelerator aggregated)
         Address address; //!< Server address (InetSocketAddress with IP and port)
         std::string acceleratorType; //!< Type of accelerator (e.g., "GPU", "TPU"). Empty = any.
+        Time commDelay{Seconds(0)}; //!< Static one-way network delay to this backend. 0 = unset.
+        double commCapacity{0.0};   //!< Static link capacity to this backend, in bytes/sec.
+                                     //!< 0 = unset (no transmission-time penalty).
     };
 
     /// Iterator type for traversing backends
@@ -77,10 +83,14 @@ class Cluster
      *                InetSocketAddress with the server's IP and port).
      * @param acceleratorType The type of accelerator on this backend (e.g., "GPU", "TPU").
      *                        Empty string means any/unspecified.
+     * @param commDelay Static one-way network delay to this backend (0 = unset).
+     * @param commCapacity Static link capacity to this backend in bytes/sec (0 = unset).
      */
     void AddBackend(Ptr<Node> node,
                     const Address& address,
-                    const std::string& acceleratorType = "");
+                    const std::string& acceleratorType = "",
+                    Time commDelay = Seconds(0),
+                    double commCapacity = 0.0);
 
     /**
      * @brief Get the number of backends in the cluster.

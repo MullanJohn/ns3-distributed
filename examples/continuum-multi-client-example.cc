@@ -55,11 +55,11 @@ TaskSent(Ptr<const Task> task)
 }
 
 static void
-TaskProcessed(Ptr<const Task> task, Time latency)
+WorkloadProcessed(Ptr<const DagTask> dag, Time latency)
 {
     NS_LOG_UNCOND(Simulator::Now().As(Time::S)
-                  << " [Client] Task " << task->GetTaskId()
-                  << " response (latency=" << latency.As(Time::MS) << ")");
+                  << " [Client] Workload response (" << dag->GetTaskCount()
+                  << " tasks, latency=" << latency.As(Time::MS) << ")");
 }
 
 static void
@@ -193,15 +193,23 @@ main(int argc, char* argv[])
     {
         OffloadClientHelper clientHelper(InetSocketAddress(orchAddresses[i], orchPort));
         clientHelper.SetTaskRate(taskRate);
-        clientHelper.SetMeanInputSize(meanInputSize);
-        clientHelper.SetComputeDemand(computeDemand);
-        clientHelper.SetOutputSize(outputSize);
+
+        // A fresh RV per client (rather than one shared instance) keeps each
+        // client's draws on its own stream instead of interleaving through a
+        // single shared generator.
+        Ptr<ConstantRandomVariable> inputSizeRv = CreateObject<ConstantRandomVariable>();
+        inputSizeRv->SetAttribute("Constant", DoubleValue(meanInputSize));
+        Ptr<ConstantRandomVariable> computeDemandRv = CreateObject<ConstantRandomVariable>();
+        computeDemandRv->SetAttribute("Constant", DoubleValue(computeDemand));
+        Ptr<ConstantRandomVariable> outputSizeRv = CreateObject<ConstantRandomVariable>();
+        outputSizeRv->SetAttribute("Constant", DoubleValue(outputSize));
+        clientHelper.SetLinearChainDagTemplate(1, inputSizeRv, computeDemandRv, outputSizeRv);
 
         ApplicationContainer clientApps = clientHelper.Install(clientNodes.Get(i));
 
         Ptr<OffloadClient> client = DynamicCast<OffloadClient>(clientApps.Get(0));
         client->TraceConnectWithoutContext("TaskSent", MakeCallback(&TaskSent));
-        client->TraceConnectWithoutContext("TaskProcessed", MakeCallback(&TaskProcessed));
+        client->TraceConnectWithoutContext("WorkloadProcessed", MakeCallback(&WorkloadProcessed));
 
         clients.push_back(client);
 

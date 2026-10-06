@@ -73,8 +73,10 @@ class TaskHeader : public Header
      * - deadline: 8 bytes (int64_t nanoseconds, -1 = no deadline)
      * - priority: 4 bytes
      * - acceleratorType: 16 bytes
+     * - backendTime: 8 bytes (int64_t nanoseconds, 0 if not executed)
+     * - computeTime: 8 bytes (int64_t nanoseconds, 0 if not executed)
      */
-    static constexpr uint32_t SERIALIZED_SIZE = 61;
+    static constexpr uint32_t SERIALIZED_SIZE = 77;
 
     /**
      * @brief Get the type ID.
@@ -235,6 +237,30 @@ class TaskHeader : public Header
     void SetAcceleratorType(const std::string& type);
 
     /**
+     * @brief Get the recorded backend time (arrival to response: queueing + compute).
+     * @return Backend time in nanoseconds. 0 if the task has not been executed.
+     */
+    int64_t GetBackendTimeNs() const;
+
+    /**
+     * @brief Set the recorded backend time.
+     * @param backendTimeNs Backend time in nanoseconds.
+     */
+    void SetBackendTimeNs(int64_t backendTimeNs);
+
+    /**
+     * @brief Get the recorded compute time (accelerator execution only).
+     * @return Compute time in nanoseconds. 0 if the task has not been executed.
+     */
+    int64_t GetComputeTimeNs() const;
+
+    /**
+     * @brief Set the recorded compute time.
+     * @param computeTimeNs Compute time in nanoseconds.
+     */
+    void SetComputeTimeNs(int64_t computeTimeNs);
+
+    /**
      * @brief Get a string representation of the header.
      * @return String representation.
      */
@@ -256,6 +282,8 @@ class TaskHeader : public Header
     int64_t m_deadlineNs{-1};                //!< Task deadline in nanoseconds (-1 = no deadline)
     uint32_t m_priority{0};                  //!< Task priority (higher = higher priority)
     std::string m_acceleratorType;           //!< Required accelerator type (empty = any)
+    int64_t m_backendTimeNs{0};              //!< Backend time in ns (queue + compute), 0 = unset
+    int64_t m_computeTimeNs{0};              //!< Accelerator compute time in ns, 0 = unset
 };
 
 } // namespace ns3

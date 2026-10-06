@@ -205,6 +205,7 @@ class DagTaskSerializeFullDataTestCase : public TestCase
 
         dag->AddDataDependency(a, b);
         dag->AddDataDependency(b, c);
+        dag->SetDeclaredRate(25.0);
 
         Ptr<Packet> packet = dag->SerializeFullData();
         NS_TEST_ASSERT_MSG_GT(packet->GetSize(), 0, "Serialized packet should not be empty");
@@ -230,6 +231,11 @@ class DagTaskSerializeFullDataTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(ready.size(), 1, "Only task A should be ready");
 
         NS_TEST_ASSERT_MSG_EQ(restored->Validate(), true, "Restored DAG should be valid");
+
+        NS_TEST_ASSERT_MSG_EQ_TOL(restored->GetDeclaredRate(),
+                                  25.0,
+                                  1e-9,
+                                  "Declared rate should survive full-data round trip");
 
         Simulator::Destroy();
     }

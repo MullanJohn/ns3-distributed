@@ -13,6 +13,7 @@
 #include "ns3/object.h"
 #include "ns3/packet.h"
 #include "ns3/ptr.h"
+#include "ns3/random-variable-stream.h"
 #include "ns3/traced-value.h"
 
 #include <ostream>
@@ -221,6 +222,35 @@ class Task : public Object
     void SetRequiredAcceleratorType(const std::string& type);
 
     /**
+     * @brief Produce a fresh, independently-sampled instance of this task.
+     *
+     * Used to instantiate a per-generation-tick task from a template task
+     * held in a client's assigned DagTask. Copies Priority and
+     * RequiredAcceleratorType as-is; draws InputSize/OutputSize/ComputeDemand
+     * from the corresponding *Distribution attribute when one is set, else
+     * uses the plain attribute value unchanged (a template task with no
+     * InputSizeDistribution and the default InputSize=0 therefore starts a
+     * fresh instance at 0, the correct starting point for a task whose real
+     * input is entirely relayed from an upstream task via a data dependency).
+     *
+     * The default implementation works for any concrete subclass via
+     * GetInstanceTypeId(), so subclasses do not need to override this unless
+     * they add extra sampled fields of their own.
+     *
+     * @return A freshly-constructed, freshly-sampled task of the same
+     * concrete type.
+     */
+    virtual Ptr<Task> Sample() const;
+
+    /**
+     * @brief Assign a fixed random variable stream number to this task's
+     * distribution attributes.
+     * @param stream First stream index to use.
+     * @return The number of stream indices assigned.
+     */
+    virtual int64_t AssignStreams(int64_t stream);
+
+    /**
      * @brief Serialize this task to a packet for network transmission.
      *
      * Creates a packet containing the task's header and payload data.
@@ -293,6 +323,10 @@ class Task : public Object
     std::string m_requiredAcceleratorType{""};    //!< Required accelerator type (empty = any)
     Time m_computeTime{Seconds(0)};               //!< Accelerator execution time
     Time m_backendTime{Seconds(0)};               //!< Backend arrival to response (queue + compute)
+
+    Ptr<RandomVariableStream> m_inputSizeDistribution;     //!< Distribution for Sample()'s InputSize
+    Ptr<RandomVariableStream> m_outputSizeDistribution;    //!< Distribution for Sample()'s OutputSize
+    Ptr<RandomVariableStream> m_computeDemandDistribution; //!< Distribution for Sample()'s ComputeDemand
 };
 
 } // namespace ns3

@@ -63,6 +63,27 @@ class DagTask : public Object
     ~DagTask() override;
 
     /**
+     * @brief Get the declared average DAG generation rate.
+     *
+     * Only meaningful in the full-data (request/response) serialization —
+     * never in metadata-only serialization. A client submitting under
+     * OffloadClient's SessionMode declares its average generation rate here
+     * once, when establishing its session, so an AdmissionPolicy can reason
+     * about aggregate offered load rather than a single workload's demand in
+     * isolation (e.g. a queuing-theory-based admission decision). WorkloadMode
+     * always sends 0, since each workload there is independently admitted.
+     *
+     * @return Declared rate in DAGs/second, or 0 if not declared.
+     */
+    double GetDeclaredRate() const;
+
+    /**
+     * @brief Set the declared average DAG generation rate.
+     * @param ratePerSecond Declared rate in DAGs/second (0 = not declared).
+     */
+    void SetDeclaredRate(double ratePerSecond);
+
+    /**
      * @brief Add a task to the DAG.
      * @param task The task to add.
      * @return The index of the added task.
@@ -93,6 +114,26 @@ class DagTask : public Object
      * @param toIdx The index of the successor task.
      */
     void AddDataDependency(uint32_t fromIdx, uint32_t toIdx);
+
+    /**
+     * @brief Instantiate a fresh DAG from this one, used as a template.
+     *
+     * Builds a new DagTask by calling Sample() on every node's task
+     * (independently re-drawing any distribution-backed fields) and
+     * replicating this DAG's edges (as AddDataDependency where this DAG
+     * recorded a data dependency, else AddDependency).
+     *
+     * @return A freshly-sampled DagTask with the same structure as this one.
+     */
+    Ptr<DagTask> Instantiate() const;
+
+    /**
+     * @brief Assign a fixed random variable stream number to every task's
+     * distribution attributes.
+     * @param stream First stream index to use.
+     * @return The number of stream indices assigned.
+     */
+    int64_t AssignStreams(int64_t stream);
 
     /**
      * @brief Get indices of tasks that are ready to execute.
@@ -203,13 +244,16 @@ class DagTask : public Object
     Ptr<Packet> SerializeMetadata() const;
 
     /**
-     * @brief Serialize full DAG data for data upload (Phase 2).
+     * @brief Serialize full DAG data for data upload (Phase 2) or workload response.
      *
      * Serializes complete tasks (headers + payload data) and graph edges.
      *
+     * @param isResponse true to frame each task as a response (output payload, and
+     *                   recorded backend/compute times carried back to the client);
+     *                   false (default) for a client-to-orchestrator data upload.
      * @return Packet containing the serialized DAG with full data.
      */
-    Ptr<Packet> SerializeFullData() const;
+    Ptr<Packet> SerializeFullData(bool isResponse = false) const;
 
     /**
      * @brief Deserialize DAG metadata from a packet (Phase 1).
@@ -262,22 +306,27 @@ class DagTask : public Object
     /**
      * @brief Internal helper for serialization.
      * @param metadataOnly If true, serialize headers only; if false, serialize full tasks.
+     * @param isResponse If true, frame full tasks as responses. Ignored when metadataOnly.
      * @return Packet with serialized DAG.
      */
-    Ptr<Packet> SerializeInternal(bool metadataOnly) const;
+    Ptr<Packet> SerializeInternal(bool metadataOnly, bool isResponse = false) const;
 
     /**
      * @brief Internal helper for deserialization.
      * @param packet The packet to deserialize from.
      * @param deserializer The task deserializer callback.
      * @param consumedBytes Output: bytes consumed.
+     * @param metadataOnly Must match how the packet was serialized, so the
+     *                     declared-rate field (full-data only) is read correctly.
      * @return Deserialized DagTask, or nullptr on failure.
      */
     static Ptr<DagTask> DeserializeInternal(
         Ptr<Packet> packet,
         Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
-        uint64_t& consumedBytes);
+        uint64_t& consumedBytes,
+        bool metadataOnly);
 
+    double m_declaredRate{0.0};   //!< Declared DAGs/second (full-data serialization only)
     std::vector<DagNode> m_nodes; //!< All nodes in the DAG
     uint32_t m_completedCount{0}; //!< Count of completed tasks for O(1) IsComplete()
     std::unordered_map<uint64_t, uint32_t> m_taskIdToIndex; //!< taskId → index for O(1) lookup

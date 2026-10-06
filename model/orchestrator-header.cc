@@ -28,7 +28,7 @@ OrchestratorHeader::GetTypeId()
 }
 
 OrchestratorHeader::OrchestratorHeader()
-    : m_messageType(ADMISSION_REQUEST), // 2
+    : m_messageType(WORKLOAD_REQUEST), // 8
       m_dagId(0),
       m_admitted(false),
       m_payloadSize(0)
@@ -94,21 +94,21 @@ OrchestratorHeader::SetPayloadSize(uint64_t size)
 }
 
 bool
-OrchestratorHeader::IsRequest() const
-{
-    return m_messageType == ADMISSION_REQUEST;
-}
-
-bool
 OrchestratorHeader::IsResponse() const
 {
     return m_messageType == ADMISSION_RESPONSE;
 }
 
 bool
-OrchestratorHeader::IsDataUpload() const
+OrchestratorHeader::IsWorkloadRequest() const
 {
-    return m_messageType == DATA_UPLOAD;
+    return m_messageType == WORKLOAD_REQUEST;
+}
+
+bool
+OrchestratorHeader::IsWorkloadResponse() const
+{
+    return m_messageType == WORKLOAD_RESPONSE;
 }
 
 std::string
@@ -116,12 +116,12 @@ OrchestratorHeader::GetMessageTypeName() const
 {
     switch (m_messageType)
     {
-    case ADMISSION_REQUEST:
-        return "ADMISSION_REQUEST";
     case ADMISSION_RESPONSE:
         return "ADMISSION_RESPONSE";
-    case DATA_UPLOAD:
-        return "DATA_UPLOAD";
+    case WORKLOAD_RESPONSE:
+        return "WORKLOAD_RESPONSE";
+    case WORKLOAD_REQUEST:
+        return "WORKLOAD_REQUEST";
     default:
         return "UNKNOWN";
     }
@@ -156,11 +156,14 @@ OrchestratorHeader::Deserialize(Buffer::Iterator start)
     NS_LOG_FUNCTION(this);
 
     uint8_t messageTypeByte = start.ReadU8();
-    if (messageTypeByte < ADMISSION_REQUEST || messageTypeByte > DATA_UPLOAD)
+    // Explicit set rather than a range: 5 and 6 fall between ADMISSION_RESPONSE
+    // and WORKLOAD_RESPONSE but belong to ScalingCommandHeader/DeviceMetricsHeader.
+    if (messageTypeByte != ADMISSION_RESPONSE && messageTypeByte != WORKLOAD_RESPONSE &&
+        messageTypeByte != WORKLOAD_REQUEST)
     {
         NS_LOG_WARN("Invalid OrchestratorHeader message type "
-                    << static_cast<uint32_t>(messageTypeByte) << ", clamping to ADMISSION_REQUEST");
-        m_messageType = ADMISSION_REQUEST;
+                    << static_cast<uint32_t>(messageTypeByte) << ", clamping to WORKLOAD_REQUEST");
+        m_messageType = WORKLOAD_REQUEST;
     }
     else
     {

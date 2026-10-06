@@ -126,6 +126,53 @@ ClusterIterationTestCase::DoRun()
     NS_TEST_ASSERT_MSG_EQ(count, 5, "Range-based for should iterate over all 5 backends");
 }
 
+/**
+ * @ingroup continuum-tests
+ * @brief Test Cluster's static commDelay/commCapacity backend properties.
+ */
+class ClusterCommPropertiesTestCase : public TestCase
+{
+  public:
+    ClusterCommPropertiesTestCase();
+    void DoRun() override;
+};
+
+ClusterCommPropertiesTestCase::ClusterCommPropertiesTestCase()
+    : TestCase("Test Cluster commDelay and commCapacity backend properties")
+{
+}
+
+void
+ClusterCommPropertiesTestCase::DoRun()
+{
+    Cluster cluster;
+
+    Ptr<Node> edgeNode = CreateObject<Node>();
+    Ptr<Node> cloudNode = CreateObject<Node>();
+    Address edgeAddr = InetSocketAddress(Ipv4Address("10.1.1.1"), 9000);
+    Address cloudAddr = InetSocketAddress(Ipv4Address("10.1.2.1"), 9000);
+
+    // No comm properties supplied: defaults are "unset" (0).
+    cluster.AddBackend(edgeNode, edgeAddr);
+    NS_TEST_ASSERT_MSG_EQ(cluster.Get(0).commDelay,
+                          Seconds(0),
+                          "commDelay defaults to 0 when unset");
+    NS_TEST_ASSERT_MSG_EQ_TOL(cluster.Get(0).commCapacity,
+                              0.0,
+                              1e-9,
+                              "commCapacity defaults to 0 when unset");
+
+    // Explicit comm properties round-trip.
+    cluster.AddBackend(cloudNode, cloudAddr, "GPU", MilliSeconds(40), 1.0e9);
+    NS_TEST_ASSERT_MSG_EQ(cluster.Get(1).commDelay,
+                          MilliSeconds(40),
+                          "commDelay round-trips");
+    NS_TEST_ASSERT_MSG_EQ_TOL(cluster.Get(1).commCapacity,
+                              1.0e9,
+                              1e-3,
+                              "commCapacity round-trips");
+}
+
 namespace ns3
 {
 
@@ -139,6 +186,12 @@ TestCase*
 CreateClusterIterationTestCase()
 {
     return new ClusterIterationTestCase();
+}
+
+TestCase*
+CreateClusterCommPropertiesTestCase()
+{
+    return new ClusterCommPropertiesTestCase();
 }
 
 } // namespace ns3

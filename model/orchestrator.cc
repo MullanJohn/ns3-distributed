@@ -12,8 +12,11 @@
 #include "simple-task.h"
 #include "tcp-connection-manager.h"
 
+#include "ns3/boolean.h"
+#include "ns3/double.h"
 #include "ns3/log.h"
 #include "ns3/pointer.h"
+#include "ns3/simulator.h"
 #include "ns3/uinteger.h"
 
 namespace ns3
@@ -61,6 +64,19 @@ Orchestrator::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&Orchestrator::m_deviceManager),
                           MakePointerChecker<DeviceManager>())
+            .AddAttribute("EnableNetworkDelayTracking",
+                          "Enable live measurement of per-backend network delay via "
+                          "RTT-residual estimation (default: disabled, schedulers fall back "
+                          "to the static Cluster::Backend commDelay/commCapacity)",
+                          BooleanValue(false),
+                          MakeBooleanAccessor(&Orchestrator::m_enableNetworkDelayTracking),
+                          MakeBooleanChecker())
+            .AddAttribute("NetworkDelaySmoothingFactor",
+                          "EWMA smoothing factor in (0, 1] applied to new network-delay "
+                          "samples when EnableNetworkDelayTracking is true",
+                          DoubleValue(0.3),
+                          MakeDoubleAccessor(&Orchestrator::m_networkDelaySmoothingFactor),
+                          MakeDoubleChecker<double>(0.0, 1.0))
             .AddTraceSource("WorkloadAdmitted",
                             "A workload has been admitted for execution",
                             MakeTraceSourceAccessor(&Orchestrator::m_workloadAdmittedTrace),
@@ -183,23 +199,6 @@ Orchestrator::CleanupConnectionManager(Ptr<ConnectionManager>& connMgr)
     connMgr = nullptr;
 }
 
-void
-Orchestrator::CancelAllPendingAdmissions()
-{
-    NS_LOG_FUNCTION(this);
-    for (auto& [addr, dagMap] : m_pendingAdmissions)
-    {
-        for (auto& [dagId, pendingInfo] : dagMap)
-        {
-            for (const auto& [type, count] : pendingInfo.taskCountsByType)
-            {
-                m_clusterState.ReleaseTasks(count, type);
-            }
-        }
-    }
-    m_pendingAdmissions.clear();
-}
-
 std::map<Address, Ptr<Packet>>::iterator
 Orchestrator::AppendToBuffer(std::map<Address, Ptr<Packet>>& bufferMap,
                              const Address& addr,
@@ -222,7 +221,7 @@ Orchestrator::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
-    CancelAllPendingAdmissions();
+    m_sessionAdmittedClients.clear();
     CleanupConnectionManager(m_clientConnMgr);
     CleanupConnectionManager(m_backendConnMgr);
     m_rxBuffer.clear();
@@ -251,6 +250,12 @@ const Cluster&
 Orchestrator::GetCluster() const
 {
     return m_cluster;
+}
+
+const ClusterState&
+Orchestrator::GetClusterState() const
+{
+    return m_clusterState;
 }
 
 void
@@ -304,13 +309,6 @@ Orchestrator::DispatchDeserialize(Ptr<Packet> packet, uint64_t& consumedBytes)
 {
     NS_LOG_FUNCTION(this << packet);
     return DispatchDeserializeImpl(packet, consumedBytes, false);
-}
-
-Ptr<Task>
-Orchestrator::DispatchDeserializeMetadata(Ptr<Packet> packet, uint64_t& consumedBytes)
-{
-    NS_LOG_FUNCTION(this << packet);
-    return DispatchDeserializeImpl(packet, consumedBytes, true);
 }
 
 uint64_t
@@ -417,8 +415,6 @@ void
 Orchestrator::StopApplication()
 {
     NS_LOG_FUNCTION(this);
-
-    CancelAllPendingAdmissions();
 
     std::vector<uint64_t> activeIds;
     activeIds.reserve(m_workloads.size());
@@ -531,11 +527,8 @@ Orchestrator::ProcessClientBuffer(const Address& clientAddr)
 
         switch (orchHeader.GetMessageType())
         {
-        case OrchestratorHeader::ADMISSION_REQUEST:
-            HandleAdmissionRequest(orchHeader.GetDagId(), payload, clientAddr);
-            break;
-        case OrchestratorHeader::DATA_UPLOAD:
-            HandleDataUpload(orchHeader.GetDagId(), payload, clientAddr);
+        case OrchestratorHeader::WORKLOAD_REQUEST:
+            HandleWorkloadRequest(orchHeader.GetDagId(), payload, clientAddr);
             break;
         default:
             NS_LOG_WARN("Unknown message type " << static_cast<int>(orchHeader.GetMessageType())
@@ -550,93 +543,32 @@ Orchestrator::ProcessClientBuffer(const Address& clientAddr)
     }
 }
 
-bool
-Orchestrator::ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const Address& clientAddr)
-{
-    NS_LOG_FUNCTION(this << id << clientAddr);
-
-    if (!CheckAdmission(dag))
-    {
-        NS_LOG_INFO("Workload " << id << " rejected by admission policy");
-        RejectWorkload(dag->GetTaskCount(), "admission_rejected");
-        SendAdmissionResponse(clientAddr, id, false);
-        return false;
-    }
-
-    auto& pending = m_pendingAdmissions[clientAddr];
-    if (pending.count(id))
-    {
-        NS_LOG_WARN("Duplicate admission request for id " << id << " from " << clientAddr);
-        RejectWorkload(dag->GetTaskCount(), "duplicate_admission");
-        SendAdmissionResponse(clientAddr, id, false);
-        return false;
-    }
-
-    PendingAdmissionInfo pendingInfo;
-    pendingInfo.taskCount = dag->GetTaskCount();
-    if (m_admissionPolicy)
-    {
-        pendingInfo.taskCountsByType = m_admissionPolicy->GetReservationTaskCounts(dag);
-    }
-    else
-    {
-        pendingInfo.taskCountsByType[""] = dag->GetTaskCount();
-    }
-    pending[id] = pendingInfo;
-    for (const auto& [type, count] : pendingInfo.taskCountsByType)
-    {
-        m_clusterState.ReserveTasks(count, type);
-    }
-
-    NS_LOG_INFO("Workload " << id << " admitted, awaiting data upload");
-    SendAdmissionResponse(clientAddr, id, true);
-    return true;
-}
-
 void
-Orchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t taskId, bool admitted)
+Orchestrator::SendAdmissionResponse(const Address& clientAddr, uint64_t dagId, bool admitted)
 {
-    NS_LOG_FUNCTION(this << clientAddr << taskId << admitted);
+    NS_LOG_FUNCTION(this << clientAddr << dagId << admitted);
 
     OrchestratorHeader response;
     response.SetMessageType(OrchestratorHeader::ADMISSION_RESPONSE);
-    response.SetDagId(taskId);
+    response.SetDagId(dagId);
     response.SetAdmitted(admitted);
     response.SetPayloadSize(0);
 
     Ptr<Packet> packet = Create<Packet>();
     packet->AddHeader(response);
 
+    // Nothing to roll back on a send failure here: dispatch (if admitted) has
+    // already happened by the time this is called, since the confirmation is
+    // a trailing, non-blocking acknowledgment, not a gate on processing.
     if (!m_clientConnMgr->Send(packet, clientAddr))
     {
-        NS_LOG_WARN("Failed to send admission response for id " << taskId << " to " << clientAddr);
-
-        if (admitted)
-        {
-            auto mapIt = m_pendingAdmissions.find(clientAddr);
-            if (mapIt != m_pendingAdmissions.end())
-            {
-                auto admIt = mapIt->second.find(taskId);
-                if (admIt != mapIt->second.end())
-                {
-                    for (const auto& [type, count] : admIt->second.taskCountsByType)
-                    {
-                        m_clusterState.ReleaseTasks(count, type);
-                    }
-                    mapIt->second.erase(admIt);
-                    if (mapIt->second.empty())
-                    {
-                        m_pendingAdmissions.erase(mapIt);
-                    }
-                }
-            }
-            RejectWorkload(0, "admission_response_send_failed");
-        }
+        NS_LOG_WARN("Failed to send admission response for dagId " << dagId << " to "
+                                                                    << clientAddr);
         return;
     }
 
-    NS_LOG_DEBUG("Sent ADMISSION_RESPONSE for id " << taskId << ": "
-                                                   << (admitted ? "admitted" : "rejected"));
+    NS_LOG_DEBUG("Sent ADMISSION_RESPONSE for dagId " << dagId << ": "
+                                                       << (admitted ? "admitted" : "rejected"));
 }
 
 bool
@@ -654,14 +586,17 @@ Orchestrator::CheckAdmission(Ptr<DagTask> dag)
 }
 
 uint64_t
-Orchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& clientAddr)
+Orchestrator::CreateAndDispatchWorkload(Ptr<DagTask> dag,
+                                        const Address& clientAddr,
+                                        uint64_t dagId)
 {
-    NS_LOG_FUNCTION(this << dag);
+    NS_LOG_FUNCTION(this << dag << dagId);
 
     uint64_t workloadId = m_nextWorkloadId++;
     WorkloadState state;
     state.dag = dag;
     state.clientAddr = clientAddr;
+    state.dagId = dagId;
     state.pendingTasks = 0;
 
     m_workloads[workloadId] = state;
@@ -713,7 +648,10 @@ Orchestrator::DispatchTask(uint64_t workloadId, Ptr<Task> task)
     int32_t dagIdx = state.dag->GetTaskIndex(taskId);
     NS_ASSERT_MSG(dagIdx >= 0, "Task " << taskId << " not found in DAG");
 
-    m_dispatchedTasks[taskId] = {workloadId, static_cast<uint32_t>(dagIdx), task->GetTaskType()};
+    m_dispatchedTasks[taskId] = {workloadId,
+                                 static_cast<uint32_t>(dagIdx),
+                                 task->GetTaskType(),
+                                 Simulator::Now()};
 
     state.taskToBackend[taskId] = backendIdx;
     state.pendingTasks++;
@@ -830,7 +768,7 @@ Orchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
         }
         uint32_t backendIdx = backendIt->second;
 
-        OnTaskCompleted(info.workloadId, task, backendIdx);
+        OnTaskCompleted(info.workloadId, task, backendIdx, info.dispatchTime);
     }
 
     if (buffer->GetSize() == 0)
@@ -840,9 +778,9 @@ Orchestrator::HandleBackendResponse(Ptr<Packet> packet, const Address& from)
 }
 
 void
-Orchestrator::OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t backendIdx)
+Orchestrator::OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t backendIdx, Time dispatchTime)
 {
-    NS_LOG_FUNCTION(this << workloadId << task->GetTaskId() << backendIdx);
+    NS_LOG_FUNCTION(this << workloadId << task->GetTaskId() << backendIdx << dispatchTime);
 
     auto it = m_workloads.find(workloadId);
     if (it == m_workloads.end())
@@ -856,6 +794,28 @@ Orchestrator::OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t back
 
     m_scheduler->NotifyTaskCompleted(backendIdx, task);
     m_clusterState.NotifyTaskCompleted(backendIdx, task->GetComputeDemand());
+
+    if (m_enableNetworkDelayTracking)
+    {
+        Time rtt = Simulator::Now() - dispatchTime;
+
+        const ClusterState::BackendState& backendState = m_clusterState.Get(backendIdx);
+        double effectiveRate = backendState.device.effectiveComputeRate > 0.0
+                                   ? backendState.device.effectiveComputeRate
+                                   : backendState.device.nominalComputeRate;
+        Time estimatedComputeTime =
+            effectiveRate > 0.0 ? Seconds(task->GetComputeDemand() / effectiveRate) : Seconds(0);
+
+        // residual approximates round-trip network overhead beyond estimated compute
+        // time; it also absorbs any backend-side queueing ahead of compute, so it is
+        // not a pure propagation-delay measurement, just a useful placement signal.
+        Time residual = rtt - estimatedComputeTime;
+        Time oneWaySample = residual.IsNegative() ? Seconds(0) : residual / 2;
+
+        m_clusterState.UpdateMeasuredNetworkDelay(backendIdx,
+                                                  oneWaySample,
+                                                  m_networkDelaySmoothingFactor);
+    }
 
     if (m_deviceManager)
     {
@@ -940,7 +900,7 @@ Orchestrator::CompleteWorkload(uint64_t workloadId)
     }
     if (!it->second.clientAddr.IsInvalid())
     {
-        if (!SendWorkloadResponse(it->second.clientAddr, it->second.dag))
+        if (!SendWorkloadResponse(it->second.clientAddr, it->second.dagId, it->second.dag))
         {
             NS_LOG_WARN("Failed to deliver result for workload " << workloadId << " — cancelling");
             CancelWorkload(workloadId);
@@ -958,64 +918,40 @@ Orchestrator::CompleteWorkload(uint64_t workloadId)
 }
 
 bool
-Orchestrator::SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> dag)
+Orchestrator::SendWorkloadResponse(const Address& clientAddr, uint64_t dagId, Ptr<DagTask> dag)
 {
-    NS_LOG_FUNCTION(this << clientAddr);
+    NS_LOG_FUNCTION(this << clientAddr << dagId);
 
-    std::vector<uint32_t> sinkIndices = dag->GetSinkTasks();
+    // The whole executed DAG travels back in one message, so the client sees
+    // exactly one completion event per workload no matter how many sink tasks
+    // the DAG has, and gets every task's recorded backend/compute time.
+    Ptr<Packet> dagPayload = dag->SerializeFullData(true);
 
-    NS_LOG_INFO("Sending " << sinkIndices.size() << " sink task response(s) to client "
-                           << clientAddr);
+    OrchestratorHeader header;
+    header.SetMessageType(OrchestratorHeader::WORKLOAD_RESPONSE);
+    header.SetDagId(dagId);
+    header.SetPayloadSize(dagPayload->GetSize());
 
-    for (uint32_t idx : sinkIndices)
+    Ptr<Packet> packet = Create<Packet>();
+    packet->AddHeader(header);
+    packet->AddAtEnd(dagPayload);
+
+    NS_LOG_INFO("Sending workload response for dagId " << dagId << " (" << dag->GetTaskCount()
+                                                       << " tasks) to client " << clientAddr);
+
+    if (!m_clientConnMgr->Send(packet, clientAddr))
     {
-        Ptr<Task> sinkTask = dag->GetTask(idx);
-        if (sinkTask)
-        {
-            Ptr<Packet> packet = sinkTask->Serialize(true);
-            if (!m_clientConnMgr->Send(packet, clientAddr))
-            {
-                NS_LOG_WARN("Failed to send response to client " << clientAddr);
-                return false;
-            }
-        }
+        NS_LOG_WARN("Failed to send workload response to client " << clientAddr);
+        return false;
     }
 
     return true;
 }
 
 void
-Orchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr)
+Orchestrator::HandleWorkloadRequest(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr)
 {
     NS_LOG_FUNCTION(this << dagId << clientAddr);
-
-    auto mapIt = m_pendingAdmissions.find(clientAddr);
-    if (mapIt == m_pendingAdmissions.end())
-    {
-        NS_LOG_WARN("Received DATA_UPLOAD for unknown dagId " << dagId << " from " << clientAddr
-                                                              << " — discarding");
-        return;
-    }
-
-    auto admIt = mapIt->second.find(dagId);
-    if (admIt == mapIt->second.end())
-    {
-        NS_LOG_WARN("Received DATA_UPLOAD for unknown dagId " << dagId << " from " << clientAddr
-                                                              << " — discarding");
-        return;
-    }
-
-    PendingAdmissionInfo pendingInfo = admIt->second;
-    mapIt->second.erase(admIt);
-    if (mapIt->second.empty())
-    {
-        m_pendingAdmissions.erase(mapIt);
-    }
-
-    for (const auto& [type, count] : pendingInfo.taskCountsByType)
-    {
-        m_clusterState.ReleaseTasks(count, type);
-    }
 
     uint64_t consumedBytes = 0;
     Ptr<DagTask> dag =
@@ -1023,15 +959,58 @@ Orchestrator::HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Addres
                                      MakeCallback(&Orchestrator::DispatchDeserialize, this),
                                      consumedBytes);
 
-    if (dag)
+    if (!dag)
     {
-        CreateAndDispatchWorkload(dag, clientAddr);
-    }
-    else
-    {
-        NS_LOG_WARN("Failed to deserialize DAG data for dagId " << dagId << " from " << clientAddr);
+        NS_LOG_WARN("Failed to deserialize workload request for dagId " << dagId << " from "
+                                                                        << clientAddr);
         RejectWorkload(0, "deserialization_failed");
+        SendAdmissionResponse(clientAddr, dagId, false);
+        return;
     }
+
+    if (dag->GetTaskCount() == 0)
+    {
+        NS_LOG_WARN("Workload request for empty DAG " << dagId);
+        RejectWorkload(0, "empty_dag");
+        SendAdmissionResponse(clientAddr, dagId, false);
+        return;
+    }
+
+    if (!dag->Validate())
+    {
+        NS_LOG_WARN("DAG validation failed for dagId " << dagId);
+        RejectWorkload(dag->GetTaskCount(), "invalid_dag");
+        SendAdmissionResponse(clientAddr, dagId, false);
+        return;
+    }
+
+    if (m_sessionAdmittedClients.count(clientAddr))
+    {
+        // Session already established: implicitly admitted, no check, no confirmation.
+        CreateAndDispatchWorkload(dag, clientAddr, dagId);
+        return;
+    }
+
+    if (!CheckAdmission(dag))
+    {
+        NS_LOG_INFO("Workload " << dagId << " rejected by admission policy");
+        RejectWorkload(dag->GetTaskCount(), "admission_rejected");
+        SendAdmissionResponse(clientAddr, dagId, false);
+        return;
+    }
+
+    if (dag->GetDeclaredRate() > 0.0)
+    {
+        // A positive declared rate is SessionMode's signal to establish a
+        // session: remember this client so future requests skip admission
+        // entirely. WorkloadMode always declares 0, so it never does this.
+        m_sessionAdmittedClients.insert(clientAddr);
+        NS_LOG_INFO("Client " << clientAddr << " session admitted (declared rate="
+                              << dag->GetDeclaredRate() << " Hz)");
+    }
+
+    CreateAndDispatchWorkload(dag, clientAddr, dagId); // proceeds immediately
+    SendAdmissionResponse(clientAddr, dagId, true);    // non-blocking acknowledgment
 }
 
 void
@@ -1040,19 +1019,7 @@ Orchestrator::CleanupClient(const Address& clientAddr)
     NS_LOG_FUNCTION(this << clientAddr);
 
     m_rxBuffer.erase(clientAddr);
-
-    auto pendingIt = m_pendingAdmissions.find(clientAddr);
-    if (pendingIt != m_pendingAdmissions.end())
-    {
-        for (auto& [dagId, pendingInfo] : pendingIt->second)
-        {
-            for (const auto& [type, count] : pendingInfo.taskCountsByType)
-            {
-                m_clusterState.ReleaseTasks(count, type);
-            }
-        }
-        m_pendingAdmissions.erase(pendingIt);
-    }
+    m_sessionAdmittedClients.erase(clientAddr);
 
     std::vector<uint64_t> clientWorkloads;
     for (const auto& pair : m_workloads)
@@ -1068,45 +1035,6 @@ Orchestrator::CleanupClient(const Address& clientAddr)
         NS_LOG_DEBUG("Cancelling workload " << wid << " - client disconnected");
         CancelWorkload(wid);
     }
-}
-
-void
-Orchestrator::HandleAdmissionRequest(uint64_t dagId,
-                                     Ptr<Packet> dagPacket,
-                                     const Address& clientAddr)
-{
-    NS_LOG_FUNCTION(this << dagId << clientAddr);
-
-    uint64_t consumedBytes = 0;
-    Ptr<DagTask> dag =
-        DagTask::DeserializeMetadata(dagPacket,
-                                     MakeCallback(&Orchestrator::DispatchDeserializeMetadata, this),
-                                     consumedBytes);
-    if (!dag)
-    {
-        NS_LOG_WARN("Failed to deserialize DAG metadata for dagId " << dagId);
-        RejectWorkload(0, "deserialization_failed");
-        SendAdmissionResponse(clientAddr, dagId, false);
-        return;
-    }
-
-    if (dag->GetTaskCount() == 0)
-    {
-        NS_LOG_WARN("DAG admission request for empty DAG " << dagId);
-        RejectWorkload(0, "empty_dag");
-        SendAdmissionResponse(clientAddr, dagId, false);
-        return;
-    }
-
-    if (!dag->Validate())
-    {
-        NS_LOG_WARN("DAG validation failed for dagId " << dagId);
-        RejectWorkload(dag->GetTaskCount(), "invalid_dag");
-        SendAdmissionResponse(clientAddr, dagId, false);
-        return;
-    }
-
-    ProcessAdmissionDecision(dag, dagId, clientAddr);
 }
 
 } // namespace ns3

@@ -23,6 +23,7 @@
 #include "ns3/traced-callback.h"
 
 #include <map>
+#include <set>
 #include <unordered_map>
 #include <utility>
 
@@ -136,6 +137,12 @@ class Orchestrator : public Application
     const Cluster& GetCluster() const;
 
     /**
+     * @brief Get the per-backend load, device, and network state.
+     * @return The cluster state.
+     */
+    const ClusterState& GetClusterState() const;
+
+    /**
      * @brief Entry in the task type registry.
      */
     struct TaskTypeEntry
@@ -235,38 +242,29 @@ class Orchestrator : public Application
     void ProcessClientBuffer(const Address& clientAddr);
 
     /**
-     * @brief Handle an admission request from a client (Phase 1).
+     * @brief Handle a client's workload request (combined admission + full data).
      *
-     * Deserializes DAG metadata, validates structure, checks admission
-     * policy, and sends ADMISSION_RESPONSE.
+     * If the client's address is already session-admitted, dispatches
+     * immediately with no admission check or confirmation. Otherwise runs the
+     * admission policy: on rejection, sends a rejection response; on
+     * acceptance, dispatches immediately (scheduling proceeds right after the
+     * decision, not gated on the confirmation being delivered) and, if the
+     * DAG declares a positive rate, remembers the client's address as
+     * session-admitted so future requests skip this check entirely.
      *
-     * @param dagId The DAG ID from the OrchestratorHeader taskId field.
-     * @param dagPacket Packet containing serialized DAG metadata.
+     * @param dagId The DAG ID from the OrchestratorHeader.
+     * @param payload Packet containing the serialized full DAG.
      * @param clientAddr The client address.
      */
-    void HandleAdmissionRequest(uint64_t dagId, Ptr<Packet> dagPacket, const Address& clientAddr);
+    void HandleWorkloadRequest(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr);
 
     /**
-     * @brief Process an admission decision for a workload.
-     *
-     * Checks admission policy, detects duplicate requests, queues the
-     * pending admission, and sends the response. Pending admissions are
-     * cleaned up on client disconnect but have no expiry timeout.
-     *
-     * @param dag The workload DAG.
-     * @param id The DAG ID.
+     * @brief Send a non-blocking admission acknowledgment to a client.
      * @param clientAddr The client address.
-     * @return true if admitted, false if rejected.
+     * @param dagId The DAG ID.
+     * @param admitted Whether the workload was admitted.
      */
-    bool ProcessAdmissionDecision(Ptr<DagTask> dag, uint64_t id, const Address& clientAddr);
-
-    /**
-     * @brief Send admission response to client.
-     * @param clientAddr The client address.
-     * @param taskId The task ID.
-     * @param admitted Whether the task was admitted.
-     */
-    void SendAdmissionResponse(const Address& clientAddr, uint64_t taskId, bool admitted);
+    void SendAdmissionResponse(const Address& clientAddr, uint64_t dagId, bool admitted);
 
     /**
      * @brief Check admission for a workload.
@@ -279,9 +277,12 @@ class Orchestrator : public Application
      * @brief Create and dispatch a workload.
      * @param dag The DAG to execute.
      * @param clientAddr Client address.
+     * @param dagId The client-assigned DAG ID, echoed back in the workload response.
      * @return Workload ID on success, 0 on failure.
      */
-    uint64_t CreateAndDispatchWorkload(Ptr<DagTask> dag, const Address& clientAddr);
+    uint64_t CreateAndDispatchWorkload(Ptr<DagTask> dag,
+                                       const Address& clientAddr,
+                                       uint64_t dagId);
 
     /**
      * @brief Dispatch a task to a backend.
@@ -303,8 +304,10 @@ class Orchestrator : public Application
      * @param workloadId The workload this task belongs to.
      * @param task The completed task.
      * @param backendIdx The backend that processed the task.
+     * @param dispatchTime Simulator time when the task was dispatched to this backend,
+     *                     used for live network-delay estimation when enabled.
      */
-    void OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t backendIdx);
+    void OnTaskCompleted(uint64_t workloadId, Ptr<Task> task, uint32_t backendIdx, Time dispatchTime);
 
     /**
      * @brief Process ready tasks for a DAG workload.
@@ -320,33 +323,25 @@ class Orchestrator : public Application
     void CompleteWorkload(uint64_t workloadId);
 
     /**
-     * @brief Send workload results to a network client.
+     * @brief Send the completed workload back to a network client.
      *
-     * Sends the output from sink tasks (tasks with no successors) to the client.
+     * Sends the entire executed DAG (every task, with its recorded backend and
+     * compute times) as a single WORKLOAD_RESPONSE message, so the client
+     * observes exactly one completion event per workload regardless of how many
+     * sink tasks the DAG has.
      *
      * @param clientAddr The client address.
+     * @param dagId The client-assigned DAG ID to echo back for correlation.
      * @param dag The completed DAG.
-     * @return true if all sink task responses were sent successfully.
+     * @return true if the response was sent successfully.
      */
-    bool SendWorkloadResponse(const Address& clientAddr, Ptr<DagTask> dag);
+    bool SendWorkloadResponse(const Address& clientAddr, uint64_t dagId, Ptr<DagTask> dag);
 
     /**
      * @brief Clean up state for a disconnected client.
      * @param clientAddr The client address.
      */
     void CleanupClient(const Address& clientAddr);
-
-    /**
-     * @brief Handle a Phase 2 data upload from a client.
-     *
-     * Matches the dagId to a pending admission, cancels the timeout,
-     * deserializes the DAG, and dispatches the workload.
-     *
-     * @param dagId The DAG ID from the OrchestratorHeader taskId field.
-     * @param payload Packet containing serialized DAG full data.
-     * @param clientAddr The client address.
-     */
-    void HandleDataUpload(uint64_t dagId, Ptr<Packet> payload, const Address& clientAddr);
 
     /**
      * @brief Cancel an active workload, cleaning up all associated state.
@@ -372,11 +367,6 @@ class Orchestrator : public Application
      * @param connMgr The connection manager to clean up (will be set to nullptr).
      */
     void CleanupConnectionManager(Ptr<ConnectionManager>& connMgr);
-
-    /**
-     * @brief Cancel all pending admission timeout events and clear the queue.
-     */
-    void CancelAllPendingAdmissions();
 
     /**
      * @brief Append packet data to a per-address receive buffer.
@@ -414,17 +404,6 @@ class Orchestrator : public Application
     Ptr<Task> DispatchDeserialize(Ptr<Packet> packet, uint64_t& consumedBytes);
 
     /**
-     * @brief Dispatch metadata-only deserialization of a type-prefixed task buffer.
-     *
-     * Same as DispatchDeserialize but uses the metadata deserializer.
-     *
-     * @param packet The packet buffer (type byte + task header data).
-     * @param consumedBytes Output: bytes consumed (including type byte), 0 if insufficient data.
-     * @return The deserialized task, or nullptr on failure.
-     */
-    Ptr<Task> DispatchDeserializeMetadata(Ptr<Packet> packet, uint64_t& consumedBytes);
-
-    /**
      * @brief Shared implementation for dispatch deserialization.
      *
      * @param packet The packet buffer (type byte + task data).
@@ -442,6 +421,8 @@ class Orchestrator : public Application
     Ptr<ClusterScheduler> m_scheduler;      //!< Task scheduler (required)
     Ptr<DeviceManager> m_deviceManager;     //!< DVFS device manager (optional)
     std::map<uint8_t, TaskTypeEntry> m_taskTypeRegistry; //!< taskType → deserializers
+    bool m_enableNetworkDelayTracking{false}; //!< Live per-backend network-delay tracking
+    double m_networkDelaySmoothingFactor{0.3}; //!< EWMA weight for new delay samples, in (0, 1]
 
     /**
      * @brief Info stored per dispatched task for routing backend responses.
@@ -451,13 +432,7 @@ class Orchestrator : public Application
         uint64_t workloadId; //!< Owning workload
         uint32_t dagIdx;     //!< Index within the DAG
         uint8_t taskType;    //!< Task type for deserialization
-    };
-
-    struct PendingAdmissionInfo
-    {
-        uint32_t taskCount{0}; //!< Number of tasks admitted for this workload
-        std::map<std::string, uint32_t>
-            taskCountsByType; //!< Required accelerator type → reserved task count
+        Time dispatchTime;   //!< Simulator::Now() when this task was sent to its backend
     };
 
     std::unordered_map<uint64_t, DispatchedTaskInfo>
@@ -477,6 +452,7 @@ class Orchestrator : public Application
     {
         Ptr<DagTask> dag;                           //!< The DAG workflow
         Address clientAddr;                         //!< Client address for response routing
+        uint64_t dagId{0};                          //!< Client-assigned DAG ID, echoed in response
         std::map<uint64_t, uint32_t> taskToBackend; //!< originalTaskId → backendIdx
         uint32_t pendingTasks{0};                   //!< Tasks dispatched but not completed
     };
@@ -484,8 +460,7 @@ class Orchestrator : public Application
     std::map<uint64_t, WorkloadState> m_workloads; //!< Active workloads
     uint64_t m_nextWorkloadId{1};                  //!< Next workload ID
 
-    std::map<Address, std::unordered_map<uint64_t, PendingAdmissionInfo>>
-        m_pendingAdmissions; //!< dagId → pending reservation info
+    std::set<Address> m_sessionAdmittedClients; //!< Clients whose session admission succeeded
 
     // Statistics
     uint64_t m_workloadsAdmitted{0};  //!< Total admitted

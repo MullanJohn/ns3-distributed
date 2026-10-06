@@ -20,11 +20,16 @@ namespace ns3
 
 /**
  * @ingroup continuum
- * @brief Minimal header for orchestrator admission protocol.
+ * @brief Minimal header for the orchestrator's client-facing admission protocol.
  *
- * OrchestratorHeader implements the admission phase of the two-phase protocol.
- * After admission is granted, normal Task serialization (TaskHeader with
- * TASK_REQUEST/TASK_RESPONSE) is used for execution.
+ * A WORKLOAD_REQUEST carries a client's complete DAG (metadata and payload
+ * together) in one message; the orchestrator evaluates admission and, once
+ * accepted, dispatches immediately rather than waiting on a separate upload.
+ * ADMISSION_RESPONSE is a non-blocking acknowledgment of that decision.
+ * WORKLOAD_RESPONSE returns the fully executed DAG once the workload
+ * completes. See OffloadClient's AdmissionMode attribute (SessionMode vs
+ * WorkloadMode) for how often WORKLOAD_REQUEST/ADMISSION_RESPONSE are
+ * actually exchanged per client.
  *
  * Wire format (18 bytes):
  * - messageType: 1 byte
@@ -39,14 +44,15 @@ class OrchestratorHeader : public Header
      * @brief Protocol message types.
      *
      * Values are chosen to be distinct from TaskHeader message types (0, 1)
-     * so the orchestrator can distinguish admission protocol messages from
-     * task data uploads by peeking at the first byte.
+     * so the orchestrator can distinguish these from task data by peeking at
+     * the first byte. Values 5 and 6 are reserved by ScalingCommandHeader and
+     * DeviceMetricsHeader respectively.
      */
     enum MessageType : uint8_t
     {
-        ADMISSION_REQUEST = 2,  //!< Client requests admission (serialized DAG metadata follows)
-        ADMISSION_RESPONSE = 3, //!< Server responds to admission (admit/reject)
-        DATA_UPLOAD = 4         //!< Phase 2: full DAG data upload
+        ADMISSION_RESPONSE = 3, //!< Server's non-blocking admit/reject acknowledgment
+        WORKLOAD_RESPONSE = 7,  //!< Completed workload returned to client (full DAG follows)
+        WORKLOAD_REQUEST = 8    //!< Client's DAG (metadata + payload together), admit-and-run
     };
 
     /**
@@ -78,8 +84,8 @@ class OrchestratorHeader : public Header
     /**
      * @brief Get the DAG ID.
      *
-     * For ADMISSION_REQUEST: identifies the DAG being submitted.
-     * For ADMISSION_RESPONSE: echoed back to correlate with the request.
+     * For WORKLOAD_REQUEST: identifies the DAG being submitted.
+     * For ADMISSION_RESPONSE/WORKLOAD_RESPONSE: echoed back to correlate with the request.
      *
      * @return The DAG ID.
      */
@@ -106,8 +112,8 @@ class OrchestratorHeader : public Header
     /**
      * @brief Get the payload size.
      *
-     * For ADMISSION_REQUEST: Size of following TaskHeader bytes.
-     * For ADMISSION_RESPONSE: 0 (no payload).
+     * For WORKLOAD_REQUEST/WORKLOAD_RESPONSE: size of the following serialized
+     * DAG bytes. For ADMISSION_RESPONSE: 0 (no payload).
      *
      * This enables header-agnostic parsing - the orchestrator reads
      * exactly this many bytes and passes them to the deserializer.
@@ -123,22 +129,22 @@ class OrchestratorHeader : public Header
     void SetPayloadSize(uint64_t size);
 
     /**
-     * @brief Check if this is a request message.
-     * @return true if ADMISSION_REQUEST.
-     */
-    bool IsRequest() const;
-
-    /**
-     * @brief Check if this is a response message.
+     * @brief Check if this is an admission response message.
      * @return true if ADMISSION_RESPONSE.
      */
     bool IsResponse() const;
 
     /**
-     * @brief Check if this is a data upload message.
-     * @return true if DATA_UPLOAD.
+     * @brief Check if this is a workload request message.
+     * @return true if WORKLOAD_REQUEST.
      */
-    bool IsDataUpload() const;
+    bool IsWorkloadRequest() const;
+
+    /**
+     * @brief Check if this is a completed-workload response message.
+     * @return true if WORKLOAD_RESPONSE.
+     */
+    bool IsWorkloadResponse() const;
 
     /**
      * @brief Get string representation of message type.
@@ -154,10 +160,10 @@ class OrchestratorHeader : public Header
     void Print(std::ostream& os) const override;
 
   private:
-    MessageType m_messageType{ADMISSION_REQUEST}; //!< Message type
-    uint64_t m_dagId{0};                          //!< DAG ID for correlation
-    bool m_admitted{false};                       //!< Admission status (for response)
-    uint64_t m_payloadSize{0};                    //!< Size of following payload bytes
+    MessageType m_messageType{WORKLOAD_REQUEST}; //!< Message type
+    uint64_t m_dagId{0};                         //!< DAG ID for correlation
+    bool m_admitted{false};                      //!< Admission status (for response)
+    uint64_t m_payloadSize{0};                   //!< Size of following payload bytes
 };
 
 } // namespace ns3

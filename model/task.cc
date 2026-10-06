@@ -12,6 +12,8 @@
 
 #include "ns3/double.h"
 #include "ns3/log.h"
+#include "ns3/object-factory.h"
+#include "ns3/pointer.h"
 #include "ns3/string.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/uinteger.h"
@@ -88,6 +90,26 @@ Task::GetTypeId()
                           StringValue(""),
                           MakeStringAccessor(&Task::m_requiredAcceleratorType),
                           MakeStringChecker())
+            .AddAttribute("InputSizeDistribution",
+                          "Random variable Sample() draws InputSize from. When unset, "
+                          "Sample() uses the plain InputSize attribute unchanged (default "
+                          "0, i.e. this task's input is entirely relayed from an upstream "
+                          "task via a data dependency).",
+                          PointerValue(),
+                          MakePointerAccessor(&Task::m_inputSizeDistribution),
+                          MakePointerChecker<RandomVariableStream>())
+            .AddAttribute("OutputSizeDistribution",
+                          "Random variable Sample() draws OutputSize from. When unset, "
+                          "Sample() uses the plain OutputSize attribute unchanged.",
+                          PointerValue(),
+                          MakePointerAccessor(&Task::m_outputSizeDistribution),
+                          MakePointerChecker<RandomVariableStream>())
+            .AddAttribute("ComputeDemandDistribution",
+                          "Random variable Sample() draws ComputeDemand from. When unset, "
+                          "Sample() uses the plain ComputeDemand attribute unchanged.",
+                          PointerValue(),
+                          MakePointerAccessor(&Task::m_computeDemandDistribution),
+                          MakePointerChecker<RandomVariableStream>())
             .AddTraceSource("State",
                             "Task lifecycle state transitions",
                             MakeTraceSourceAccessor(&Task::m_state),
@@ -120,6 +142,8 @@ Task::Serialize(bool isResponse) const
     header.SetDeadlineNs(m_deadline.IsNegative() ? -1 : m_deadline.GetNanoSeconds());
     header.SetPriority(m_priority);
     header.SetAcceleratorType(GetRequiredAcceleratorType());
+    header.SetBackendTimeNs(m_backendTime.GetNanoSeconds());
+    header.SetComputeTimeNs(m_computeTime.GetNanoSeconds());
 
     Ptr<Packet> packet = Create<Packet>();
     packet->AddHeader(header);
@@ -153,6 +177,8 @@ Task::PopulateFromHeader(const TaskHeader& header)
     {
         m_deadline = NanoSeconds(header.GetDeadlineNs());
     }
+    m_backendTime = NanoSeconds(header.GetBackendTimeNs());
+    m_computeTime = NanoSeconds(header.GetComputeTimeNs());
 }
 
 void
@@ -169,7 +195,54 @@ Task::DoDispose()
     m_requiredAcceleratorType.clear();
     m_computeTime = Seconds(0);
     m_backendTime = Seconds(0);
+    m_inputSizeDistribution = nullptr;
+    m_outputSizeDistribution = nullptr;
+    m_computeDemandDistribution = nullptr;
     Object::DoDispose();
+}
+
+Ptr<Task>
+Task::Sample() const
+{
+    NS_LOG_FUNCTION(this);
+
+    ObjectFactory factory;
+    factory.SetTypeId(GetInstanceTypeId());
+    Ptr<Task> fresh = factory.Create<Task>();
+
+    fresh->SetPriority(m_priority);
+    fresh->SetRequiredAcceleratorType(m_requiredAcceleratorType);
+    fresh->SetInputSize(m_inputSizeDistribution
+                             ? static_cast<uint64_t>(m_inputSizeDistribution->GetValue())
+                             : m_inputSize);
+    fresh->SetOutputSize(m_outputSizeDistribution
+                              ? static_cast<uint64_t>(m_outputSizeDistribution->GetValue())
+                              : m_outputSize);
+    fresh->SetComputeDemand(m_computeDemandDistribution ? m_computeDemandDistribution->GetValue()
+                                                        : m_computeDemand);
+
+    return fresh;
+}
+
+int64_t
+Task::AssignStreams(int64_t stream)
+{
+    NS_LOG_FUNCTION(this << stream);
+
+    int64_t current = stream;
+    if (m_inputSizeDistribution)
+    {
+        m_inputSizeDistribution->SetStream(current++);
+    }
+    if (m_outputSizeDistribution)
+    {
+        m_outputSizeDistribution->SetStream(current++);
+    }
+    if (m_computeDemandDistribution)
+    {
+        m_computeDemandDistribution->SetStream(current++);
+    }
+    return current - stream;
 }
 
 uint64_t

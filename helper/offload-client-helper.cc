@@ -10,12 +10,12 @@
 
 #include "ns3/address.h"
 #include "ns3/double.h"
+#include "ns3/enum.h"
 #include "ns3/nstime.h"
 #include "ns3/pointer.h"
 #include "ns3/random-variable-stream.h"
+#include "ns3/simple-task.h"
 #include "ns3/string.h"
-
-#include <sstream>
 
 namespace ns3
 {
@@ -52,54 +52,6 @@ OffloadClientHelper::SetInterArrival(Ptr<RandomVariableStream> rv)
 }
 
 void
-OffloadClientHelper::SetMeanInputSize(double mean, double stddev)
-{
-    std::ostringstream oss;
-    if (stddev > 0)
-    {
-        oss << "ns3::NormalRandomVariable[Mean=" << mean << "|Variance=" << (stddev * stddev)
-            << "|Bound=" << (3.0 * stddev) << "]";
-    }
-    else
-    {
-        oss << "ns3::ConstantRandomVariable[Constant=" << mean << "]";
-    }
-    m_factory.Set("InputSize", StringValue(oss.str()));
-}
-
-void
-OffloadClientHelper::SetComputeDemand(double demand, double stddev)
-{
-    std::ostringstream oss;
-    if (stddev > 0)
-    {
-        oss << "ns3::NormalRandomVariable[Mean=" << demand << "|Variance=" << (stddev * stddev)
-            << "|Bound=" << (3.0 * stddev) << "]";
-    }
-    else
-    {
-        oss << "ns3::ConstantRandomVariable[Constant=" << demand << "]";
-    }
-    m_factory.Set("ComputeDemand", StringValue(oss.str()));
-}
-
-void
-OffloadClientHelper::SetOutputSize(double size, double stddev)
-{
-    std::ostringstream oss;
-    if (stddev > 0)
-    {
-        oss << "ns3::NormalRandomVariable[Mean=" << size << "|Variance=" << (stddev * stddev)
-            << "|Bound=" << (3.0 * stddev) << "]";
-    }
-    else
-    {
-        oss << "ns3::ConstantRandomVariable[Constant=" << size << "]";
-    }
-    m_factory.Set("OutputSize", StringValue(oss.str()));
-}
-
-void
 OffloadClientHelper::SetDeadlineBudget(Time budget)
 {
     m_factory.Set("DeadlineBudget", TimeValue(budget));
@@ -115,6 +67,58 @@ void
 OffloadClientHelper::SetSubmissionPolicy(Ptr<ClientSubmissionPolicy> policy)
 {
     m_factory.Set("SubmissionPolicy", PointerValue(policy));
+}
+
+void
+OffloadClientHelper::SetAdmissionMode(OffloadClient::AdmissionMode mode)
+{
+    m_factory.Set("AdmissionMode", EnumValue(mode));
+}
+
+void
+OffloadClientHelper::SetAdmissionRetryPolicy(Ptr<AdmissionRetryPolicy> policy)
+{
+    m_factory.Set("AdmissionRetryPolicy", PointerValue(policy));
+}
+
+void
+OffloadClientHelper::SetDagTemplate(Ptr<DagTask> dagTemplate)
+{
+    m_factory.Set("DagTemplate", PointerValue(dagTemplate));
+}
+
+void
+OffloadClientHelper::SetLinearChainDagTemplate(uint32_t numTasks,
+                                               Ptr<RandomVariableStream> inputSizeDist,
+                                               Ptr<RandomVariableStream> computeDemandDist,
+                                               Ptr<RandomVariableStream> outputSizeDist)
+{
+    Ptr<DagTask> dagTemplate = CreateObject<DagTask>();
+
+    for (uint32_t i = 0; i < numTasks; i++)
+    {
+        Ptr<SimpleTask> task = CreateObject<SimpleTask>();
+        if (i == 0)
+        {
+            task->SetAttribute("InputSizeDistribution", PointerValue(inputSizeDist));
+        }
+        task->SetAttribute("ComputeDemandDistribution", PointerValue(computeDemandDist));
+        task->SetAttribute("OutputSizeDistribution", PointerValue(outputSizeDist));
+        dagTemplate->AddTask(task);
+
+        if (i > 0)
+        {
+            dagTemplate->AddDataDependency(i - 1, i);
+        }
+    }
+
+    SetDagTemplate(dagTemplate);
+}
+
+void
+OffloadClientHelper::SetGracePeriod(Time gracePeriod)
+{
+    m_factory.Set("GracePeriod", TimeValue(gracePeriod));
 }
 
 } // namespace ns3

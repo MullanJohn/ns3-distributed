@@ -56,7 +56,9 @@ TaskHeader::GetSerializedSize() const
            sizeof(uint64_t) + // m_outputSize
            sizeof(int64_t) +  // m_deadlineNs
            sizeof(uint32_t) + // m_priority
-           ACCEL_TYPE_SIZE;   // m_acceleratorType (fixed 16 bytes)
+           ACCEL_TYPE_SIZE +  // m_acceleratorType (fixed 16 bytes)
+           sizeof(int64_t) +  // m_backendTimeNs
+           sizeof(int64_t);   // m_computeTimeNs
 }
 
 void
@@ -82,6 +84,9 @@ TaskHeader::Serialize(Buffer::Iterator start) const
     {
         start.WriteU8(i < m_acceleratorType.size() ? m_acceleratorType[i] : 0);
     }
+
+    start.WriteHtonU64(static_cast<uint64_t>(m_backendTimeNs));
+    start.WriteHtonU64(static_cast<uint64_t>(m_computeTimeNs));
 }
 
 uint32_t
@@ -122,6 +127,9 @@ TaskHeader::Deserialize(Buffer::Iterator start)
     }
     m_acceleratorType = std::string(accelBuf);
 
+    m_backendTimeNs = static_cast<int64_t>(start.ReadNtohU64());
+    m_computeTimeNs = static_cast<int64_t>(start.ReadNtohU64());
+
     return start.GetDistanceFrom(original);
 }
 
@@ -147,7 +155,9 @@ TaskHeader::Print(std::ostream& os) const
        << ", InputSize: " << m_inputSize << ", OutputSize: " << m_outputSize
        << ", Deadline: " << (m_deadlineNs >= 0 ? std::to_string(m_deadlineNs) + "ns" : "none")
        << ", Priority: " << m_priority
-       << ", AcceleratorType: " << (m_acceleratorType.empty() ? "any" : m_acceleratorType) << ")";
+       << ", AcceleratorType: " << (m_acceleratorType.empty() ? "any" : m_acceleratorType)
+       << ", BackendTime: " << m_backendTimeNs << "ns"
+       << ", ComputeTime: " << m_computeTimeNs << "ns)";
 }
 
 std::string
@@ -291,6 +301,32 @@ TaskHeader::SetAcceleratorType(const std::string& type)
 {
     NS_LOG_FUNCTION(this << type);
     m_acceleratorType = type.substr(0, ACCEL_TYPE_SIZE);
+}
+
+int64_t
+TaskHeader::GetBackendTimeNs() const
+{
+    return m_backendTimeNs;
+}
+
+void
+TaskHeader::SetBackendTimeNs(int64_t backendTimeNs)
+{
+    NS_LOG_FUNCTION(this << backendTimeNs);
+    m_backendTimeNs = backendTimeNs;
+}
+
+int64_t
+TaskHeader::GetComputeTimeNs() const
+{
+    return m_computeTimeNs;
+}
+
+void
+TaskHeader::SetComputeTimeNs(int64_t computeTimeNs)
+{
+    NS_LOG_FUNCTION(this << computeTimeNs);
+    m_computeTimeNs = computeTimeNs;
 }
 
 } // namespace ns3

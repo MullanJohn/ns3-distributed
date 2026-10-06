@@ -8,6 +8,7 @@
 
 #include "ns3/backend-server.h"
 #include "ns3/cluster.h"
+#include "ns3/dag-task.h"
 #include "ns3/double.h"
 #include "ns3/fifo-queue-scheduler.h"
 #include "ns3/fixed-ratio-processing-model.h"
@@ -16,12 +17,14 @@
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
 #include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/boolean.h"
 #include "ns3/least-loaded-scheduler.h"
 #include "ns3/offload-client.h"
 #include "ns3/orchestrator.h"
 #include "ns3/point-to-point-helper.h"
 #include "ns3/pointer.h"
 #include "ns3/round-robin-scheduler.h"
+#include "ns3/simple-task.h"
 #include "ns3/simulator.h"
 #include "ns3/string.h"
 #include "ns3/test.h"
@@ -130,15 +133,18 @@ class SingleTaskEndToEndTestCase : public TestCase
 
         Ptr<ConstantRandomVariable> inputSize = CreateObject<ConstantRandomVariable>();
         inputSize->SetAttribute("Constant", DoubleValue(1000));
-        client->SetAttribute("InputSize", PointerValue(inputSize));
-
         Ptr<ConstantRandomVariable> compute = CreateObject<ConstantRandomVariable>();
         compute->SetAttribute("Constant", DoubleValue(1e9));
-        client->SetAttribute("ComputeDemand", PointerValue(compute));
-
         Ptr<ConstantRandomVariable> output = CreateObject<ConstantRandomVariable>();
         output->SetAttribute("Constant", DoubleValue(100));
-        client->SetAttribute("OutputSize", PointerValue(output));
+
+        Ptr<SimpleTask> templateTask = CreateObject<SimpleTask>();
+        templateTask->SetAttribute("InputSizeDistribution", PointerValue(inputSize));
+        templateTask->SetAttribute("ComputeDemandDistribution", PointerValue(compute));
+        templateTask->SetAttribute("OutputSizeDistribution", PointerValue(output));
+        Ptr<DagTask> dagTemplate = CreateObject<DagTask>();
+        dagTemplate->AddTask(templateTask);
+        client->SetAttribute("DagTemplate", PointerValue(dagTemplate));
 
         clientNode->AddApplication(client);
         client->SetStartTime(Seconds(0.1));
@@ -304,15 +310,18 @@ class MultiBackendTestCase : public TestCase
 
         Ptr<ConstantRandomVariable> inputSize0 = CreateObject<ConstantRandomVariable>();
         inputSize0->SetAttribute("Constant", DoubleValue(1000));
-        client0->SetAttribute("InputSize", PointerValue(inputSize0));
-
         Ptr<ConstantRandomVariable> compute0 = CreateObject<ConstantRandomVariable>();
         compute0->SetAttribute("Constant", DoubleValue(4e11));
-        client0->SetAttribute("ComputeDemand", PointerValue(compute0));
-
         Ptr<ConstantRandomVariable> output0 = CreateObject<ConstantRandomVariable>();
         output0->SetAttribute("Constant", DoubleValue(100));
-        client0->SetAttribute("OutputSize", PointerValue(output0));
+
+        Ptr<SimpleTask> templateTask0 = CreateObject<SimpleTask>();
+        templateTask0->SetAttribute("InputSizeDistribution", PointerValue(inputSize0));
+        templateTask0->SetAttribute("ComputeDemandDistribution", PointerValue(compute0));
+        templateTask0->SetAttribute("OutputSizeDistribution", PointerValue(output0));
+        Ptr<DagTask> dagTemplate0 = CreateObject<DagTask>();
+        dagTemplate0->AddTask(templateTask0);
+        client0->SetAttribute("DagTemplate", PointerValue(dagTemplate0));
 
         Ptr<OffloadClient> client1 = CreateObject<OffloadClient>();
         client1->SetAttribute(
@@ -323,15 +332,18 @@ class MultiBackendTestCase : public TestCase
 
         Ptr<ConstantRandomVariable> inputSize1 = CreateObject<ConstantRandomVariable>();
         inputSize1->SetAttribute("Constant", DoubleValue(1000));
-        client1->SetAttribute("InputSize", PointerValue(inputSize1));
-
         Ptr<ConstantRandomVariable> compute1 = CreateObject<ConstantRandomVariable>();
         compute1->SetAttribute("Constant", DoubleValue(4e11));
-        client1->SetAttribute("ComputeDemand", PointerValue(compute1));
-
         Ptr<ConstantRandomVariable> output1 = CreateObject<ConstantRandomVariable>();
         output1->SetAttribute("Constant", DoubleValue(100));
-        client1->SetAttribute("OutputSize", PointerValue(output1));
+
+        Ptr<SimpleTask> templateTask1 = CreateObject<SimpleTask>();
+        templateTask1->SetAttribute("InputSizeDistribution", PointerValue(inputSize1));
+        templateTask1->SetAttribute("ComputeDemandDistribution", PointerValue(compute1));
+        templateTask1->SetAttribute("OutputSizeDistribution", PointerValue(output1));
+        Ptr<DagTask> dagTemplate1 = CreateObject<DagTask>();
+        dagTemplate1->AddTask(templateTask1);
+        client1->SetAttribute("DagTemplate", PointerValue(dagTemplate1));
 
         clientNode0->AddApplication(client0);
         client0->SetStartTime(Seconds(0.1));
@@ -378,6 +390,144 @@ class MultiBackendTestCase : public TestCase
     std::set<uint32_t> m_backendsUsed;
 };
 
+/**
+ * @ingroup continuum-tests
+ * @brief Test Orchestrator's live network-delay tracking, enabled and (by default) disabled.
+ */
+class OrchestratorNetworkDelayTrackingTestCase : public TestCase
+{
+  public:
+    OrchestratorNetworkDelayTrackingTestCase()
+        : TestCase("Orchestrator live network-delay tracking")
+    {
+    }
+
+  private:
+    // Builds the standard single-client/single-backend topology, runs one task to
+    // completion, and reports the resulting network state for backend 0.
+    void RunScenario(bool enableTracking, bool& delayValidOut, Time& measuredDelayOut)
+    {
+        NodeContainer nodes;
+        nodes.Create(3);
+        Ptr<Node> clientNode = nodes.Get(0);
+        Ptr<Node> orchNode = nodes.Get(1);
+        Ptr<Node> serverNode = nodes.Get(2);
+
+        PointToPointHelper p2p;
+        p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
+        p2p.SetChannelAttribute("Delay", StringValue("1ms"));
+
+        NetDeviceContainer devClientOrch = p2p.Install(clientNode, orchNode);
+        NetDeviceContainer devOrchServer = p2p.Install(orchNode, serverNode);
+
+        InternetStackHelper internet;
+        internet.Install(nodes);
+
+        Ipv4AddressHelper ipv4;
+        ipv4.SetBase("10.1.1.0", "255.255.255.0");
+        Ipv4InterfaceContainer ifClientOrch = ipv4.Assign(devClientOrch);
+
+        ipv4.SetBase("10.1.2.0", "255.255.255.0");
+        Ipv4InterfaceContainer ifOrchServer = ipv4.Assign(devOrchServer);
+
+        Ptr<FixedRatioProcessingModel> model = CreateObject<FixedRatioProcessingModel>();
+        Ptr<FifoQueueScheduler> queueSched = CreateObject<FifoQueueScheduler>();
+
+        Ptr<GpuAccelerator> gpu = CreateObject<GpuAccelerator>();
+        gpu->SetAttribute("ComputeRate", DoubleValue(1e12));
+        gpu->SetAttribute("MemoryBandwidth", DoubleValue(1e11));
+        gpu->SetAttribute("TransferBandwidth", DoubleValue(1e11));
+        gpu->SetAttribute("ProcessingModel", PointerValue(model));
+        gpu->SetAttribute("QueueScheduler", PointerValue(queueSched));
+        serverNode->AggregateObject(gpu);
+
+        uint16_t serverPort = 9000;
+        Ptr<BackendServer> server = CreateObject<BackendServer>();
+        server->SetAttribute("Port", UintegerValue(serverPort));
+        serverNode->AddApplication(server);
+        server->SetStartTime(Seconds(0.0));
+        server->SetStopTime(Seconds(10.0));
+
+        Cluster cluster;
+        cluster.AddBackend(serverNode, InetSocketAddress(ifOrchServer.GetAddress(1), serverPort));
+
+        Ptr<RoundRobinScheduler> scheduler = CreateObject<RoundRobinScheduler>();
+
+        uint16_t orchPort = 8080;
+        Ptr<Orchestrator> orchestrator = CreateObject<Orchestrator>();
+        orchestrator->SetAttribute("Port", UintegerValue(orchPort));
+        orchestrator->SetAttribute("Scheduler", PointerValue(scheduler));
+        orchestrator->SetAttribute("EnableNetworkDelayTracking", BooleanValue(enableTracking));
+        orchestrator->SetAttribute("NetworkDelaySmoothingFactor", DoubleValue(1.0));
+        orchestrator->SetCluster(cluster);
+        orchNode->AddApplication(orchestrator);
+        orchestrator->SetStartTime(Seconds(0.0));
+        orchestrator->SetStopTime(Seconds(10.0));
+
+        Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+
+        // 1 Hz, stop at 1.5s: the client emits exactly one task.
+        Ptr<OffloadClient> client = CreateObject<OffloadClient>();
+        client->SetAttribute("Remote",
+                             AddressValue(InetSocketAddress(ifClientOrch.GetAddress(1), orchPort)));
+        client->SetAttribute("InterArrival",
+                             StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
+
+        Ptr<ConstantRandomVariable> inputSize = CreateObject<ConstantRandomVariable>();
+        inputSize->SetAttribute("Constant", DoubleValue(1000));
+        Ptr<ConstantRandomVariable> compute = CreateObject<ConstantRandomVariable>();
+        compute->SetAttribute("Constant", DoubleValue(1e9));
+        Ptr<ConstantRandomVariable> output = CreateObject<ConstantRandomVariable>();
+        output->SetAttribute("Constant", DoubleValue(100));
+
+        Ptr<SimpleTask> templateTask = CreateObject<SimpleTask>();
+        templateTask->SetAttribute("InputSizeDistribution", PointerValue(inputSize));
+        templateTask->SetAttribute("ComputeDemandDistribution", PointerValue(compute));
+        templateTask->SetAttribute("OutputSizeDistribution", PointerValue(output));
+        Ptr<DagTask> dagTemplate = CreateObject<DagTask>();
+        dagTemplate->AddTask(templateTask);
+        client->SetAttribute("DagTemplate", PointerValue(dagTemplate));
+
+        clientNode->AddApplication(client);
+        client->SetStartTime(Seconds(0.1));
+        client->SetStopTime(Seconds(1.5));
+
+        Simulator::Stop(Seconds(10.0));
+        Simulator::Run();
+
+        const ClusterState::BackendState& backend0 = orchestrator->GetClusterState().Get(0);
+        delayValidOut = backend0.network.delayValid;
+        measuredDelayOut = backend0.network.measuredDelay;
+
+        Simulator::Destroy();
+    }
+
+    void DoRun() override
+    {
+        bool delayValid = true;
+        Time measuredDelay;
+
+        // Control case: tracking left at its default (disabled).
+        RunScenario(false, delayValid, measuredDelay);
+        NS_TEST_ASSERT_MSG_EQ(delayValid,
+                              false,
+                              "network.delayValid should stay false when tracking is disabled");
+
+        // Tracking enabled: a live sample should be recorded after the round trip.
+        RunScenario(true, delayValid, measuredDelay);
+        NS_TEST_ASSERT_MSG_EQ(delayValid,
+                              true,
+                              "network.delayValid should become true when tracking is enabled");
+        NS_TEST_ASSERT_MSG_EQ((measuredDelay >= Seconds(0)),
+                              true,
+                              "Measured delay should never be negative");
+        NS_TEST_ASSERT_MSG_EQ((measuredDelay < Seconds(1)),
+                              true,
+                              "Measured delay should be well under the 1s simulation scale used "
+                              "here (1ms links, sub-ms compute time)");
+    }
+};
+
 } // namespace
 
 TestCase*
@@ -390,6 +540,12 @@ TestCase*
 CreateMultiBackendTestCase()
 {
     return new MultiBackendTestCase;
+}
+
+TestCase*
+CreateOrchestratorNetworkDelayTrackingTestCase()
+{
+    return new OrchestratorNetworkDelayTrackingTestCase;
 }
 
 } // namespace ns3

@@ -11,6 +11,7 @@
 #include "ns3/log.h"
 
 #include <algorithm>
+#include <cstring>
 #include <deque>
 #include <set>
 
@@ -54,7 +55,21 @@ DagTask::DoDispose()
     m_taskIdToIndex.clear();
     m_readySet.clear();
     m_completedCount = 0;
+    m_declaredRate = 0.0;
     Object::DoDispose();
+}
+
+double
+DagTask::GetDeclaredRate() const
+{
+    return m_declaredRate;
+}
+
+void
+DagTask::SetDeclaredRate(double ratePerSecond)
+{
+    NS_LOG_FUNCTION(this << ratePerSecond);
+    m_declaredRate = ratePerSecond;
 }
 
 uint32_t
@@ -115,6 +130,54 @@ DagTask::AddDataDependency(uint32_t fromIdx, uint32_t toIdx)
     {
         m_nodes[fromIdx].dataSuccessors.push_back(toIdx);
     }
+}
+
+Ptr<DagTask>
+DagTask::Instantiate() const
+{
+    NS_LOG_FUNCTION(this);
+
+    Ptr<DagTask> fresh = CreateObject<DagTask>();
+
+    for (const auto& node : m_nodes)
+    {
+        fresh->AddTask(node.task->Sample());
+    }
+
+    for (uint32_t i = 0; i < m_nodes.size(); i++)
+    {
+        std::set<uint32_t> dataSet(m_nodes[i].dataSuccessors.begin(),
+                                    m_nodes[i].dataSuccessors.end());
+        for (uint32_t successorIdx : m_nodes[i].successors)
+        {
+            if (dataSet.count(successorIdx))
+            {
+                fresh->AddDataDependency(i, successorIdx);
+            }
+            else
+            {
+                fresh->AddDependency(i, successorIdx);
+            }
+        }
+    }
+
+    return fresh;
+}
+
+int64_t
+DagTask::AssignStreams(int64_t stream)
+{
+    NS_LOG_FUNCTION(this << stream);
+
+    int64_t current = stream;
+    for (const auto& node : m_nodes)
+    {
+        if (node.task)
+        {
+            current += node.task->AssignStreams(current);
+        }
+    }
+    return current - stream;
 }
 
 std::vector<uint32_t>
@@ -313,10 +376,10 @@ DagTask::SerializeMetadata() const
 }
 
 Ptr<Packet>
-DagTask::SerializeFullData() const
+DagTask::SerializeFullData(bool isResponse) const
 {
-    NS_LOG_FUNCTION(this);
-    return SerializeInternal(false);
+    NS_LOG_FUNCTION(this << isResponse);
+    return SerializeInternal(false, isResponse);
 }
 
 Ptr<DagTask>
@@ -325,7 +388,7 @@ DagTask::DeserializeMetadata(Ptr<Packet> packet,
                              uint64_t& consumedBytes)
 {
     NS_LOG_FUNCTION(packet);
-    return DeserializeInternal(packet, deserializer, consumedBytes);
+    return DeserializeInternal(packet, deserializer, consumedBytes, true);
 }
 
 Ptr<DagTask>
@@ -334,15 +397,27 @@ DagTask::DeserializeFullData(Ptr<Packet> packet,
                              uint64_t& consumedBytes)
 {
     NS_LOG_FUNCTION(packet);
-    return DeserializeInternal(packet, deserializer, consumedBytes);
+    return DeserializeInternal(packet, deserializer, consumedBytes, false);
 }
 
 Ptr<Packet>
-DagTask::SerializeInternal(bool metadataOnly) const
+DagTask::SerializeInternal(bool metadataOnly, bool isResponse) const
 {
-    NS_LOG_FUNCTION(this << metadataOnly);
+    NS_LOG_FUNCTION(this << metadataOnly << isResponse);
 
     Ptr<Packet> result = Create<Packet>();
+
+    if (!metadataOnly)
+    {
+        uint64_t rateBits;
+        std::memcpy(&rateBits, &m_declaredRate, sizeof(m_declaredRate));
+        uint8_t rateBuf[8];
+        for (int i = 0; i < 8; i++)
+        {
+            rateBuf[i] = static_cast<uint8_t>(rateBits >> (56 - 8 * i));
+        }
+        result->AddAtEnd(Create<Packet>(rateBuf, 8));
+    }
 
     uint32_t taskCount = static_cast<uint32_t>(m_nodes.size());
     NS_ASSERT_MSG(taskCount < (1u << 24), "DAG task count exceeds wire protocol limit");
@@ -367,7 +442,7 @@ DagTask::SerializeInternal(bool metadataOnly) const
         }
         else
         {
-            taskPacket = task->Serialize(false);
+            taskPacket = task->Serialize(isResponse);
         }
 
         // Prepend task type byte for dispatch-based deserialization
@@ -432,18 +507,39 @@ DagTask::SerializeInternal(bool metadataOnly) const
 Ptr<DagTask>
 DagTask::DeserializeInternal(Ptr<Packet> packet,
                              Callback<Ptr<Task>, Ptr<Packet>, uint64_t&> deserializer,
-                             uint64_t& consumedBytes)
+                             uint64_t& consumedBytes,
+                             bool metadataOnly)
 {
-    NS_LOG_FUNCTION(packet);
+    NS_LOG_FUNCTION(packet << metadataOnly);
     consumedBytes = 0;
 
-    if (packet->GetSize() < 4)
+    uint64_t offset = 0;
+    double declaredRate = 0.0;
+
+    if (!metadataOnly)
+    {
+        if (packet->GetSize() < 8)
+        {
+            NS_LOG_WARN("Not enough data for declared rate");
+            return nullptr;
+        }
+        uint8_t rateBuf[8];
+        Ptr<Packet> rateFragment = packet->CreateFragment(offset, 8);
+        rateFragment->CopyData(rateBuf, 8);
+        uint64_t rateBits = 0;
+        for (int i = 0; i < 8; i++)
+        {
+            rateBits = (rateBits << 8) | rateBuf[i];
+        }
+        std::memcpy(&declaredRate, &rateBits, sizeof(declaredRate));
+        offset += 8;
+    }
+
+    if (packet->GetSize() < offset + 4)
     {
         NS_LOG_WARN("Not enough data for task count");
         return nullptr;
     }
-
-    uint64_t offset = 0;
 
     uint8_t countBuf[4];
     Ptr<Packet> countFragment = packet->CreateFragment(offset, 4);
@@ -454,6 +550,7 @@ DagTask::DeserializeInternal(Ptr<Packet> packet,
     offset += 4;
 
     Ptr<DagTask> dag = CreateObject<DagTask>();
+    dag->SetDeclaredRate(declaredRate);
 
     for (uint32_t i = 0; i < taskCount; i++)
     {

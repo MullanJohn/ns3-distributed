@@ -57,9 +57,11 @@
 #include "ns3/conservative-scaling-policy.h"
 #include "ns3/least-loaded-scheduler.h"
 #include "ns3/max-active-tasks-policy.h"
+#include "ns3/network-aware-scheduler.h"
 #include "ns3/orchestrator-header.h"
 #include "ns3/orchestrator.h"
 #include "ns3/round-robin-scheduler.h"
+#include "ns3/tiered-delay-scheduler.h"
 
 // Device management
 #include "ns3/device-manager.h"
@@ -70,10 +72,13 @@
 #include "ns3/scaling-policy.h"
 #include "ns3/utilization-scaling-policy.h"
 
-// Client submission policies
+// Client submission and admission policies
+#include "ns3/admission-retry-policy.h"
+#include "ns3/always-retry-admission-policy.h"
 #include "ns3/always-submit-policy.h"
 #include "ns3/client-submission-policy.h"
 #include "ns3/drop-while-pending-submission-policy.h"
+#include "ns3/never-retry-admission-policy.h"
 
 // Applications
 #include "ns3/backend-server.h"

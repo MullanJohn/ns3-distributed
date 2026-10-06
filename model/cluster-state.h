@@ -9,6 +9,7 @@
 #ifndef CLUSTER_STATE_H
 #define CLUSTER_STATE_H
 
+#include "ns3/nstime.h"
 #include "ns3/ptr.h"
 
 #include <cstdint>
@@ -57,8 +58,23 @@ class ClusterState
             double estimatedRemainingComputeWork{0}; //!< Estimated queued compute work in FLOPs
         };
 
+        /**
+         * @brief Live-measured network characteristics, written exclusively by Orchestrator.
+         *
+         * Populated only when Orchestrator's live network-delay tracking is enabled
+         * (disabled by default). Until then, delayValid stays false and schedulers
+         * should fall back to the static Cluster::Backend::commDelay/commCapacity.
+         */
+        struct Network
+        {
+            Time measuredDelay{Seconds(0)};  //!< EWMA-smoothed one-way delay estimate
+            bool delayValid{false};          //!< True once at least one sample has been folded in
+            Time lastUpdateTime{Seconds(0)}; //!< Simulation time of the most recent update
+        };
+
         Device device;
         Orchestration orchestration;
+        Network network;
     };
 
     /**
@@ -130,6 +146,19 @@ class ClusterState
      * @param maxComputeRate Compute rate at the highest state in FLOP/s.
      */
     void SetPerformanceStates(uint32_t backendIdx, uint32_t numStates, double maxComputeRate);
+
+    /**
+     * @brief Fold in a new live one-way network-delay sample via exponential smoothing.
+     *
+     * Called by Orchestrator when live network-delay tracking is enabled. The first
+     * sample for a backend is taken as-is; subsequent samples are blended with the
+     * previous estimate to damp noise (e.g. from backend queueing or DVFS transitions).
+     *
+     * @param backendIdx The backend index.
+     * @param sample The latest one-way delay estimate.
+     * @param smoothingFactor EWMA weight applied to the new sample, in (0, 1].
+     */
+    void UpdateMeasuredNetworkDelay(uint32_t backendIdx, Time sample, double smoothingFactor);
 
     /**
      * @brief Set the active workload count.

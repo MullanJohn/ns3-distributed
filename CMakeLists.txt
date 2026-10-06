@@ -22,6 +22,8 @@ build_lib(
                  model/cluster-scheduler.cc
                  model/round-robin-scheduler.cc
                  model/least-loaded-scheduler.cc
+                 model/network-aware-scheduler.cc
+                 model/tiered-delay-scheduler.cc
                  model/connection-manager.cc
                  model/tcp-connection-manager.cc
                  model/udp-connection-manager.cc
@@ -46,6 +48,9 @@ build_lib(
                  model/client-submission-policy.cc
                  model/always-submit-policy.cc
                  model/drop-while-pending-submission-policy.cc
+                 model/admission-retry-policy.cc
+                 model/never-retry-admission-policy.cc
+                 model/always-retry-admission-policy.cc
                  model/offload-client.cc
                  model/backend-server.cc
                  model/cluster.cc
@@ -64,6 +69,8 @@ build_lib(
                  model/cluster-scheduler.h
                  model/round-robin-scheduler.h
                  model/least-loaded-scheduler.h
+                 model/network-aware-scheduler.h
+                 model/tiered-delay-scheduler.h
                  model/connection-manager.h
                  model/tcp-connection-manager.h
                  model/udp-connection-manager.h
@@ -88,6 +95,9 @@ build_lib(
                  model/client-submission-policy.h
                  model/always-submit-policy.h
                  model/drop-while-pending-submission-policy.h
+                 model/admission-retry-policy.h
+                 model/never-retry-admission-policy.h
+                 model/always-retry-admission-policy.h
                  model/offload-client.h
                  model/backend-server.h
                  model/cluster.h
@@ -102,6 +112,7 @@ build_lib(
                       ${libpoint-to-point}
                       ${libcsma}
     TEST_SOURCES test/continuum-test-suite.cc
+                 test/task-test.cc
                  test/gpu-accelerator-test.cc
                  test/energy-model-test.cc
                  test/gpu-accelerator-queue-test.cc
@@ -114,15 +125,21 @@ build_lib(
                  test/connection-manager-test.cc
                  test/dag-task-test.cc
                  test/dag-task-serialization-test.cc
+                 test/multi-sink-dag-test.cc
                  test/device-manager-test.cc
                  test/device-metrics-header-test.cc
                  test/scaling-command-header-test.cc
                  test/round-robin-scheduler-test.cc
                  test/least-loaded-scheduler-test.cc
+                 test/network-aware-scheduler-test.cc
+                 test/tiered-delay-scheduler-test.cc
                  test/orchestrator-test.cc
                  test/conservative-scaling-policy-test.cc
                  test/utilization-scaling-policy-test.cc
                  test/max-active-tasks-policy-test.cc
                  test/drop-while-pending-submission-policy-test.cc
+                 test/admission-mode-test.cc
+                 test/offload-client-dag-template-test.cc
+                 test/offload-client-grace-period-test.cc
                  ${examples_as_tests_sources}
 )

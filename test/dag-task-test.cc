@@ -7,11 +7,16 @@
  */
 
 #include "ns3/dag-task.h"
+#include "ns3/double.h"
+#include "ns3/pointer.h"
+#include "ns3/random-variable-stream.h"
 #include "ns3/simple-task.h"
 #include "ns3/simulator.h"
 #include "ns3/test.h"
+#include "ns3/uinteger.h"
 
 #include <algorithm>
+#include <set>
 
 namespace ns3
 {
@@ -160,6 +165,92 @@ class DagTaskDataAccumulationTestCase : public TestCase
     }
 };
 
+/**
+ * @ingroup continuum-tests
+ * @brief Test DagTask::Instantiate() replicates structure and freshly
+ * samples each task from its own distribution attributes.
+ */
+class DagTaskInstantiateTestCase : public TestCase
+{
+  public:
+    DagTaskInstantiateTestCase()
+        : TestCase("Test DagTask::Instantiate() structure replication and sampling")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        // 3-task template: 0 -> 1 (data), 0 -> 2 (ordering only).
+        // Task 0 has an InputSizeDistribution; task 1 (a data successor of 0)
+        // has none, so it should instantiate with InputSize=0 (the "input is
+        // relayed from upstream" convention). Every task has a
+        // ComputeDemandDistribution so repeated Instantiate() calls draw
+        // distinct values.
+        Ptr<DagTask> tmpl = CreateObject<DagTask>();
+
+        Ptr<SimpleTask> task0 = CreateObject<SimpleTask>();
+        Ptr<UniformRandomVariable> inputRv = CreateObject<UniformRandomVariable>();
+        inputRv->SetAttribute("Min", DoubleValue(100));
+        inputRv->SetAttribute("Max", DoubleValue(200));
+        task0->SetAttribute("InputSizeDistribution", PointerValue(inputRv));
+
+        Ptr<SimpleTask> task1 = CreateObject<SimpleTask>();
+        Ptr<SimpleTask> task2 = CreateObject<SimpleTask>();
+
+        Ptr<UniformRandomVariable> computeRv = CreateObject<UniformRandomVariable>();
+        computeRv->SetAttribute("Min", DoubleValue(1e9));
+        computeRv->SetAttribute("Max", DoubleValue(2e9));
+        task0->SetAttribute("ComputeDemandDistribution", PointerValue(computeRv));
+        task1->SetAttribute("ComputeDemandDistribution", PointerValue(computeRv));
+        task2->SetAttribute("ComputeDemandDistribution", PointerValue(computeRv));
+
+        uint32_t i0 = tmpl->AddTask(task0);
+        uint32_t i1 = tmpl->AddTask(task1);
+        uint32_t i2 = tmpl->AddTask(task2);
+        tmpl->AddDataDependency(i0, i1);
+        tmpl->AddDependency(i0, i2);
+
+        Ptr<DagTask> dag = tmpl->Instantiate();
+
+        NS_TEST_ASSERT_MSG_EQ(dag->GetTaskCount(), 3, "Instantiate() should preserve task count");
+        NS_TEST_ASSERT_MSG_NE(dag->GetTask(i0), task0, "Instantiate() should produce fresh tasks");
+
+        NS_TEST_ASSERT_MSG_EQ(dag->GetTask(i1)->GetInputSize(),
+                              0,
+                              "Data successor with no InputSizeDistribution starts at 0");
+
+        std::vector<uint32_t> readyBefore = dag->GetReadyTasks();
+        NS_TEST_ASSERT_MSG_EQ(readyBefore.size(), 1, "Only task 0 should be ready initially");
+
+        uint64_t outputBefore = dag->GetTask(i0)->GetOutputSize();
+        dag->GetTask(i0)->SetOutputSize(outputBefore + 42);
+        dag->MarkCompleted(i0);
+        NS_TEST_ASSERT_MSG_EQ(dag->GetTask(i1)->GetInputSize(),
+                              outputBefore + 42,
+                              "Data dependency should be replicated (0->1)");
+
+        std::vector<uint32_t> ready = dag->GetReadyTasks();
+        std::sort(ready.begin(), ready.end());
+        NS_TEST_ASSERT_MSG_EQ(ready.size(),
+                              2,
+                              "Both task 1 (data) and task 2 (ordering) depend only on task 0, "
+                              "so both should be ready once it completes");
+        NS_TEST_ASSERT_MSG_EQ(ready[0], i1, "Data dependency should be replicated (0->1)");
+        NS_TEST_ASSERT_MSG_EQ(ready[1], i2, "Ordering dependency should be replicated (0->2)");
+
+        // Independent samples: instantiating twice should not reuse the same
+        // underlying Task objects, and a wide-range RV should (with
+        // overwhelming probability) not repeat exactly across instantiations.
+        Ptr<DagTask> dag2 = tmpl->Instantiate();
+        NS_TEST_ASSERT_MSG_NE(dag2->GetTask(i0)->GetComputeDemand(),
+                              dag->GetTask(i0)->GetComputeDemand(),
+                              "Repeated Instantiate() calls should draw fresh samples");
+
+        Simulator::Destroy();
+    }
+};
+
 } // namespace
 
 TestCase*
@@ -178,6 +269,12 @@ TestCase*
 CreateDagTaskDataAccumulationTestCase()
 {
     return new DagTaskDataAccumulationTestCase;
+}
+
+TestCase*
+CreateDagTaskInstantiateTestCase()
+{
+    return new DagTaskInstantiateTestCase;
 }
 
 } // namespace ns3

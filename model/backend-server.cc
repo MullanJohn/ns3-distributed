@@ -308,7 +308,10 @@ BackendServer::OnTaskCompleted(Ptr<const Task> task, Time duration)
     Ptr<Task> pendingTask = it->second.task;
     m_pendingTasks.erase(it);
 
+    // backendTime covers queueing + execution; computeTime is the accelerator's
+    // own execution time, so backendTime - computeTime is the queueing delay.
     pendingTask->SetBackendTime(Simulator::Now() - pendingTask->GetArrivalTime());
+    pendingTask->SetComputeTime(duration);
 
     SendResponse(clientAddr, pendingTask, duration);
 }

@@ -39,10 +39,12 @@ class TaskHeaderSerializationTestCase : public TestCase
         original.SetDeadlineNs(1000000000);
         original.SetPriority(5);
         original.SetAcceleratorType("GPU");
+        original.SetBackendTimeNs(7500000);
+        original.SetComputeTimeNs(5000000);
 
         NS_TEST_ASSERT_MSG_EQ(original.GetSerializedSize(),
                               TaskHeader::SERIALIZED_SIZE,
-                              "Serialized size should be 61 bytes");
+                              "Serialized size should be 77 bytes");
 
         Ptr<Packet> packet = Create<Packet>();
         packet->AddHeader(original);
@@ -66,6 +68,12 @@ class TaskHeaderSerializationTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetAcceleratorType(),
                               "GPU",
                               "Accelerator type should match");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetBackendTimeNs(),
+                              7500000,
+                              "Backend time should survive the round trip");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.GetComputeTimeNs(),
+                              5000000,
+                              "Compute time should survive the round trip");
     }
 };
 

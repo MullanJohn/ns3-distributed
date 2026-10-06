@@ -18,13 +18,13 @@ namespace
 
 /**
  * @ingroup continuum-tests
- * @brief Test OrchestratorHeader serialization round-trip for ADMISSION_REQUEST.
+ * @brief Test OrchestratorHeader serialization round-trip for WORKLOAD_REQUEST.
  */
 class OrchestratorHeaderRequestTestCase : public TestCase
 {
   public:
     OrchestratorHeaderRequestTestCase()
-        : TestCase("Test OrchestratorHeader ADMISSION_REQUEST roundtrip")
+        : TestCase("Test OrchestratorHeader WORKLOAD_REQUEST roundtrip")
     {
     }
 
@@ -32,7 +32,7 @@ class OrchestratorHeaderRequestTestCase : public TestCase
     void DoRun() override
     {
         OrchestratorHeader original;
-        original.SetMessageType(OrchestratorHeader::ADMISSION_REQUEST);
+        original.SetMessageType(OrchestratorHeader::WORKLOAD_REQUEST);
         original.SetDagId(42);
         original.SetPayloadSize(1024);
 
@@ -47,11 +47,13 @@ class OrchestratorHeaderRequestTestCase : public TestCase
         packet->RemoveHeader(deserialized);
 
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetMessageType(),
-                              OrchestratorHeader::ADMISSION_REQUEST,
+                              OrchestratorHeader::WORKLOAD_REQUEST,
                               "Message type should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetDagId(), 42, "DAG ID should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetPayloadSize(), 1024, "Payload size should match");
-        NS_TEST_ASSERT_MSG_EQ(deserialized.IsRequest(), true, "IsRequest should be true");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsWorkloadRequest(),
+                              true,
+                              "IsWorkloadRequest should be true");
         NS_TEST_ASSERT_MSG_EQ(deserialized.IsResponse(), false, "IsResponse should be false");
     }
 };
@@ -89,7 +91,9 @@ class OrchestratorHeaderResponseTestCase : public TestCase
         NS_TEST_ASSERT_MSG_EQ(deserialized.IsAdmitted(), true, "Should be admitted");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetDagId(), 123, "DAG ID should match");
         NS_TEST_ASSERT_MSG_EQ(deserialized.GetPayloadSize(), 0, "Payload size should be 0");
-        NS_TEST_ASSERT_MSG_EQ(deserialized.IsRequest(), false, "IsRequest should be false");
+        NS_TEST_ASSERT_MSG_EQ(deserialized.IsWorkloadRequest(),
+                              false,
+                              "IsWorkloadRequest should be false");
         NS_TEST_ASSERT_MSG_EQ(deserialized.IsResponse(), true, "IsResponse should be true");
     }
 };

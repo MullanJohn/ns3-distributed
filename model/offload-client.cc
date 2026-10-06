@@ -9,16 +9,20 @@
 #include "offload-client.h"
 
 #include "drop-while-pending-submission-policy.h"
+#include "never-retry-admission-policy.h"
 #include "simple-task.h"
 #include "tcp-connection-manager.h"
 
 #include "ns3/double.h"
+#include "ns3/enum.h"
 #include "ns3/log.h"
 #include "ns3/nstime.h"
 #include "ns3/packet.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/string.h"
+
+#include <vector>
 
 namespace ns3
 {
@@ -53,6 +57,35 @@ OffloadClient::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&OffloadClient::m_submissionPolicy),
                           MakePointerChecker<ClientSubmissionPolicy>())
+            .AddAttribute("AdmissionMode",
+                          "SessionMode (default): admission is established once, and "
+                          "subsequent workloads are implicitly admitted with no further "
+                          "round trip. WorkloadMode: every workload is individually "
+                          "admitted via a combined request (data included), which the "
+                          "orchestrator dispatches immediately upon acceptance.",
+                          EnumValue(OffloadClient::SESSION_MODE),
+                          MakeEnumAccessor<OffloadClient::AdmissionMode>(
+                              &OffloadClient::m_admissionMode),
+                          MakeEnumChecker(OffloadClient::SESSION_MODE,
+                                         "SessionMode",
+                                         OffloadClient::WORKLOAD_MODE,
+                                         "WorkloadMode"))
+            .AddAttribute("AdmissionRetryPolicy",
+                          "SessionMode-only: decides whether to retry session "
+                          "establishment after a rejection (defaults to "
+                          "NeverRetryAdmissionPolicy). Ignored in WorkloadMode.",
+                          PointerValue(),
+                          MakePointerAccessor(&OffloadClient::m_admissionRetryPolicy),
+                          MakePointerChecker<AdmissionRetryPolicy>())
+            .AddAttribute("DagTemplate",
+                          "Template DAG (structure and per-task distributions) that each "
+                          "generated workload is instantiated from (see "
+                          "DagTask::Instantiate()). Defaults to a single SimpleTask with "
+                          "InputSize=OutputSize=1, ComputeDemand=1.0 (i.e. a single task "
+                          "with no edges), matching historical behavior.",
+                          PointerValue(),
+                          MakePointerAccessor(&OffloadClient::m_dagTemplate),
+                          MakePointerChecker<DagTask>())
             .AddAttribute("InterArrival",
                           "Random variable for inter-arrival time between tasks in seconds. "
                           "Default ConstantRandomVariable yields 30 Hz periodic arrivals.",
@@ -71,37 +104,31 @@ OffloadClient::GetTypeId()
                           TimeValue(Seconds(0)),
                           MakeTimeAccessor(&OffloadClient::m_commBudget),
                           MakeTimeChecker())
-            .AddAttribute("InputSize",
-                          "Random variable for input size per task in bytes",
-                          StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&OffloadClient::m_inputSize),
-                          MakePointerChecker<RandomVariableStream>())
-            .AddAttribute("ComputeDemand",
-                          "Random variable for compute demand per task in FLOPS",
-                          StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&OffloadClient::m_computeDemand),
-                          MakePointerChecker<RandomVariableStream>())
-            .AddAttribute("OutputSize",
-                          "Random variable for result size in bytes",
-                          StringValue("ns3::ConstantRandomVariable[Constant=1.0]"),
-                          MakePointerAccessor(&OffloadClient::m_outputSize),
-                          MakePointerChecker<RandomVariableStream>())
+            .AddAttribute("GracePeriod",
+                          "On stop, generation halts immediately but the connection is kept "
+                          "open for up to this long to let any already-pending workload's "
+                          "response still arrive (closed early as soon as it resolves). "
+                          "Default 0 closes the connection immediately on stop, matching "
+                          "historical behavior.",
+                          TimeValue(Seconds(0)),
+                          MakeTimeAccessor(&OffloadClient::m_gracePeriod),
+                          MakeTimeChecker())
             .AddTraceSource("TaskSent",
                             "Trace fired when a task admission request is sent",
                             MakeTraceSourceAccessor(&OffloadClient::m_taskSentTrace),
                             "ns3::OffloadClient::TaskSentTracedCallback")
-            .AddTraceSource("TaskProcessed",
-                            "Trace fired when a processed task result is received",
-                            MakeTraceSourceAccessor(&OffloadClient::m_taskProcessedTrace),
-                            "ns3::OffloadClient::TaskProcessedTracedCallback")
+            .AddTraceSource("WorkloadProcessed",
+                            "Trace fired when a completed workload DAG is received",
+                            MakeTraceSourceAccessor(&OffloadClient::m_workloadProcessedTrace),
+                            "ns3::OffloadClient::WorkloadProcessedTracedCallback")
             .AddTraceSource("TaskRejected",
                             "Trace fired when a task admission is rejected",
                             MakeTraceSourceAccessor(&OffloadClient::m_taskRejectedTrace),
                             "ns3::OffloadClient::TaskRejectedTracedCallback")
-            .AddTraceSource("TaskViolated",
-                            "Trace fired when a processed task exceeds its deadline budget",
-                            MakeTraceSourceAccessor(&OffloadClient::m_taskViolatedTrace),
-                            "ns3::OffloadClient::TaskViolatedTracedCallback")
+            .AddTraceSource("WorkloadViolated",
+                            "Trace fired when a completed workload exceeds its deadline budget",
+                            MakeTraceSourceAccessor(&OffloadClient::m_workloadViolatedTrace),
+                            "ns3::OffloadClient::WorkloadViolatedTracedCallback")
             .AddTraceSource(
                 "TaskDropped",
                 "Trace fired when a task is dropped because a prior task is still pending",
@@ -113,8 +140,12 @@ OffloadClient::GetTypeId()
 OffloadClient::OffloadClient()
     : m_connMgr(nullptr),
       m_submissionPolicy(nullptr),
+      m_admissionMode(SESSION_MODE),
+      m_admissionRetryPolicy(nullptr),
+      m_dagTemplate(nullptr),
       m_deadlineBudget(Seconds(0)),
       m_commBudget(Seconds(0)),
+      m_gracePeriod(Seconds(0)),
       m_nominalPeriod(Seconds(0)),
       m_clientId(s_nextClientId++),
       m_tasksSent(0),
@@ -128,6 +159,9 @@ OffloadClient::OffloadClient()
       m_lastViolationIndex(0),
       m_lastViolationTime(Seconds(0)),
       m_lastRejectionTime(Seconds(0)),
+      m_sessionAdmitted(false),
+      m_sessionAdmissionAbandoned(false),
+      m_sessionRejectionCount(0),
       m_rxBuffer(Create<Packet>()),
       m_responsesReceived(0)
 {
@@ -145,6 +179,7 @@ OffloadClient::DoDispose()
     NS_LOG_FUNCTION(this);
 
     Simulator::Cancel(m_sendEvent);
+    Simulator::Cancel(m_closeEvent);
 
     if (m_connMgr)
     {
@@ -153,10 +188,9 @@ OffloadClient::DoDispose()
     }
 
     m_submissionPolicy = nullptr;
+    m_admissionRetryPolicy = nullptr;
+    m_dagTemplate = nullptr;
     m_rxBuffer = nullptr;
-    m_inputSize = nullptr;
-    m_computeDemand = nullptr;
-    m_outputSize = nullptr;
     m_interArrival = nullptr;
     m_pendingWorkloads.clear();
 
@@ -207,6 +241,25 @@ OffloadClient::GetTotalRx() const
 }
 
 void
+OffloadClient::EnsureDagTemplate()
+{
+    if (m_dagTemplate)
+    {
+        return;
+    }
+
+    NS_LOG_FUNCTION(this);
+
+    Ptr<SimpleTask> task = CreateObject<SimpleTask>();
+    task->SetInputSize(1);
+    task->SetOutputSize(1);
+    task->SetComputeDemand(1.0);
+
+    m_dagTemplate = CreateObject<DagTask>();
+    m_dagTemplate->AddTask(task);
+}
+
+void
 OffloadClient::StartApplication()
 {
     NS_LOG_FUNCTION(this);
@@ -222,6 +275,13 @@ OffloadClient::StartApplication()
     {
         m_submissionPolicy = CreateObject<DropWhilePendingSubmissionPolicy>();
     }
+
+    if (!m_admissionRetryPolicy)
+    {
+        m_admissionRetryPolicy = CreateObject<NeverRetryAdmissionPolicy>();
+    }
+
+    EnsureDagTemplate();
 
     m_nominalPeriod = Seconds(m_interArrival->GetValue());
 
@@ -249,7 +309,25 @@ OffloadClient::StopApplication()
 {
     NS_LOG_FUNCTION(this);
 
+    // Generation always halts immediately, regardless of GracePeriod.
     Simulator::Cancel(m_sendEvent);
+
+    if (m_gracePeriod.IsZero() || m_pendingWorkloads.empty())
+    {
+        CloseConnection();
+        return;
+    }
+
+    NS_LOG_INFO("OffloadClient " << m_clientId << " draining " << m_pendingWorkloads.size()
+                                 << " pending workload(s) for up to "
+                                 << m_gracePeriod.As(Time::MS));
+    m_closeEvent = Simulator::Schedule(m_gracePeriod, &OffloadClient::CloseConnection, this);
+}
+
+void
+OffloadClient::CloseConnection()
+{
+    NS_LOG_FUNCTION(this);
 
     if (m_connMgr)
     {
@@ -300,6 +378,13 @@ OffloadClient::GenerateTask()
         return;
     }
 
+    if (m_admissionMode == SESSION_MODE && m_sessionAdmissionAbandoned)
+    {
+        // Gave up on establishing a session (AdmissionRetryPolicy said not to
+        // retry) -- stay permanently quiet, do not reschedule.
+        return;
+    }
+
     m_taskCount++;
 
     ClientSubmissionPolicy::ClientState st;
@@ -325,41 +410,58 @@ OffloadClient::GenerateTask()
         return;
     }
 
-    uint64_t inputSize = static_cast<uint64_t>(m_inputSize->GetValue());
-    double computeDemand = m_computeDemand->GetValue();
-    uint64_t outputSize = static_cast<uint64_t>(m_outputSize->GetValue());
-
-    Ptr<SimpleTask> task = CreateObject<SimpleTask>();
-    task->SetComputeDemand(computeDemand);
-    task->SetInputSize(inputSize);
-    task->SetOutputSize(outputSize);
-
     Time budget = m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : m_nominalPeriod;
     Time computeBudget = budget - m_commBudget;
-    task->SetDeadline(Simulator::Now() + computeBudget);
+    Time deadline = Simulator::Now() + computeBudget;
 
-    uint64_t taskId = (static_cast<uint64_t>(m_clientId) << 32) | m_tasksSent;
-    task->SetTaskId(taskId);
+    Ptr<DagTask> dag = m_dagTemplate->Instantiate();
+    uint32_t taskCount = dag->GetTaskCount();
+    std::vector<Ptr<Task>> tasks;
+    tasks.reserve(taskCount);
+    uint64_t totalInputSize = 0;
+    double totalComputeDemand = 0;
 
-    Ptr<DagTask> dag = CreateObject<DagTask>();
-    dag->AddTask(task);
+    for (uint32_t i = 0; i < taskCount; i++)
+    {
+        Ptr<Task> task = dag->GetTask(i);
+        task->SetDeadline(deadline);
+
+        // Task-local index (bits 8..15) keeps IDs unique within a multi-task
+        // DAG; m_tasksSent (bits 32+) keeps them unique across ticks.
+        uint64_t taskId =
+            (static_cast<uint64_t>(m_clientId) << 32) | (m_tasksSent << 8) | i;
+        task->SetTaskId(taskId);
+
+        tasks.push_back(task);
+
+        totalInputSize += task->GetInputSize();
+        totalComputeDemand += task->GetComputeDemand();
+    }
 
     uint64_t dagId = (static_cast<uint64_t>(m_clientId) << 32) | m_nextDagId++;
 
-    Ptr<Packet> metadata = dag->SerializeMetadata();
+    // WorkloadMode always declares 0 (each workload is independently admitted,
+    // so there is no session-level rate to declare). SessionMode declares its
+    // nominal generation rate every time; the orchestrator only acts on it
+    // (remembering the session as admitted) the first time it sees this client.
+    double declaredRate =
+        (m_admissionMode == SESSION_MODE) ? 1.0 / m_nominalPeriod.GetSeconds() : 0.0;
+    dag->SetDeclaredRate(declaredRate);
+
+    Ptr<Packet> dagData = dag->SerializeFullData();
 
     OrchestratorHeader orchHeader;
-    orchHeader.SetMessageType(OrchestratorHeader::ADMISSION_REQUEST);
+    orchHeader.SetMessageType(OrchestratorHeader::WORKLOAD_REQUEST);
     orchHeader.SetDagId(dagId);
-    orchHeader.SetPayloadSize(metadata->GetSize());
+    orchHeader.SetPayloadSize(dagData->GetSize());
 
     Ptr<Packet> packet = Create<Packet>();
-    packet->AddAtEnd(metadata);
+    packet->AddAtEnd(dagData);
     packet->AddHeader(orchHeader);
 
     if (!m_connMgr->Send(packet))
     {
-        NS_LOG_WARN("OffloadClient " << m_clientId << " failed to send admission request for dagId "
+        NS_LOG_WARN("OffloadClient " << m_clientId << " failed to send workload request for dagId "
                                      << dagId);
         m_tasksDropped++;
         m_taskDroppedTrace(m_taskCount);
@@ -375,12 +477,15 @@ OffloadClient::GenerateTask()
     m_tasksSent++;
     m_totalTx += packet->GetSize();
 
-    NS_LOG_INFO("OffloadClient " << m_clientId << " sent task " << m_tasksSent << " (dagId "
-                                 << dagId << ", " << inputSize << " bytes, " << computeDemand
-                                 << " FLOPS)");
+    NS_LOG_INFO("OffloadClient " << m_clientId << " sent workload " << m_tasksSent << " (dagId "
+                                 << dagId << ", " << taskCount << " tasks, " << totalInputSize
+                                 << " bytes, " << totalComputeDemand << " FLOPS)");
 
-    task->SetState(TASK_SUBMITTED);
-    m_taskSentTrace(task);
+    for (const auto& task : tasks)
+    {
+        task->SetState(TASK_SUBMITTED);
+        m_taskSentTrace(task);
+    }
 
     ScheduleNextTask();
 }
@@ -410,31 +515,36 @@ OffloadClient::ProcessBuffer()
     {
         uint32_t sizeBefore = m_rxBuffer->GetSize();
 
-        uint8_t firstByte;
-        m_rxBuffer->CopyData(&firstByte, 1);
-
-        if (firstByte >= OrchestratorHeader::ADMISSION_REQUEST)
+        if (m_rxBuffer->GetSize() < OrchestratorHeader::SERIALIZED_SIZE)
         {
-            if (m_rxBuffer->GetSize() < OrchestratorHeader::SERIALIZED_SIZE)
-            {
-                break;
-            }
+            break;
+        }
 
-            OrchestratorHeader orchHeader;
-            m_rxBuffer->PeekHeader(orchHeader);
+        OrchestratorHeader orchHeader;
+        m_rxBuffer->PeekHeader(orchHeader);
 
-            uint64_t totalSize = OrchestratorHeader::SERIALIZED_SIZE + orchHeader.GetPayloadSize();
-            if (m_rxBuffer->GetSize() < totalSize)
-            {
-                break;
-            }
+        uint64_t payloadSize = orchHeader.GetPayloadSize();
+        uint64_t totalSize = OrchestratorHeader::SERIALIZED_SIZE + payloadSize;
+        if (m_rxBuffer->GetSize() < totalSize)
+        {
+            break;
+        }
 
-            m_rxBuffer->RemoveAtStart(totalSize);
-            HandleAdmissionResponse(orchHeader);
+        // Capture the payload before consuming the message from the buffer.
+        Ptr<Packet> payload =
+            payloadSize > 0
+                ? m_rxBuffer->CreateFragment(OrchestratorHeader::SERIALIZED_SIZE, payloadSize)
+                : Create<Packet>();
+
+        m_rxBuffer->RemoveAtStart(totalSize);
+
+        if (orchHeader.IsWorkloadResponse())
+        {
+            HandleWorkloadResponse(orchHeader.GetDagId(), payload);
         }
         else
         {
-            HandleTaskResponse();
+            HandleAdmissionResponse(orchHeader);
         }
 
         if (m_rxBuffer->GetSize() == sizeBefore)
@@ -461,151 +571,149 @@ OffloadClient::HandleAdmissionResponse(const OrchestratorHeader& orchHeader)
     if (orchHeader.IsAdmitted())
     {
         NS_LOG_INFO("OffloadClient " << m_clientId << " admission ACCEPTED for dagId " << dagId);
-        SendFullData(dagId);
-    }
-    else
-    {
-        NS_LOG_INFO("OffloadClient " << m_clientId << " admission REJECTED for dagId " << dagId);
 
-        Ptr<DagTask> dag = it->second.dag;
-        for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
+        if (m_admissionMode == SESSION_MODE && !m_sessionAdmitted)
         {
-            Ptr<Task> task = dag->GetTask(i);
-            if (task)
-            {
-                task->SetState(TASK_REJECTED);
-                m_tasksRejected++;
-                m_lastRejectionTime = Simulator::Now();
-                m_taskRejectedTrace(task);
-            }
+            m_sessionAdmitted = true;
+            m_sessionRejectionCount = 0;
+            NS_LOG_INFO("OffloadClient " << m_clientId << " session admitted; subsequent "
+                                         "workloads will be implicitly admitted");
         }
 
-        m_pendingWorkloads.erase(it);
+        // Data was already sent with the request in both modes -- nothing
+        // further to do here; just wait for the eventual WorkloadResponse.
+        return;
+    }
+
+    NS_LOG_INFO("OffloadClient " << m_clientId << " admission REJECTED for dagId " << dagId);
+
+    Ptr<DagTask> dag = it->second.dag;
+    for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
+    {
+        Ptr<Task> task = dag->GetTask(i);
+        if (task)
+        {
+            task->SetState(TASK_REJECTED);
+            m_tasksRejected++;
+            m_lastRejectionTime = Simulator::Now();
+            m_taskRejectedTrace(task);
+        }
+    }
+
+    m_pendingWorkloads.erase(it);
+
+    if (m_closeEvent.IsPending() && m_pendingWorkloads.empty())
+    {
+        Simulator::Cancel(m_closeEvent);
+        CloseConnection();
+    }
+
+    if (m_admissionMode == SESSION_MODE && !m_sessionAdmitted)
+    {
+        m_sessionRejectionCount++;
+        if (!m_admissionRetryPolicy->ShouldRetry(m_sessionRejectionCount))
+        {
+            m_sessionAdmissionAbandoned = true;
+            NS_LOG_INFO("OffloadClient " << m_clientId << " giving up on session admission "
+                                         "after " << m_sessionRejectionCount << " rejection(s)");
+        }
+        else
+        {
+            NS_LOG_INFO("OffloadClient " << m_clientId << " will retry session admission "
+                                         "(rejection " << m_sessionRejectionCount << ")");
+        }
     }
 }
 
-void
-OffloadClient::HandleTaskResponse()
+Ptr<Task>
+OffloadClient::DeserializeResponseTask(Ptr<Packet> packet, uint64_t& consumedBytes)
 {
-    NS_LOG_FUNCTION(this);
+    consumedBytes = 0;
 
-    uint64_t consumedBytes = 0;
-    Ptr<Task> task = SimpleTask::Deserialize(m_rxBuffer, consumedBytes);
-
-    if (consumedBytes == 0)
+    if (packet->GetSize() < 1)
     {
-        return;
+        return nullptr;
     }
 
-    m_rxBuffer->RemoveAtStart(consumedBytes);
+    // Skip the 1-byte task type tag DagTask prepends to each task.
+    Ptr<Packet> taskPacket = packet->CreateFragment(1, packet->GetSize() - 1);
+    uint64_t taskConsumed = 0;
+    Ptr<Task> task = SimpleTask::Deserialize(taskPacket, taskConsumed);
 
-    if (!task)
+    if (taskConsumed > 0)
     {
-        NS_LOG_WARN("Deserializer consumed " << consumedBytes << " bytes but returned null task");
-        return;
+        consumedBytes = 1 + taskConsumed;
     }
 
-    uint64_t taskId = task->GetTaskId();
-
-    for (auto it = m_pendingWorkloads.begin(); it != m_pendingWorkloads.end(); ++it)
-    {
-        Ptr<DagTask> dag = it->second.dag;
-        int32_t dagIdx = dag->GetTaskIndex(taskId);
-        if (dagIdx >= 0)
-        {
-            Time latency = Simulator::Now() - it->second.submitTime;
-            m_responsesReceived++;
-
-            Time budget =
-                m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : m_nominalPeriod;
-
-            if (latency > budget)
-            {
-                NS_LOG_INFO("OffloadClient " << m_clientId << " deadline violated for task "
-                                             << taskId << " (latency=" << latency.GetMilliSeconds()
-                                             << "ms, budget=" << budget.GetMilliSeconds() << "ms)");
-                m_tasksViolated++;
-                m_lastViolationIndex = m_taskCount;
-                m_lastViolationTime = Simulator::Now();
-                m_taskViolatedTrace(task, latency);
-            }
-            else
-            {
-                NS_LOG_INFO("OffloadClient " << m_clientId << " received result for task " << taskId
-                                             << " (latency=" << latency.GetMilliSeconds() << "ms)");
-            }
-
-            m_taskProcessedTrace(task, latency);
-
-            dag->MarkCompleted(static_cast<uint32_t>(dagIdx));
-            if (dag->IsComplete())
-            {
-                m_pendingWorkloads.erase(it);
-            }
-            return;
-        }
-    }
-
-    NS_LOG_WARN("Received response for unknown task " << taskId);
+    return task;
 }
 
 void
-OffloadClient::SendFullData(uint64_t dagId)
+OffloadClient::HandleWorkloadResponse(uint64_t dagId, Ptr<Packet> payload)
 {
     NS_LOG_FUNCTION(this << dagId);
 
     auto it = m_pendingWorkloads.find(dagId);
     if (it == m_pendingWorkloads.end())
     {
-        NS_LOG_WARN("Cannot send full data for unknown dagId " << dagId);
+        NS_LOG_WARN("Received workload response for unknown dagId " << dagId);
         return;
     }
 
-    Ptr<DagTask> dag = it->second.dag;
-    Ptr<Packet> dagData = dag->SerializeFullData();
+    uint64_t consumedBytes = 0;
+    Ptr<DagTask> responseDag =
+        DagTask::DeserializeFullData(payload,
+                                     MakeCallback(&OffloadClient::DeserializeResponseTask),
+                                     consumedBytes);
 
-    OrchestratorHeader uploadHeader;
-    uploadHeader.SetMessageType(OrchestratorHeader::DATA_UPLOAD);
-    uploadHeader.SetDagId(dagId);
-    uploadHeader.SetPayloadSize(dagData->GetSize());
-
-    Ptr<Packet> packet = Create<Packet>();
-    packet->AddAtEnd(dagData);
-    packet->AddHeader(uploadHeader);
-
-    if (!m_connMgr->Send(packet))
+    if (!responseDag)
     {
-        NS_LOG_WARN("OffloadClient " << m_clientId << " failed to send full data for dagId "
-                                     << dagId);
-        for (uint32_t i = 0; i < dag->GetTaskCount(); i++)
-        {
-            Ptr<Task> task = dag->GetTask(i);
-            if (task)
-            {
-                m_tasksRejected++;
-                m_lastRejectionTime = Simulator::Now();
-                m_taskRejectedTrace(task);
-            }
-        }
-        m_pendingWorkloads.erase(it);
+        NS_LOG_WARN("Failed to deserialize workload response for dagId " << dagId);
         return;
     }
 
-    m_totalTx += packet->GetSize();
+    Time latency = Simulator::Now() - it->second.submitTime;
+    m_responsesReceived++;
 
-    NS_LOG_INFO("OffloadClient " << m_clientId << " sent full task data for dagId " << dagId << " ("
-                                 << packet->GetSize() << " bytes)");
+    Time budget = m_deadlineBudget.IsStrictlyPositive() ? m_deadlineBudget : m_nominalPeriod;
+
+    if (latency > budget)
+    {
+        NS_LOG_INFO("OffloadClient " << m_clientId << " deadline violated for dagId " << dagId
+                                     << " (latency=" << latency.GetMilliSeconds()
+                                     << "ms, budget=" << budget.GetMilliSeconds() << "ms)");
+        m_tasksViolated++;
+        m_lastViolationIndex = m_taskCount;
+        m_lastViolationTime = Simulator::Now();
+        m_workloadViolatedTrace(responseDag, latency);
+    }
+    else
+    {
+        NS_LOG_INFO("OffloadClient " << m_clientId << " received result for dagId " << dagId
+                                     << " (latency=" << latency.GetMilliSeconds() << "ms)");
+    }
+
+    m_workloadProcessedTrace(responseDag, latency);
+
+    // Arrival of this message is itself the completion signal: the orchestrator
+    // only sends it once the whole DAG has finished executing.
+    m_pendingWorkloads.erase(it);
+
+    if (m_closeEvent.IsPending() && m_pendingWorkloads.empty())
+    {
+        Simulator::Cancel(m_closeEvent);
+        CloseConnection();
+    }
 }
 
 int64_t
 OffloadClient::AssignStreams(int64_t stream)
 {
     NS_LOG_FUNCTION(this << stream);
+    EnsureDagTemplate();
     auto currentStream = stream;
-    m_inputSize->SetStream(currentStream++);
-    m_computeDemand->SetStream(currentStream++);
-    m_outputSize->SetStream(currentStream++);
     m_interArrival->SetStream(currentStream++);
+    currentStream += m_dagTemplate->AssignStreams(currentStream);
     currentStream += Application::AssignStreams(currentStream);
     return (currentStream - stream);
 }

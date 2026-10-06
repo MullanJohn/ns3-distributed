@@ -101,12 +101,58 @@ class ClusterStateTestCase : public TestCase
     }
 };
 
+/**
+ * @ingroup continuum-tests
+ * @brief Test ClusterState's live-measured network delay tracking.
+ */
+class ClusterStateNetworkTestCase : public TestCase
+{
+  public:
+    ClusterStateNetworkTestCase()
+        : TestCase("ClusterState live network-delay EWMA tracking")
+    {
+    }
+
+  private:
+    void DoRun() override
+    {
+        ClusterState state;
+        state.Resize(1);
+
+        NS_TEST_ASSERT_MSG_EQ(state.Get(0).network.delayValid,
+                              false,
+                              "No measurement yet: delayValid starts false");
+
+        // First sample (smoothingFactor=1.0 means take the sample as-is).
+        state.UpdateMeasuredNetworkDelay(0, MilliSeconds(10), 1.0);
+        NS_TEST_ASSERT_MSG_EQ(state.Get(0).network.delayValid,
+                              true,
+                              "delayValid becomes true after first sample");
+        NS_TEST_ASSERT_MSG_EQ(state.Get(0).network.measuredDelay,
+                              MilliSeconds(10),
+                              "First sample is taken as-is");
+
+        // Second sample, EWMA with smoothingFactor=0.5:
+        // 0.5*20ms + 0.5*10ms = 15ms.
+        state.UpdateMeasuredNetworkDelay(0, MilliSeconds(20), 0.5);
+        NS_TEST_ASSERT_MSG_EQ(state.Get(0).network.measuredDelay,
+                              MilliSeconds(15),
+                              "EWMA blends new sample with previous estimate");
+    }
+};
+
 } // namespace
 
 TestCase*
 CreateClusterStateTestCase()
 {
     return new ClusterStateTestCase;
+}
+
+TestCase*
+CreateClusterStateNetworkTestCase()
+{
+    return new ClusterStateNetworkTestCase;
 }
 
 } // namespace ns3
