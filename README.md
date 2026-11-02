@@ -1,7 +1,20 @@
 # ns-3 Continuum
 
-An implementation of the computing continuum in ns-3. This project aims to enable simulating applications with remote processing workloads (e.g., AI-based applications such as LLM, image processing, ...etc).
+ns3-continuum is an new module for ns-3 network simulator and is designed to model and simulate AI workload (e.g., Extended Reality (XR), autonomous robotics, or UAV systems, ...) offloading across edge and multi-tier computing environments! 
 
+## ns-3 Continuum Architecture 
+![Architecture illustration](ns3-continuum-arch.png)
+
+**Composite AI Workloads:** Workloads modeled as Directed Acyclic Graphs (DAGs) to capture complex, multi-stage inference pipelines.
+
+**Configurable Offloading Client:** Flexible task generation behavior with integrated application-performance tracing (task completion latency, deadline misses).
+
+**Workload Orchestrator:** Dynamic compute-resource scheduling decisions across edge, cloud, and local nodes.
+
+**Hardware Accelerators:** Processing emulation for heterogeneous tasks (e.g., computer vision pipelines, LLM inference), featuring GPU implementation supporting dynamic voltage frequency scaling.
+
+## ns-3 Continuum paper 
+J. Mullan and A. H. Zahran, “[ns3-continuum: Bridging Network and Compute Simulation for Distributed Computing Systems](ns3-continuum-CNSM2026.pdf),” in Proc. 22nd Intl. Conf. on Network and Service Management, Alcalá de Henares (Madrid), Spain, 26–30 October, 2026.
 
 ## Build Commands
 
